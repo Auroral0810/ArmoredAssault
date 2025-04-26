@@ -1,0 +1,130 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="3" dy="4" stdDeviation="3" flood-opacity="0.4"/>
+  </filter>
+  
+  <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="2" result="blur" />
+    <feFlood flood-color="#FF0000" flood-opacity="0.5" result="color" />
+    <feComposite in="color" in2="blur" operator="in" result="glow" />
+    <feComposite in="SourceGraphic" in2="glow" operator="over" />
+  </filter>
+  
+  <!-- 强化背景效果 -->
+  <rect x="10" y="10" width="80" height="80" rx="5" fill="#111" opacity="0.3" />
+  
+  <!-- 履带底座 - 金属黑色 - 左右位置 -->
+  <rect x="15" y="10" width="15" height="80" rx="2" fill="#111" stroke="#600" stroke-width="1" />
+  <rect x="70" y="10" width="15" height="80" rx="2" fill="#111" stroke="#600" stroke-width="1" />
+  
+  <!-- 履带细节 - 红色与金属 -->
+  <g fill="#000">
+    <rect x="15" y="15" width="15" height="7" />
+    <rect x="15" y="29" width="15" height="7" />
+    <rect x="15" y="43" width="15" height="7" />
+    <rect x="15" y="57" width="15" height="7" />
+    <rect x="15" y="71" width="15" height="7" />
+    
+    <rect x="70" y="15" width="15" height="7" />
+    <rect x="70" y="29" width="15" height="7" />
+    <rect x="70" y="43" width="15" height="7" />
+    <rect x="70" y="57" width="15" height="7" />
+    <rect x="70" y="71" width="15" height="7" />
+  </g>
+  
+  <!-- 红色履带齿轮 -->
+  <rect x="15" y="22" width="15" height="7" fill="#F00" />
+  <rect x="15" y="36" width="15" height="7" fill="#F00" />
+  <rect x="15" y="50" width="15" height="7" fill="#F00" />
+  <rect x="15" y="64" width="15" height="7" fill="#F00" />
+  <rect x="15" y="78" width="15" height="7" fill="#F00" />
+  
+  <rect x="70" y="22" width="15" height="7" fill="#F00" />
+  <rect x="70" y="36" width="15" height="7" fill="#F00" />
+  <rect x="70" y="50" width="15" height="7" fill="#F00" />
+  <rect x="70" y="64" width="15" height="7" fill="#F00" />
+  <rect x="70" y="78" width="15" height="7" fill="#F00" />
+  
+  <!-- 履带连接器 - 增强工业感 -->
+  <rect x="30" y="8" width="40" height="5" rx="1" fill="#222" stroke="#444" stroke-width="1" />
+  <rect x="30" y="87" width="40" height="5" rx="1" fill="#222" stroke="#444" stroke-width="1" />
+  
+  <!-- 坦克主体 - 更厚重的装甲 -->
+  <rect x="30" y="15" width="40" height="70" rx="4" fill="url(#eliteBodyGradient)" stroke="#000" stroke-width="2" filter="url(#shadow)" />
+  
+  <!-- 精英装甲板 - 多层设计 -->
+  <rect x="34" y="20" width="7" height="60" rx="2" fill="#8B0000" stroke="#600" stroke-width="1" />
+  <rect x="59" y="20" width="7" height="60" rx="2" fill="#8B0000" stroke="#600" stroke-width="1" />
+  
+  <!-- 精英装甲加固板 -->
+  <rect x="41" y="18" width="18" height="10" rx="2" fill="#A00" stroke="#600" stroke-width="1" />
+  <rect x="41" y="72" width="18" height="10" rx="2" fill="#A00" stroke="#600" stroke-width="1" />
+  
+  <!-- 角落装甲凸起 - 尖锐威慑 -->
+  <path d="M30,15 L40,25 L40,15 Z" fill="#F00" stroke="#000" stroke-width="1" />
+  <path d="M70,15 L60,25 L60,15 Z" fill="#F00" stroke="#000" stroke-width="1" />
+  <path d="M30,85 L40,75 L40,85 Z" fill="#F00" stroke="#000" stroke-width="1" />
+  <path d="M70,85 L60,75 L60,85 Z" fill="#F00" stroke="#000" stroke-width="1" />
+  
+  <!-- 金属铆钉装饰 -->
+  <circle cx="34" cy="25" r="1.5" fill="#FF0" stroke="#000" stroke-width="0.5" />
+  <circle cx="34" cy="35" r="1.5" fill="#FF0" stroke="#000" stroke-width="0.5" />
+  <circle cx="34" cy="45" r="1.5" fill="#FF0" stroke="#000" stroke-width="0.5" />
+  <circle cx="34" cy="55" r="1.5" fill="#FF0" stroke="#000" stroke-width="0.5" />
+  <circle cx="34" cy="65" r="1.5" fill="#FF0" stroke="#000" stroke-width="0.5" />
+  <circle cx="34" cy="75" r="1.5" fill="#FF0" stroke="#000" stroke-width="0.5" />
+  
+  <circle cx="66" cy="25" r="1.5" fill="#FF0" stroke="#000" stroke-width="0.5" />
+  <circle cx="66" cy="35" r="1.5" fill="#FF0" stroke="#000" stroke-width="0.5" />
+  <circle cx="66" cy="45" r="1.5" fill="#FF0" stroke="#000" stroke-width="0.5" />
+  <circle cx="66" cy="55" r="1.5" fill="#FF0" stroke="#000" stroke-width="0.5" />
+  <circle cx="66" cy="65" r="1.5" fill="#FF0" stroke="#000" stroke-width="0.5" />
+  <circle cx="66" cy="75" r="1.5" fill="#FF0" stroke="#000" stroke-width="0.5" />
+  
+  <!-- 高级炮塔底座 - 八边形设计 -->
+  <polygon points="50,35 60,38 65,50 60,62 50,65 40,62 35,50 40,38" fill="url(#eliteTurretGradient)" stroke="#000" stroke-width="2" filter="url(#shadow)" />
+  
+  <!-- 双炮管设计 - 向下方向 -->
+  <rect x="44" y="63" width="5" height="30" fill="#A00" stroke="#000" stroke-width="1.5" filter="url(#shadow)" />
+  <rect x="51" y="63" width="5" height="30" fill="#A00" stroke="#000" stroke-width="1.5" filter="url(#shadow)" />
+  <rect x="42" y="90" width="9" height="6" rx="2" fill="#800" stroke="#000" stroke-width="1" />
+  <rect x="49" y="90" width="9" height="6" rx="2" fill="#800" stroke="#000" stroke-width="1" />
+  
+  <!-- 炮管连接件 -->
+  <rect x="42" y="60" width="16" height="8" rx="2" fill="#600" stroke="#000" stroke-width="1" />
+  
+  <!-- 炮管防热套 -->
+  <rect x="44" y="70" width="5" height="20" fill="none" stroke="#FF0" stroke-width="0.5" stroke-dasharray="2,1" />
+  <rect x="51" y="70" width="5" height="20" fill="none" stroke="#FF0" stroke-width="0.5" stroke-dasharray="2,1" />
+  
+  <!-- 精英敌方标识 - 骷髅星标志 -->
+  <circle cx="50" cy="50" r="10" fill="url(#eliteBadgeGradient)" stroke="#000" stroke-width="2" filter="url(#glow)" />
+  <path d="M45,45 L55,55 M55,45 L45,55" stroke="#000" stroke-width="3" />
+  <polygon points="50,40 52,45 58,45 53,49 55,55 50,51 45,55 47,49 42,45 48,45" fill="#FF0" stroke="#000" stroke-width="0.5" transform="scale(0.7) translate(30, 30)" />
+  
+  <!-- 额外强调 - 高级发光效果 -->
+  <circle cx="50" cy="50" r="15" fill="none" stroke="#FF0" stroke-width="1" stroke-dasharray="3,3" />
+  <circle cx="50" cy="50" r="18" fill="none" stroke="#F00" stroke-width="0.5" stroke-dasharray="1,2" />
+  
+  <!-- 精英状态图标 -->
+  <rect x="30" y="25" width="40" height="4" rx="2" fill="#FF0" stroke="#000" stroke-width="0.5" />
+  <rect x="32" y="25" width="36" height="4" rx="2" fill="#F00" />
+  
+  <!-- 定义渐变 -->
+  <defs>
+    <linearGradient id="eliteBodyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="10%" stop-color="#F00" />
+      <stop offset="60%" stop-color="#B00" />
+      <stop offset="100%" stop-color="#800" />
+    </linearGradient>
+    <linearGradient id="eliteTurretGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C00" />
+      <stop offset="60%" stop-color="#900" />
+      <stop offset="100%" stop-color="#600" />
+    </linearGradient>
+    <linearGradient id="eliteBadgeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F00" />
+      <stop offset="100%" stop-color="#900" />
+    </linearGradient>
+  </defs>
+</svg>

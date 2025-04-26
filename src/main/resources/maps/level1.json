@@ -1,0 +1,50 @@
+{
+  "level": 1,
+  "name": "初学者迷宫",
+  "width": 800,
+  "height": 600,
+  "playerBase": {
+    "x": 380,
+    "y": 520,
+    "width": 40,
+    "height": 40
+  },
+  "playerSpawn": {
+    "x": 380, 
+    "y": 460
+  },
+  "elements": [
+    {"type": "brick", "x": 340, "y": 520, "width": 40, "height": 40},
+    {"type": "brick", "x": 420, "y": 520, "width": 40, "height": 40},
+    {"type": "brick", "x": 340, "y": 480, "width": 40, "height": 40},
+    {"type": "brick", "x": 420, "y": 480, "width": 40, "height": 40},
+    {"type": "brick", "x": 380, "y": 480, "width": 40, "height": 40},
+    
+    {"type": "brick", "x": 80, "y": 240, "width": 40, "height": 40},
+    {"type": "brick", "x": 80, "y": 360, "width": 40, "height": 40},
+    
+    {"type": "brick", "x": 680, "y": 240, "width": 40, "height": 40},
+    {"type": "brick", "x": 680, "y": 360, "width": 40, "height": 40},
+    
+    {"type": "brick", "x": 240, "y": 120, "width": 40, "height": 40},
+    {"type": "brick", "x": 520, "y": 120, "width": 40, "height": 40},
+    
+    {"type": "water", "x": 200, "y": 360, "width": 40, "height": 40},
+    {"type": "water", "x": 560, "y": 360, "width": 40, "height": 40},
+    {"type": "water", "x": 380, "y": 240, "width": 40, "height": 40},
+    
+    {"type": "grass", "x": 160, "y": 160, "width": 40, "height": 40},
+    {"type": "grass", "x": 600, "y": 160, "width": 40, "height": 40},
+    {"type": "grass", "x": 380, "y": 160, "width": 40, "height": 40},
+    
+    {"type": "steel", "x": 240, "y": 280, "width": 40, "height": 40},
+    {"type": "steel", "x": 520, "y": 280, "width": 40, "height": 40},
+    
+    {"type": "brick", "x": 380, "y": 360, "width": 40, "height": 40}
+  ],
+  "enemies": [
+    {"type": "basic", "spawnPoint": {"x": 120, "y": 40}},
+    {"type": "basic", "spawnPoint": {"x": 380, "y": 40}},
+    {"type": "basic", "spawnPoint": {"x": 640, "y": 40}}
+  ]
+} 

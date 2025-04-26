@@ -1,0 +1,100 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <!-- 替换feDropShadow为SVG 1.1兼容的滤镜组合 -->
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+    <feOffset dx="2" dy="3"/>
+    <feComponentTransfer>
+      <feFuncA type="linear" slope="0.4"/>
+    </feComponentTransfer>
+    <feMerge>
+      <feMergeNode/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  
+  <!-- 较宽的履带底座 - 上下两侧 -->
+  <rect x="10" y="15" width="80" height="15" rx="3" fill="#222" />
+  <rect x="10" y="70" width="80" height="15" rx="3" fill="#222" />
+  
+  <!-- 履带细节 -->
+  <g fill="#111">
+    <rect x="15" y="15" width="6" height="15" />
+    <rect x="25" y="15" width="6" height="15" />
+    <rect x="35" y="15" width="6" height="15" />
+    <rect x="45" y="15" width="6" height="15" />
+    <rect x="55" y="15" width="6" height="15" />
+    <rect x="65" y="15" width="6" height="15" />
+    <rect x="75" y="15" width="6" height="15" />
+    
+    <rect x="15" y="70" width="6" height="15" />
+    <rect x="25" y="70" width="6" height="15" />
+    <rect x="35" y="70" width="6" height="15" />
+    <rect x="45" y="70" width="6" height="15" />
+    <rect x="55" y="70" width="6" height="15" />
+    <rect x="65" y="70" width="6" height="15" />
+    <rect x="75" y="70" width="6" height="15" />
+  </g>
+  
+  <!-- 额外防护装甲 - 侧面 -->
+  <rect x="10" y="30" width="10" height="40" rx="2" fill="#1F3F2A" filter="url(#shadow)" />
+  <rect x="80" y="30" width="10" height="40" rx="2" fill="#1F3F2A" filter="url(#shadow)" />
+  
+  <!-- 坦克主体 - 厚重设计 -->
+  <rect x="15" y="30" width="70" height="40" rx="4" fill="url(#heavyBodyGradient)" filter="url(#shadow)" />
+  
+  <!-- 三角形装甲前脸 -->
+  <polygon points="85,40 85,60 95,50" fill="#1F3F2A" filter="url(#shadow)" />
+  
+  <!-- 主体装饰和装甲板 -->
+  <rect x="20" y="35" width="60" height="8" rx="2" fill="#1A3322" opacity="0.8" />
+  <rect x="20" y="57" width="60" height="8" rx="2" fill="#1A3322" opacity="0.8" />
+  <rect x="20" y="45" width="12" height="10" rx="1" fill="#1A3322" opacity="0.6" />
+  <rect x="60" y="45" width="12" height="10" rx="1" fill="#1A3322" opacity="0.6" />
+  
+  <!-- 铆钉装饰 -->
+  <circle cx="25" cy="35" r="1.5" fill="#333" />
+  <circle cx="35" cy="35" r="1.5" fill="#333" />
+  <circle cx="45" cy="35" r="1.5" fill="#333" />
+  <circle cx="55" cy="35" r="1.5" fill="#333" />
+  <circle cx="65" cy="35" r="1.5" fill="#333" />
+  <circle cx="75" cy="35" r="1.5" fill="#333" />
+  
+  <circle cx="25" cy="65" r="1.5" fill="#333" />
+  <circle cx="35" cy="65" r="1.5" fill="#333" />
+  <circle cx="45" cy="65" r="1.5" fill="#333" />
+  <circle cx="55" cy="65" r="1.5" fill="#333" />
+  <circle cx="65" cy="65" r="1.5" fill="#333" />
+  <circle cx="75" cy="65" r="1.5" fill="#333" />
+  
+  <!-- 较大的炮塔底座 -->
+  <circle cx="50" cy="50" r="16" fill="url(#heavyTurretGradient)" filter="url(#shadow)" />
+  
+  <!-- 粗壮的炮管 - 向右 -->
+  <rect x="64" y="45" width="32" height="10" fill="url(#heavyGunGradient)" filter="url(#shadow)" />
+  <rect x="92" y="43" width="6" height="14" rx="2" fill="#0C2310" />
+  <rect x="64" y="43" width="6" height="14" rx="1" fill="#1A3322" />
+  
+  <!-- 炮管防热套 -->
+  <rect x="70" y="43" width="20" height="14" fill="none" stroke="#0C2310" stroke-width="1.5" stroke-dasharray="2,2" />
+  
+  <!-- 装甲细节和识别标记 -->
+  <circle cx="50" cy="50" r="10" fill="#2E5A3E" opacity="0.8" />
+  <path d="M45,50 L55,50 M50,45 L50,55" stroke="#0C2310" stroke-width="3" />
+  
+  <!-- 定义渐变 -->
+  <defs>
+    <linearGradient id="heavyBodyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="10%" stop-color="#2E5A3E" />
+      <stop offset="90%" stop-color="#1A3322" />
+    </linearGradient>
+    <linearGradient id="heavyTurretGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2E5A3E" />
+      <stop offset="100%" stop-color="#0C2310" />
+    </linearGradient>
+    <linearGradient id="heavyGunGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1A3322" />
+      <stop offset="60%" stop-color="#0C2310" />
+      <stop offset="100%" stop-color="#0C2310" />
+    </linearGradient>
+  </defs>
+</svg>

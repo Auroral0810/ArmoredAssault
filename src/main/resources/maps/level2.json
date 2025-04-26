@@ -1,0 +1,73 @@
+{
+  "level": 2,
+  "name": "城墙防御",
+  "width": 800,
+  "height": 600,
+  "playerBase": {
+    "x": 380,
+    "y": 520,
+    "width": 40,
+    "height": 40
+  },
+  "playerSpawn": {
+    "x": 380, 
+    "y": 460
+  },
+  "elements": [
+    {"type": "steel", "x": 340, "y": 520, "width": 40, "height": 40},
+    {"type": "steel", "x": 420, "y": 520, "width": 40, "height": 40},
+    {"type": "brick", "x": 300, "y": 520, "width": 40, "height": 40},
+    {"type": "brick", "x": 460, "y": 520, "width": 40, "height": 40},
+    {"type": "brick", "x": 340, "y": 480, "width": 40, "height": 40},
+    {"type": "brick", "x": 380, "y": 480, "width": 40, "height": 40},
+    {"type": "brick", "x": 420, "y": 480, "width": 40, "height": 40},
+    
+    {"type": "brick", "x": 140, "y": 300, "width": 40, "height": 40},
+    {"type": "brick", "x": 220, "y": 300, "width": 40, "height": 40},
+    {"type": "steel", "x": 300, "y": 300, "width": 40, "height": 40},
+    {"type": "brick", "x": 380, "y": 300, "width": 40, "height": 40},
+    {"type": "brick", "x": 460, "y": 300, "width": 40, "height": 40},
+    {"type": "steel", "x": 540, "y": 300, "width": 40, "height": 40},
+    {"type": "brick", "x": 620, "y": 300, "width": 40, "height": 40},
+    
+    {"type": "brick", "x": 100, "y": 380, "width": 40, "height": 40},
+    {"type": "brick", "x": 100, "y": 460, "width": 40, "height": 40},
+    {"type": "brick", "x": 180, "y": 420, "width": 40, "height": 40},
+    {"type": "brick", "x": 260, "y": 380, "width": 40, "height": 40},
+    
+    {"type": "brick", "x": 500, "y": 380, "width": 40, "height": 40},
+    {"type": "brick", "x": 580, "y": 420, "width": 40, "height": 40},
+    {"type": "brick", "x": 660, "y": 380, "width": 40, "height": 40},
+    {"type": "brick", "x": 660, "y": 460, "width": 40, "height": 40},
+    
+    {"type": "water", "x": 100, "y": 180, "width": 40, "height": 40},
+    {"type": "water", "x": 180, "y": 180, "width": 40, "height": 40},
+    {"type": "water", "x": 580, "y": 180, "width": 40, "height": 40},
+    {"type": "water", "x": 660, "y": 180, "width": 40, "height": 40},
+    
+    {"type": "grass", "x": 60, "y": 220, "width": 40, "height": 40},
+    {"type": "grass", "x": 140, "y": 220, "width": 40, "height": 40},
+    {"type": "grass", "x": 340, "y": 140, "width": 40, "height": 40},
+    {"type": "grass", "x": 420, "y": 140, "width": 40, "height": 40},
+    {"type": "grass", "x": 620, "y": 220, "width": 40, "height": 40},
+    {"type": "grass", "x": 700, "y": 220, "width": 40, "height": 40},
+    
+    {"type": "steel", "x": 340, "y": 220, "width": 40, "height": 40},
+    {"type": "steel", "x": 420, "y": 220, "width": 40, "height": 40},
+    {"type": "water", "x": 380, "y": 220, "width": 40, "height": 40},
+    
+    {"type": "brick", "x": 180, "y": 100, "width": 40, "height": 40},
+    {"type": "brick", "x": 220, "y": 100, "width": 40, "height": 40},
+    {"type": "steel", "x": 260, "y": 140, "width": 40, "height": 40},
+    {"type": "brick", "x": 540, "y": 100, "width": 40, "height": 40},
+    {"type": "brick", "x": 580, "y": 100, "width": 40, "height": 40},
+    {"type": "steel", "x": 500, "y": 140, "width": 40, "height": 40}
+  ],
+  "enemies": [
+    {"type": "basic", "spawnPoint": {"x": 60, "y": 40}},
+    {"type": "basic", "spawnPoint": {"x": 220, "y": 40}},
+    {"type": "basic", "spawnPoint": {"x": 380, "y": 40}},
+    {"type": "basic", "spawnPoint": {"x": 540, "y": 40}},
+    {"type": "basic", "spawnPoint": {"x": 700, "y": 40}}
+  ]
+} 

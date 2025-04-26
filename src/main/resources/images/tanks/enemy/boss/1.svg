@@ -1,0 +1,194 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="4" dy="5" stdDeviation="4" flood-opacity="0.5"/>
+  </filter>
+  
+  <filter id="bossGlow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="3" result="blur" />
+    <feFlood flood-color="#FF0000" flood-opacity="0.7" result="color" />
+    <feComposite in="color" in2="blur" operator="in" result="glow" />
+    <feComposite in="SourceGraphic" in2="glow" operator="over" />
+  </filter>
+  
+  <filter id="fireEffect" x="-30%" y="-30%" width="160%" height="160%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="1" />
+    <feDisplacementMap in="SourceGraphic" scale="5" />
+  </filter>
+  
+  <!-- 背景阴影 - 增强威慑感 -->
+  <rect x="5" y="5" width="90" height="90" rx="5" fill="#000" opacity="0.4" />
+  
+  <!-- 强化履带底座 - 宽大厚重 -->
+  <rect x="5" y="12" width="90" height="18" rx="3" fill="#111" stroke="#800" stroke-width="1.5" />
+  <rect x="5" y="70" width="90" height="18" rx="3" fill="#111" stroke="#800" stroke-width="1.5" />
+  
+  <!-- 履带细节 - 红黑金三色 -->
+  <g fill="#000">
+    <rect x="10" y="12" width="8" height="18" />
+    <rect x="26" y="12" width="8" height="18" />
+    <rect x="42" y="12" width="8" height="18" />
+    <rect x="58" y="12" width="8" height="18" />
+    <rect x="74" y="12" width="8" height="18" />
+    
+    <rect x="10" y="70" width="8" height="18" />
+    <rect x="26" y="70" width="8" height="18" />
+    <rect x="42" y="70" width="8" height="18" />
+    <rect x="58" y="70" width="8" height="18" />
+    <rect x="74" y="70" width="8" height="18" />
+  </g>
+  
+  <!-- 红色履带装甲 -->
+  <g fill="#C00">
+    <rect x="18" y="12" width="8" height="18" />
+    <rect x="34" y="12" width="8" height="18" />
+    <rect x="50" y="12" width="8" height="18" />
+    <rect x="66" y="12" width="8" height="18" />
+    <rect x="82" y="12" width="8" height="18" />
+    
+    <rect x="18" y="70" width="8" height="18" />
+    <rect x="34" y="70" width="8" height="18" />
+    <rect x="50" y="70" width="8" height="18" />
+    <rect x="66" y="70" width="8" height="18" />
+    <rect x="82" y="70" width="8" height="18" />
+  </g>
+  
+  <!-- 黄金装饰铆钉线 -->
+  <rect x="5" y="16" width="90" height="2" fill="#FC0" />
+  <rect x="5" y="24" width="90" height="2" fill="#FC0" />
+  <rect x="5" y="74" width="90" height="2" fill="#FC0" />
+  <rect x="5" y="82" width="90" height="2" fill="#FC0" />
+  
+  <!-- 履带连接器和装甲加固板 -->
+  <rect x="5" y="30" width="8" height="40" rx="2" fill="#500" stroke="#A00" stroke-width="1.5" />
+  <rect x="87" y="30" width="8" height="40" rx="2" fill="#500" stroke="#A00" stroke-width="1.5" />
+  
+  <!-- 侧面额外装甲 -->
+  <path d="M5,40 L0,45 L0,55 L5,60" fill="none" stroke="#A00" stroke-width="3" />
+  <path d="M95,40 L100,45 L100,55 L95,60" fill="none" stroke="#A00" stroke-width="3" />
+  
+  <!-- 坦克主体 - 更厚重更复杂 -->
+  <rect x="13" y="30" width="74" height="40" rx="5" fill="url(#bossBodyGradient)" stroke="#000" stroke-width="3" filter="url(#shadow)" />
+  
+  <!-- BOSS级装甲板 - 更多层次 -->
+  <rect x="17" y="33" width="66" height="8" rx="3" fill="#600" stroke="#A00" stroke-width="1.5" />
+  <rect x="17" y="59" width="66" height="8" rx="3" fill="#600" stroke="#A00" stroke-width="1.5" />
+  
+  <!-- 中央装甲加固区域 -->
+  <rect x="40" y="41" width="20" height="18" rx="3" fill="#500" stroke="#800" stroke-width="1.5" />
+  <circle cx="50" cy="50" r="7" fill="#700" stroke="#A00" stroke-width="1.5" />
+  
+  <!-- 侧面装甲 -->
+  <rect x="15" y="41" width="15" height="18" rx="2" fill="#800" stroke="#A00" stroke-width="1.5" />
+  <rect x="70" y="41" width="15" height="18" rx="2" fill="#800" stroke="#A00" stroke-width="1.5" />
+  
+  <!-- 装甲尖刺 - 更多更锋利 -->
+  <path d="M13,30 L20,37 L13,37 Z" fill="#C00" stroke="#000" stroke-width="1.5" />
+  <path d="M87,30 L80,37 L87,37 Z" fill="#C00" stroke="#000" stroke-width="1.5" />
+  <path d="M13,70 L20,63 L13,63 Z" fill="#C00" stroke="#000" stroke-width="1.5" />
+  <path d="M87,70 L80,63 L87,63 Z" fill="#C00" stroke="#000" stroke-width="1.5" />
+  
+  <path d="M30,30 L35,35 L30,35 Z" fill="#C00" stroke="#000" stroke-width="1" />
+  <path d="M50,30 L55,35 L50,35 Z" fill="#C00" stroke="#000" stroke-width="1" />
+  <path d="M70,30 L75,35 L70,35 Z" fill="#C00" stroke="#000" stroke-width="1" />
+  <path d="M30,70 L35,65 L30,65 Z" fill="#C00" stroke="#000" stroke-width="1" />
+  <path d="M50,70 L55,65 L50,65 Z" fill="#C00" stroke="#000" stroke-width="1" />
+  <path d="M70,70 L75,65 L70,65 Z" fill="#C00" stroke="#000" stroke-width="1" />
+  
+  <!-- 金属铆钉装饰 - 更豪华 -->
+  <g>
+    <circle cx="20" cy="33" r="1.5" fill="#FC0" stroke="#000" stroke-width="0.5" />
+    <circle cx="30" cy="33" r="1.5" fill="#FC0" stroke="#000" stroke-width="0.5" />
+    <circle cx="40" cy="33" r="1.5" fill="#FC0" stroke="#000" stroke-width="0.5" />
+    <circle cx="60" cy="33" r="1.5" fill="#FC0" stroke="#000" stroke-width="0.5" />
+    <circle cx="70" cy="33" r="1.5" fill="#FC0" stroke="#000" stroke-width="0.5" />
+    <circle cx="80" cy="33" r="1.5" fill="#FC0" stroke="#000" stroke-width="0.5" />
+    
+    <circle cx="20" cy="67" r="1.5" fill="#FC0" stroke="#000" stroke-width="0.5" />
+    <circle cx="30" cy="67" r="1.5" fill="#FC0" stroke="#000" stroke-width="0.5" />
+    <circle cx="40" cy="67" r="1.5" fill="#FC0" stroke="#000" stroke-width="0.5" />
+    <circle cx="60" cy="67" r="1.5" fill="#FC0" stroke="#000" stroke-width="0.5" />
+    <circle cx="70" cy="67" r="1.5" fill="#FC0" stroke="#000" stroke-width="0.5" />
+    <circle cx="80" cy="67" r="1.5" fill="#FC0" stroke="#000" stroke-width="0.5" />
+    
+    <circle cx="20" cy="50" r="1.5" fill="#FC0" stroke="#000" stroke-width="0.5" />
+    <circle cx="80" cy="50" r="1.5" fill="#FC0" stroke="#000" stroke-width="0.5" />
+  </g>
+  
+  <!-- 装饰线条 -->
+  <path d="M17,45 L30,45" stroke="#FC0" stroke-width="1" />
+  <path d="M17,55 L30,55" stroke="#FC0" stroke-width="1" />
+  <path d="M70,45 L83,45" stroke="#FC0" stroke-width="1" />
+  <path d="M70,55 L83,55" stroke="#FC0" stroke-width="1" />
+  
+  <!-- 重型炮塔底座 - 十二边形设计 -->
+  <polygon points="50,34 57,36 62,41 64,50 62,59 57,64 50,66 43,64 38,59 36,50 38,41 43,36" 
+           fill="url(#bossTurretGradient)" stroke="#000" stroke-width="3" filter="url(#shadow)" />
+  
+  <!-- 三联炮管设计 - 终极火力 -->
+  <rect x="62" y="40" width="34" height="6" fill="#A00" stroke="#500" stroke-width="1.5" filter="url(#shadow)" />
+  <rect x="62" y="47" width="38" height="6" fill="#A00" stroke="#500" stroke-width="1.5" filter="url(#shadow)" />
+  <rect x="62" y="54" width="30" height="6" fill="#A00" stroke="#500" stroke-width="1.5" filter="url(#shadow)" />
+  
+  <!-- 炮口 -->
+  <rect x="93" y="38" width="6" height="10" rx="2" fill="#500" stroke="#300" stroke-width="1.5" />
+  <rect x="97" y="45" width="7" height="10" rx="2" fill="#500" stroke="#300" stroke-width="1.5" />
+  <rect x="89" y="52" width="5" height="10" rx="2" fill="#500" stroke="#300" stroke-width="1.5" />
+  
+  <!-- 炮管连接部件 -->
+  <rect x="58" y="38" width="10" height="24" rx="3" fill="#700" stroke="#500" stroke-width="1.5" />
+  <circle cx="63" cy="50" r="4" fill="#A00" stroke="#500" stroke-width="1" />
+  
+  <!-- 炮管防热套 -->
+  <rect x="66" y="40" width="24" height="6" fill="none" stroke="#FC0" stroke-width="1" stroke-dasharray="3,2" />
+  <rect x="66" y="47" width="28" height="6" fill="none" stroke="#FC0" stroke-width="1" stroke-dasharray="3,2" />
+  <rect x="66" y="54" width="20" height="6" fill="none" stroke="#FC0" stroke-width="1" stroke-dasharray="3,2" />
+  
+  <!-- 炮管火焰特效 -->
+  <circle cx="96" cy="43" r="2" fill="#FF0" opacity="0.7" filter="url(#fireEffect)" />
+  <circle cx="100" cy="50" r="2" fill="#FF0" opacity="0.7" filter="url(#fireEffect)" />
+  <circle cx="92" cy="57" r="2" fill="#FF0" opacity="0.7" filter="url(#fireEffect)" />
+  
+  <!-- BOSS标识 - 骷髅王冠 -->
+  <circle cx="50" cy="50" r="10" fill="url(#bossBadgeGradient)" stroke="#300" stroke-width="3" filter="url(#bossGlow)" />
+  <path d="M45,45 L55,55 M55,45 L45,55" stroke="#000" stroke-width="4" stroke-linecap="round" />
+  <path d="M43,48 C43,46 57,46 57,48" stroke="#000" stroke-width="2" fill="none" />
+  <path d="M43,52 C43,56 57,56 57,52" stroke="#000" stroke-width="2" fill="none" />
+  
+  <!-- 皇冠装饰 -->
+  <path d="M42,40 L46,42 L50,38 L54,42 L58,40" stroke="#FC0" stroke-width="2" fill="none" />
+  <circle cx="46" cy="42" r="1" fill="#FC0" />
+  <circle cx="50" cy="38" r="1" fill="#FC0" />
+  <circle cx="54" cy="42" r="1" fill="#FC0" />
+  
+  <!-- 额外强调 - BOSS级光晕效果 -->
+  <circle cx="50" cy="50" r="16" fill="none" stroke="#FF0" stroke-width="1" stroke-dasharray="4,2" />
+  <circle cx="50" cy="50" r="20" fill="none" stroke="#F00" stroke-width="1.5" stroke-dasharray="1,3" />
+  <circle cx="50" cy="50" r="24" fill="none" stroke="#F60" stroke-width="0.5" stroke-dasharray="1,4" />
+  
+  <!-- BOSS状态指示器 -->
+  <rect x="25" y="22" width="50" height="6" rx="3" fill="#500" stroke="#FC0" stroke-width="1" />
+  <rect x="26" y="23" width="48" height="4" rx="2" fill="#F00" />
+  
+  <!-- 警示灯 -->
+  <circle cx="15" cy="25" r="3" fill="#F00" filter="url(#bossGlow)" />
+  <circle cx="85" cy="25" r="3" fill="#F00" filter="url(#bossGlow)" />
+  
+  <!-- 定义渐变 -->
+  <defs>
+    <linearGradient id="bossBodyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A00" />
+      <stop offset="50%" stop-color="#800" />
+      <stop offset="100%" stop-color="#500" />
+    </linearGradient>
+    <linearGradient id="bossTurretGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#900" />
+      <stop offset="50%" stop-color="#700" />
+      <stop offset="100%" stop-color="#400" />
+    </linearGradient>
+    <linearGradient id="bossBadgeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F00" />
+      <stop offset="50%" stop-color="#A00" />
+      <stop offset="100%" stop-color="#700" />
+    </linearGradient>
+  </defs>
+</svg>

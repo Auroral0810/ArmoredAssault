@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!-- 背景 -->
+  <defs>
+    <radialGradient id="bgGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%" stop-color="#2A3F5F" stop-opacity="1" />
+      <stop offset="100%" stop-color="#1B2838" stop-opacity="1" />
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="80" fill="url(#bgGradient)" />
+  
+  <!-- 坦克轮廓 -->
+  <g transform="translate(70, 130) scale(0.73)">
+    <!-- 坦克履带 -->
+    <rect x="30" y="180" width="410" height="120" rx="20" fill="#3A3A3A" />
+    <rect x="30" y="180" width="410" height="120" rx="20" fill="none" stroke="#555555" stroke-width="12" />
+    
+    <!-- 履带纹理 -->
+    <g fill="#2C2C2C">
+      <rect x="50" y="200" width="20" height="80" rx="4" />
+      <rect x="90" y="200" width="20" height="80" rx="4" />
+      <rect x="130" y="200" width="20" height="80" rx="4" />
+      <rect x="170" y="200" width="20" height="80" rx="4" />
+      <rect x="210" y="200" width="20" height="80" rx="4" />
+      <rect x="250" y="200" width="20" height="80" rx="4" />
+      <rect x="290" y="200" width="20" height="80" rx="4" />
+      <rect x="330" y="200" width="20" height="80" rx="4" />
+      <rect x="370" y="200" width="20" height="80" rx="4" />
+      <rect x="410" y="200" width="20" height="80" rx="4" />
+    </g>
+    
+    <!-- 坦克身体 -->
+    <rect x="80" y="100" width="300" height="140" rx="15" fill="#25A0DA" />
+    <rect x="80" y="100" width="300" height="140" rx="15" fill="none" stroke="#1A7FB9" stroke-width="8" />
+    
+    <!-- 坦克炮塔 -->
+    <ellipse cx="230" cy="130" rx="80" ry="60" fill="#1E8BC9" />
+    <ellipse cx="230" cy="130" rx="80" ry="60" fill="none" stroke="#1A7FB9" stroke-width="6" />
+    
+    <!-- 坦克炮管 -->
+    <rect x="230" y="110" width="210" height="40" rx="10" fill="#1E8BC9" />
+    <rect x="230" y="110" width="210" height="40" rx="10" fill="none" stroke="#1A7FB9" stroke-width="5" />
+    <circle cx="310" cy="130" r="8" fill="#1A7FB9" />
+    
+    <!-- 高光 -->
+    <ellipse cx="200" cy="115" rx="40" ry="20" fill="#5CCEFF" opacity="0.3" />
+    <rect x="240" y="115" width="120" height="15" rx="7" fill="#5CCEFF" opacity="0.2" />
+  </g>
+  
+  <!-- 2025 文字 -->
+  <text x="256" y="380" font-family="Arial, sans-serif" font-size="100" font-weight="900" text-anchor="middle" fill="#FFFFFF">2025</text>
+  
+  <!-- TANK 文字 -->
+  <text x="256" y="450" font-family="Impact, sans-serif" font-size="60" text-anchor="middle" fill="#25A0DA" font-weight="bold">TANK</text>
+</svg>

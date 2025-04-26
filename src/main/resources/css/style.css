@@ -1,0 +1,67 @@
+/* 全局样式 */
+.root {
+    -fx-font-family: 'Arial, Helvetica, sans-serif';
+}
+
+/* 菜单按钮样式 */
+.menu-button {
+    -fx-text-fill: white;
+    -fx-background-radius: 25;
+    -fx-cursor: hand;
+    -fx-transition: all 0.3s ease;
+}
+
+.menu-button:hover {
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+    -fx-opacity: 0.9;
+}
+
+.menu-button:pressed {
+    -fx-scale-x: 0.98;
+    -fx-scale-y: 0.98;
+    -fx-opacity: 0.8;
+}
+
+/* 坦克选择按钮 */
+.tank-select-button {
+    -fx-text-fill: white;
+    -fx-background-radius: 20;
+    -fx-min-width: 100;
+    -fx-min-height: 40;
+    -fx-cursor: hand;
+}
+
+.tank-select-button:hover {
+    -fx-opacity: 0.9;
+}
+
+.tank-select-button:pressed {
+    -fx-scale-x: 0.95;
+    -fx-scale-y: 0.95;
+}
+
+/* 对话框样式 */
+.jfx-dialog-overlay-pane {
+    -fx-background-color: rgba(0, 0, 0, 0.7);
+}
+
+.jfx-layout-heading {
+    -fx-font-size: 20;
+    -fx-font-weight: bold;
+}
+
+.jfx-layout-body {
+    -fx-font-size: 16;
+}
+
+.pause-menu-button {
+    -fx-background-radius: 5;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 3, 0, 0, 1);
+    -fx-cursor: hand;
+}
+
+.settings-button {
+    -fx-cursor: hand;
+    -fx-background-radius: 5;
+} 

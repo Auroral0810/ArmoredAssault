@@ -1,0 +1,76 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <!-- 替换feDropShadow为SVG 1.1兼容的滤镜 -->
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+    <feOffset dx="2" dy="3"/>
+    <feComponentTransfer>
+      <feFuncA type="linear" slope="0.4"/>
+    </feComponentTransfer>
+    <feMerge>
+      <feMergeNode/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  
+  <!-- 较细的履带底座 - 上下两侧 -->
+  <rect x="18" y="22" width="65" height="8" rx="4" fill="#333" />
+  <rect x="18" y="70" width="65" height="8" rx="4" fill="#333" />
+  
+  <!-- 履带细节 -->
+  <g fill="#222">
+    <rect x="23" y="22" width="4" height="8" />
+    <rect x="33" y="22" width="4" height="8" />
+    <rect x="43" y="22" width="4" height="8" />
+    <rect x="53" y="22" width="4" height="8" />
+    <rect x="63" y="22" width="4" height="8" />
+    <rect x="73" y="22" width="4" height="8" />
+    
+    <rect x="23" y="70" width="4" height="8" />
+    <rect x="33" y="70" width="4" height="8" />
+    <rect x="43" y="70" width="4" height="8" />
+    <rect x="53" y="70" width="4" height="8" />
+    <rect x="63" y="70" width="4" height="8" />
+    <rect x="73" y="70" width="4" height="8" />
+  </g>
+  
+  <!-- 坦克主体 - 更流线型 -->
+  <path d="M25,30 L20,50 L25,70 L75,70 L80,50 L75,30 Z" fill="url(#lightBodyGradient)" filter="url(#shadow)" />
+  
+  <!-- 主体装饰 -->
+  <rect x="30" y="40" width="40" height="3" rx="1" fill="#3DBCA1" opacity="0.7" />
+  <rect x="30" y="57" width="40" height="3" rx="1" fill="#3DBCA1" opacity="0.7" />
+  <rect x="28" y="45" width="5" height="10" rx="2" fill="#3DBCA1" opacity="0.5" />
+  <rect x="67" y="45" width="5" height="10" rx="2" fill="#3DBCA1" opacity="0.5" />
+  
+  <!-- 坦克炮塔底座 - 较小 -->
+  <circle cx="50" cy="50" r="10" fill="url(#lightTurretGradient)" filter="url(#shadow)" />
+  
+  <!-- 改进: 粗一些的炮管 - 向左 -->
+  <rect x="10" y="47.5" width="30" height="5" fill="url(#lightGunGradientH)" filter="url(#shadow)" />
+  <rect x="7" y="46" width="6" height="8" rx="2" fill="#1C8873" />
+  <rect x="35" y="46" width="5" height="8" rx="1" fill="#1C8873" />
+  
+  <!-- 炮管明显的强调边框 -->
+  <rect x="10" y="47.5" width="30" height="5" fill="none" stroke="#157863" stroke-width="1" />
+  
+  <!-- 装甲细节 -->
+  <circle cx="50" cy="50" r="6" fill="#7DDBCA" opacity="0.7" />
+  <circle cx="50" cy="50" r="3" fill="#1C8873" />
+  
+  <!-- 定义渐变 -->
+  <defs>
+    <linearGradient id="lightBodyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="10%" stop-color="#7DDBCA" />
+      <stop offset="90%" stop-color="#3DBCA1" />
+    </linearGradient>
+    <linearGradient id="lightTurretGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#64CAB8" />
+      <stop offset="100%" stop-color="#1C8873" />
+    </linearGradient>
+    <linearGradient id="lightGunGradientH" x1="100%" y1="0%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#3DBCA1" />
+      <stop offset="60%" stop-color="#1C8873" />
+      <stop offset="100%" stop-color="#1C8873" />
+    </linearGradient>
+  </defs>
+</svg>

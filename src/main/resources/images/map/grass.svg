@@ -1,0 +1,54 @@
+<svg width="40" height="40" xmlns="http://www.w3.org/2000/svg">
+    <!-- 底层草地 -->
+    <rect width="40" height="40" fill="#7CCD7C"/>
+    
+    <!-- 草丛纹理 -->
+    <g fill="#4CAF50" opacity="0.7">
+      <ellipse cx="8" cy="10" rx="5" ry="7"/>
+      <ellipse cx="14" cy="8" rx="4" ry="6"/>
+      <ellipse cx="20" cy="11" rx="5" ry="8"/>
+      <ellipse cx="26" cy="9" rx="4" ry="7"/>
+      <ellipse cx="32" cy="10" rx="5" ry="6"/>
+      
+      <ellipse cx="10" cy="20" rx="6" ry="9"/>
+      <ellipse cx="17" cy="22" rx="5" ry="8"/>
+      <ellipse cx="24" cy="19" rx="4" ry="7"/>
+      <ellipse cx="30" cy="21" rx="5" ry="8"/>
+      
+      <ellipse cx="7" cy="30" rx="4" ry="7"/>
+      <ellipse cx="14" cy="32" rx="5" ry="6"/>
+      <ellipse cx="21" cy="29" rx="4" ry="8"/>
+      <ellipse cx="27" cy="31" rx="6" ry="7"/>
+      <ellipse cx="33" cy="28" rx="4" ry="6"/>
+    </g>
+    
+    <!-- 草尖 -->
+    <g stroke="#006400" stroke-width="0.5" fill="none">
+      <path d="M5,12 L7,6 L9,12" />
+      <path d="M15,10 L17,4 L19,10" />
+      <path d="M22,13 L24,5 L26,13" />
+      <path d="M30,11 L32,4 L34,11" />
+      
+      <path d="M8,22 L10,16 L12,22" />
+      <path d="M17,24 L19,17 L21,24" />
+      <path d="M27,19 L29,13 L31,19" />
+      
+      <path d="M6,32 L8,25 L10,32" />
+      <path d="M19,30 L21,23 L23,30" />
+      <path d="M32,29 L34,22 L36,29" />
+    </g>
+    
+    <!-- 细节高光 -->
+    <g fill="#90EE90" opacity="0.4">
+      <circle cx="8" cy="8" r="1" />
+      <circle cx="18" cy="6" r="1" />
+      <circle cx="25" cy="10" r="1" />
+      <circle cx="34" cy="9" r="1" />
+      <circle cx="12" cy="19" r="1" />
+      <circle cx="23" cy="18" r="1" />
+      <circle cx="31" cy="20" r="1" />
+      <circle cx="9" cy="28" r="1" />
+      <circle cx="20" cy="30" r="1" />
+      <circle cx="29" cy="27" r="1" />
+    </g>
+  </svg>

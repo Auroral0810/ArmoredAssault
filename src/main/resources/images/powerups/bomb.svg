@@ -1,0 +1,54 @@
+<svg width="40" height="40" xmlns="http://www.w3.org/2000/svg">
+    <!-- 外部圆形边框 -->
+    <circle cx="20" cy="20" r="18" fill="#FFFAFA" stroke="#B22222" stroke-width="2"/>
+    
+    <!-- 炸弹主体 -->
+    <circle cx="20" cy="22" r="12" fill="#000000" stroke="#333333" stroke-width="1"/>
+    
+    <!-- 炸弹顶部 -->
+    <path d="M20,10 L20,15 C18,15 22,15 20,15 Z" fill="#696969"/>
+    <rect x="19" y="8" width="2" height="4" fill="#696969" rx="1"/>
+    
+    <!-- 引信 -->
+    <path d="M20,8 Q24,5 26,3" fill="none" stroke="#A9A9A9" stroke-width="1.5" stroke-linecap="round"/>
+    
+    <!-- 火花 -->
+    <circle cx="26" cy="3" r="1.5" fill="#FFFF00">
+      <animate attributeName="r" values="1;2;1" dur="0.6s" repeatCount="indefinite"/>
+      <animate attributeName="fill" values="#FFFF00;#FF4500;#FFFF00" dur="0.6s" repeatCount="indefinite"/>
+    </circle>
+    
+    <!-- 炸弹高光 -->
+    <circle cx="16" cy="18" r="3" fill="#FFFFFF" opacity="0.2"/>
+    
+    <!-- 爆炸线 -->
+    <g stroke="#FF4500" stroke-width="1.5" stroke-linecap="round">
+      <!-- 水平和垂直爆炸线 -->
+      <line x1="32" y1="22" x2="36" y2="22" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0.3;0.8" dur="0.8s" repeatCount="indefinite"/>
+      </line>
+      <line x1="4" y1="22" x2="8" y2="22" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0.3;0.8" dur="0.8s" repeatCount="indefinite" begin="0.1s"/>
+      </line>
+      <line x1="20" y1="32" x2="20" y2="36" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0.3;0.8" dur="0.8s" repeatCount="indefinite" begin="0.2s"/>
+      </line>
+      <line x1="20" y1="8" x2="20" y2="4" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0.3;0.8" dur="0.8s" repeatCount="indefinite" begin="0.3s"/>
+      </line>
+      
+      <!-- 对角线爆炸线 -->
+      <line x1="28" y1="28" x2="31" y2="31" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0.3;0.8" dur="0.8s" repeatCount="indefinite" begin="0.4s"/>
+      </line>
+      <line x1="12" y1="12" x2="9" y2="9" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0.3;0.8" dur="0.8s" repeatCount="indefinite" begin="0.5s"/>
+      </line>
+      <line x1="28" y1="12" x2="31" y2="9" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0.3;0.8" dur="0.8s" repeatCount="indefinite" begin="0.6s"/>
+      </line>
+      <line x1="12" y1="28" x2="9" y2="31" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0.3;0.8" dur="0.8s" repeatCount="indefinite" begin="0.7s"/>
+      </line>
+    </g>
+  </svg>

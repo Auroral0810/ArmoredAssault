@@ -1,0 +1,104 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <!-- 替换feDropShadow为SVG 1.1兼容的滤镜 -->
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+    <feOffset dx="2" dy="3"/>
+    <feComponentTransfer>
+      <feFuncA type="linear" slope="0.4"/>
+    </feComponentTransfer>
+    <feMerge>
+      <feMergeNode/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  
+  <!-- 添加背景对比效果 -->
+  <rect x="15" y="15" width="70" height="70" rx="5" fill="#111" opacity="0.2" />
+  
+  <!-- 履带底座 - 左右两侧 -->
+  <rect x="20" y="15" width="10" height="70" rx="2" fill="#111" />
+  <rect x="70" y="15" width="10" height="70" rx="2" fill="#111" />
+  
+  <!-- 履带细节 - 红色点缀 -->
+  <g fill="#000">
+    <rect x="20" y="20" width="10" height="5" />
+    <rect x="20" y="30" width="10" height="5" />
+    <rect x="20" y="40" width="10" height="5" />
+    <rect x="20" y="50" width="10" height="5" />
+    <rect x="20" y="60" width="10" height="5" />
+    <rect x="20" y="70" width="10" height="5" />
+    
+    <rect x="70" y="20" width="10" height="5" />
+    <rect x="70" y="30" width="10" height="5" />
+    <rect x="70" y="40" width="10" height="5" />
+    <rect x="70" y="50" width="10" height="5" />
+    <rect x="70" y="60" width="10" height="5" />
+    <rect x="70" y="70" width="10" height="5" />
+  </g>
+  
+  <!-- 红色履带点缀 -->
+  <rect x="20" y="25" width="10" height="5" fill="#F00" />
+  <rect x="20" y="45" width="10" height="5" fill="#F00" />
+  <rect x="20" y="65" width="10" height="5" fill="#F00" />
+  <rect x="70" y="25" width="10" height="5" fill="#F00" />
+  <rect x="70" y="45" width="10" height="5" fill="#F00" />
+  <rect x="70" y="65" width="10" height="5" fill="#F00" />
+  
+  <!-- 坦克主体 - 明亮的红色 + 黑色边框 -->
+  <rect x="30" y="20" width="40" height="60" rx="3" fill="url(#enemyBodyGradient)" stroke="#000" stroke-width="2" filter="url(#shadow)" />
+  
+  <!-- 警示条纹装饰 - 黄黑相间 -->
+  <g stroke="#000" stroke-width="1">
+    <path d="M33,20 L33,25" stroke="#FF0" stroke-width="2" />
+    <path d="M33,30 L33,35" stroke="#FF0" stroke-width="2" />
+    <path d="M33,40 L33,45" stroke="#FF0" stroke-width="2" />
+    <path d="M33,50 L33,55" stroke="#FF0" stroke-width="2" />
+    <path d="M33,60 L33,65" stroke="#FF0" stroke-width="2" />
+    <path d="M33,70 L33,75" stroke="#FF0" stroke-width="2" />
+    
+    <path d="M67,20 L67,25" stroke="#FF0" stroke-width="2" />
+    <path d="M67,30 L67,35" stroke="#FF0" stroke-width="2" />
+    <path d="M67,40 L67,45" stroke="#FF0" stroke-width="2" />
+    <path d="M67,50 L67,55" stroke="#FF0" stroke-width="2" />
+    <path d="M67,60 L67,65" stroke="#FF0" stroke-width="2" />
+    <path d="M67,70 L67,75" stroke="#FF0" stroke-width="2" />
+  </g>
+  
+  <!-- 装甲细节 - 深红色 -->
+  <rect x="40" y="25" width="5" height="50" rx="1" fill="#800" />
+  <rect x="55" y="25" width="5" height="50" rx="1" fill="#800" />
+  
+  <!-- 角落装甲凸起 - 更锐利的尖角 -->
+  <path d="M30,20 L37,27 L37,20 Z" fill="#F00" stroke="#000" stroke-width="1" />
+  <path d="M70,20 L63,27 L63,20 Z" fill="#F00" stroke="#000" stroke-width="1" />
+  <path d="M30,80 L37,73 L37,80 Z" fill="#F00" stroke="#000" stroke-width="1" />
+  <path d="M70,80 L63,73 L63,80 Z" fill="#F00" stroke="#000" stroke-width="1" />
+  
+  <!-- 坦克炮塔底座 - 六边形设计 -->
+  <polygon points="50,38 58,42 58,58 50,62 42,58 42,42" fill="url(#enemyTurretGradient)" stroke="#000" stroke-width="2" filter="url(#shadow)" />
+  
+  <!-- 炮管 - 向上 - 更粗更明显 -->
+  <rect x="46" y="10" width="8" height="28" fill="#FF3333" stroke="#000" stroke-width="2" filter="url(#shadow)" />
+  <rect x="44" y="7" width="12" height="6" rx="1" fill="#F00" stroke="#000" stroke-width="1" />
+  
+  <!-- 敌方醒目标志 - 骷髅头效果 -->
+  <circle cx="50" cy="50" r="10" fill="#FF3333" stroke="#000" stroke-width="2" />
+  <path d="M45,45 L55,55 M55,45 L45,55" stroke="#000" stroke-width="3" />
+  <path d="M43,48 C43,46 57,46 57,48" stroke="#000" stroke-width="2" fill="none" />
+  <path d="M43,52 C43,56 57,56 57,52" stroke="#000" stroke-width="2" fill="none" />
+  
+  <!-- 额外强调 - 爆炸感闪光效果 -->
+  <circle cx="50" cy="50" r="15" fill="none" stroke="#FF0" stroke-width="1" stroke-dasharray="3,3" />
+  
+  <!-- 定义渐变 -->
+  <defs>
+    <linearGradient id="enemyBodyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="10%" stop-color="#FF3333" />
+      <stop offset="90%" stop-color="#DD0000" />
+    </linearGradient>
+    <linearGradient id="enemyTurretGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF0000" />
+      <stop offset="100%" stop-color="#AA0000" />
+    </linearGradient>
+  </defs>
+</svg>

@@ -1,0 +1,54 @@
+<svg width="40" height="40" xmlns="http://www.w3.org/2000/svg">
+    <!-- 底层背景 -->
+    <rect width="40" height="40" fill="#505050"/>
+    
+    <!-- 金属板块分隔 -->
+    <g fill="#606060">
+      <rect x="2" y="2" width="17" height="17" rx="1"/>
+      <rect x="21" y="2" width="17" height="17" rx="1"/>
+      <rect x="2" y="21" width="17" height="17" rx="1"/>
+      <rect x="21" y="21" width="17" height="17" rx="1"/>
+    </g>
+    
+    <!-- 金属面板纹理 -->
+    <g fill="#707070">
+      <rect x="4" y="4" width="13" height="13" rx="1"/>
+      <rect x="23" y="4" width="13" height="13" rx="1"/>
+      <rect x="4" y="23" width="13" height="13" rx="1"/>
+      <rect x="23" y="23" width="13" height="13" rx="1"/>
+    </g>
+    
+    <!-- 螺丝/铆钉 -->
+    <g fill="#404040" stroke="#888888" stroke-width="0.5">
+      <circle cx="4" cy="4" r="1.5"/>
+      <circle cx="17" cy="4" r="1.5"/>
+      <circle cx="4" cy="17" r="1.5"/>
+      <circle cx="17" cy="17" r="1.5"/>
+      
+      <circle cx="23" cy="4" r="1.5"/>
+      <circle cx="36" cy="4" r="1.5"/>
+      <circle cx="23" cy="17" r="1.5"/>
+      <circle cx="36" cy="17" r="1.5"/>
+      
+      <circle cx="4" cy="23" r="1.5"/>
+      <circle cx="17" cy="23" r="1.5"/>
+      <circle cx="4" cy="36" r="1.5"/>
+      <circle cx="17" cy="36" r="1.5"/>
+      
+      <circle cx="23" cy="23" r="1.5"/>
+      <circle cx="36" cy="23" r="1.5"/>
+      <circle cx="23" cy="36" r="1.5"/>
+      <circle cx="36" cy="36" r="1.5"/>
+    </g>
+    
+    <!-- 高光反射 -->
+    <g fill="#A0A0A0" opacity="0.3">
+      <path d="M6,6 L14,6 L14,10 L6,10 Z"/>
+      <path d="M25,6 L33,6 L33,10 L25,10 Z"/>
+      <path d="M6,25 L14,25 L14,29 L6,29 Z"/>
+      <path d="M25,25 L33,25 L33,29 L25,29 Z"/>
+    </g>
+    
+    <!-- 边框加强 -->
+    <rect width="40" height="40" fill="none" stroke="#404040" stroke-width="2"/>
+  </svg>

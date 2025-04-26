@@ -1,0 +1,101 @@
+{
+  "level": 5,
+  "name": "终极决战",
+  "width": 800,
+  "height": 600,
+  "playerBase": {
+    "x": 380,
+    "y": 520,
+    "width": 40,
+    "height": 40
+  },
+  "playerSpawn": {
+    "x": 380, 
+    "y": 460
+  },
+  "elements": [
+    {"type": "steel", "x": 340, "y": 520, "width": 40, "height": 40},
+    {"type": "steel", "x": 420, "y": 520, "width": 40, "height": 40},
+    {"type": "steel", "x": 300, "y": 520, "width": 40, "height": 40},
+    {"type": "steel", "x": 460, "y": 520, "width": 40, "height": 40},
+    {"type": "steel", "x": 260, "y": 520, "width": 40, "height": 40},
+    {"type": "steel", "x": 500, "y": 520, "width": 40, "height": 40},
+    {"type": "steel", "x": 300, "y": 480, "width": 40, "height": 40},
+    {"type": "steel", "x": 460, "y": 480, "width": 40, "height": 40},
+    {"type": "steel", "x": 340, "y": 480, "width": 40, "height": 40},
+    {"type": "steel", "x": 420, "y": 480, "width": 40, "height": 40},
+    {"type": "brick", "x": 380, "y": 480, "width": 40, "height": 40},
+    
+    {"type": "steel", "x": 380, "y": 340, "width": 40, "height": 40},
+    {"type": "steel", "x": 340, "y": 340, "width": 40, "height": 40},
+    {"type": "steel", "x": 420, "y": 340, "width": 40, "height": 40},
+    {"type": "brick", "x": 300, "y": 340, "width": 40, "height": 40},
+    {"type": "brick", "x": 460, "y": 340, "width": 40, "height": 40},
+    {"type": "brick", "x": 340, "y": 300, "width": 40, "height": 40},
+    {"type": "brick", "x": 380, "y": 300, "width": 40, "height": 40},
+    {"type": "brick", "x": 420, "y": 300, "width": 40, "height": 40},
+    {"type": "brick", "x": 340, "y": 380, "width": 40, "height": 40},
+    {"type": "brick", "x": 380, "y": 380, "width": 40, "height": 40},
+    {"type": "brick", "x": 420, "y": 380, "width": 40, "height": 40},
+    
+    {"type": "brick", "x": 100, "y": 440, "width": 40, "height": 40},
+    {"type": "brick", "x": 180, "y": 440, "width": 40, "height": 40},
+    {"type": "brick", "x": 580, "y": 440, "width": 40, "height": 40},
+    {"type": "brick", "x": 660, "y": 440, "width": 40, "height": 40},
+    {"type": "water", "x": 260, "y": 440, "width": 40, "height": 40},
+    {"type": "water", "x": 500, "y": 440, "width": 40, "height": 40},
+    
+    {"type": "brick", "x": 100, "y": 200, "width": 40, "height": 40},
+    {"type": "brick", "x": 100, "y": 300, "width": 40, "height": 40},
+    {"type": "brick", "x": 100, "y": 400, "width": 40, "height": 40},
+    {"type": "brick", "x": 180, "y": 200, "width": 40, "height": 40},
+    {"type": "brick", "x": 180, "y": 300, "width": 40, "height": 40},
+    {"type": "brick", "x": 180, "y": 400, "width": 40, "height": 40},
+    {"type": "steel", "x": 140, "y": 260, "width": 40, "height": 40},
+    {"type": "steel", "x": 140, "y": 360, "width": 40, "height": 40},
+    
+    {"type": "brick", "x": 660, "y": 200, "width": 40, "height": 40},
+    {"type": "brick", "x": 660, "y": 300, "width": 40, "height": 40},
+    {"type": "brick", "x": 660, "y": 400, "width": 40, "height": 40},
+    {"type": "brick", "x": 580, "y": 200, "width": 40, "height": 40},
+    {"type": "brick", "x": 580, "y": 300, "width": 40, "height": 40},
+    {"type": "brick", "x": 580, "y": 400, "width": 40, "height": 40},
+    {"type": "steel", "x": 620, "y": 260, "width": 40, "height": 40},
+    {"type": "steel", "x": 620, "y": 360, "width": 40, "height": 40},
+    
+    {"type": "steel", "x": 140, "y": 100, "width": 40, "height": 40},
+    {"type": "steel", "x": 220, "y": 100, "width": 40, "height": 40},
+    {"type": "steel", "x": 300, "y": 100, "width": 40, "height": 40},
+    {"type": "steel", "x": 460, "y": 100, "width": 40, "height": 40},
+    {"type": "steel", "x": 540, "y": 100, "width": 40, "height": 40},
+    {"type": "steel", "x": 620, "y": 100, "width": 40, "height": 40},
+    
+    {"type": "water", "x": 220, "y": 200, "width": 40, "height": 40},
+    {"type": "water", "x": 260, "y": 200, "width": 40, "height": 40},
+    {"type": "water", "x": 500, "y": 200, "width": 40, "height": 40},
+    {"type": "water", "x": 540, "y": 200, "width": 40, "height": 40},
+    
+    {"type": "grass", "x": 220, "y": 300, "width": 40, "height": 40},
+    {"type": "grass", "x": 260, "y": 300, "width": 40, "height": 40},
+    {"type": "grass", "x": 500, "y": 300, "width": 40, "height": 40},
+    {"type": "grass", "x": 540, "y": 300, "width": 40, "height": 40},
+    {"type": "grass", "x": 340, "y": 200, "width": 40, "height": 40},
+    {"type": "grass", "x": 380, "y": 200, "width": 40, "height": 40},
+    {"type": "grass", "x": 420, "y": 200, "width": 40, "height": 40},
+    {"type": "grass", "x": 220, "y": 400, "width": 40, "height": 40},
+    {"type": "grass", "x": 540, "y": 400, "width": 40, "height": 40},
+    
+    {"type": "steel", "x": 380, "y": 100, "width": 40, "height": 40},
+    {"type": "steel", "x": 340, "y": 140, "width": 40, "height": 40},
+    {"type": "steel", "x": 420, "y": 140, "width": 40, "height": 40}
+  ],
+  "enemies": [
+    {"type": "basic", "spawnPoint": {"x": 100, "y": 40}},
+    {"type": "basic", "spawnPoint": {"x": 660, "y": 40}},
+    {"type": "elite", "spawnPoint": {"x": 180, "y": 40}},
+    {"type": "elite", "spawnPoint": {"x": 580, "y": 40}},
+    {"type": "elite", "spawnPoint": {"x": 260, "y": 40}},
+    {"type": "elite", "spawnPoint": {"x": 500, "y": 40}},
+    {"type": "boss", "spawnPoint": {"x": 380, "y": 40}}
+  ]
+}
