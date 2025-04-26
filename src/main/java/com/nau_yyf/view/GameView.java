@@ -4,6 +4,7 @@ import com.jfoenix.controls.JFXDialog;
 import com.jfoenix.controls.JFXDialogLayout;
 import com.nau_yyf.controller.GameController;
 import com.nau_yyf.model.Bullet;
+import com.nau_yyf.model.LevelMap;
 import com.nau_yyf.model.Tank;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -30,12 +31,17 @@ import com.jfoenix.controls.JFXSlider;
 import com.jfoenix.controls.JFXRadioButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.Node;
+import javafx.animation.FadeTransition;
+import javafx.util.Duration;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import java.util.Arrays;
 import java.util.List;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
 
 public class GameView {
     private Stage stage;
@@ -617,15 +623,17 @@ public class GameView {
         gameDataPanel.setPadding(new Insets(15));
         gameDataPanel.setStyle("-fx-background-color: rgba(0, 0, 0, 0.6); -fx-background-radius: 5;");
         
+        // 使用方法创建各种信息显示
         VBox playerInfo = createInfoBox("坦克类型", gameController.getPlayerTank().getTypeString());
         VBox healthInfo = createInfoBox("血量", Integer.toString(gameController.getPlayerTank().getHealth()));
         VBox bulletInfo = createInfoBox("子弹", Integer.toString(bulletCount));
         VBox enemiesInfo = createInfoBox("剩余敌人", Integer.toString(gameController.getRemainingEnemies()));
         
-        // 添加生命数和增益效果显示
+        // 添加生命显示和增益效果区域
         HBox livesDisplay = createLivesDisplay();
         HBox powerUpDisplay = createPowerUpDisplay();
         
+        // 在数据面板中添加所有信息
         gameDataPanel.getChildren().addAll(playerInfo, healthInfo, bulletInfo, enemiesInfo, livesDisplay, powerUpDisplay);
         
         // 将各部分添加到布局
@@ -836,17 +844,51 @@ public class GameView {
             
             // 更新游戏控制器中的状态
             if (gameController != null) {
-                gameController.updateBullets();
+                int enemiesBefore = gameController.getRemainingEnemies();
+                
                 gameController.updateEnemyTanks();
+                
+                // 检测敌方坦克碰撞
+                boolean collisionDetected = gameController.checkEnemyPlayerCollisions();
+                if (collisionDetected) {
+                    updateHealthDisplay();
+                    updateEnemiesDisplay();
+                    
+                    // 检查玩家坦克是否被摧毁
+                    if (gameController.getPlayerTank().getHealth() <= 0) {
+                        handlePlayerDestroyed();
+                    }
+                }
+                
+                // 更新子弹并检查碰撞
+                boolean playerLostLife = gameController.updateBulletsAndCheckCollisions();
+                updateHealthDisplay();
+                
+                // 修复：添加显式检查玩家坦克血量
+                if (playerLostLife || (gameController.getPlayerTank() != null && 
+                        gameController.getPlayerTank().getHealth() <= 0)) {
+                    handlePlayerDestroyed();
+                }
+                
+                // 如果玩家炮弹击中敌方坦克，增加炮弹数量（在updateBulletsAndCheckCollisions中已处理）
+                if (bulletCount < 10) {
+                    int bulletRefilled = Math.min(10 - bulletCount, 1); // 每次最多加1颗
+                    bulletCount += bulletRefilled;
+                    if (bulletRefilled > 0) {
+                        updateBulletDisplay();
+                    }
+                }
+                
+                // 检查敌人数量是否变化，如果变化则更新显示
+                if (enemiesBefore != gameController.getRemainingEnemies()) {
+                    updateEnemiesDisplay();
+                }
                 
                 // 更新坦克特效状态
                 if (gameController.getPlayerTank() != null) {
-                    for (Tank.PowerUpType effect : gameController.getPlayerTank().getActiveEffects().keySet()) {
-                        gameController.getPlayerTank().updateEffects(deltaTime);
-                    }
-                    
-                    // 添加子弹恢复逻辑
-                    updateBulletRefill(deltaTime);
+                    gameController.getPlayerTank().updateEffects(deltaTime);
+                    // 更新增益效果显示
+                    updatePowerUpDisplay();
                 }
             }
             
@@ -938,7 +980,50 @@ public class GameView {
         
         // 如果有按键被按下，执行移动
         if (moved) {
-            playerTank.move(); // 使用Tank自身的移动方法
+            // 计算下一个位置
+            int nextX = playerTank.getX();
+            int nextY = playerTank.getY();
+            
+            int speed = playerTank.getSpeed();
+            
+            switch (playerTank.getDirection()) {
+                case UP:
+                    nextY -= speed;
+                    break;
+                case DOWN:
+                    nextY += speed;
+                    break;
+                case LEFT:
+                    nextX -= speed;
+                    break;
+                case RIGHT:
+                    nextX += speed;
+                    break;
+            }
+            
+            // 检查碰撞
+            String collisionType = gameController.checkCollision(nextX, nextY, playerTank.getWidth(), playerTank.getHeight());
+            
+            if (collisionType == null) {
+                // 无碰撞，正常移动
+                playerTank.setX(nextX);
+                playerTank.setY(nextY);
+            } else if (collisionType.equals("water")) {
+                // 水池碰撞处理
+                playerTank.setX(nextX);
+                playerTank.setY(nextY);
+                
+                // 如果只有1滴血，直接扣除一条命
+                if (playerTank.getHealth() <= 1) {
+                    playerTank.setHealth(0); // 设置血量为0
+                    handlePlayerDestroyed(); // 处理玩家死亡
+                } else {
+                    // 否则扣减一滴血
+                    playerTank.setHealth(playerTank.getHealth() - 1);
+                    updateHealthDisplay();
+                }
+            }
+            // 其他碰撞类型不移动
             
             // 边界检查
             if (playerTank.getX() < 0) {
@@ -963,9 +1048,25 @@ public class GameView {
                 gameController.addBullet(bullet);
             }
         }
-        
-        // 更新子弹状态
-        gameController.updateBullets();
+    }
+    
+    // 添加更新血量显示的方法
+    private void updateHealthDisplay() {
+        if (gameDataPanel != null && gameController != null && gameController.getPlayerTank() != null) {
+            for (Node node : gameDataPanel.getChildren()) {
+                if (node instanceof VBox) {
+                    VBox box = (VBox) node;
+                    if (box.getChildren().size() > 1 && box.getChildren().get(0) instanceof Text) {
+                        Text title = (Text) box.getChildren().get(0);
+                        if (title.getText().equals("血量")) {
+                            Text value = (Text) box.getChildren().get(1);
+                            value.setText(Integer.toString(gameController.getPlayerTank().getHealth()));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
     
     /**
@@ -1449,131 +1550,303 @@ public class GameView {
      * 创建生命数显示区域
      */
     private HBox createLivesDisplay() {
-        HBox livesBox = new HBox(5);
-        livesBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        HBox livesBox = new HBox(10);
+        livesBox.setAlignment(Pos.CENTER_LEFT);
+        livesBox.setPadding(new Insets(5));
+        livesBox.setMinWidth(120); // 设置固定最小宽度
+        livesBox.setPrefWidth(120); // 设置固定首选宽度
         
-        Text livesLabel = new Text("生命:");
-        livesLabel.setFill(TEXT_COLOR);
+        // 创建标题
+        Label livesLabel = new Label("生命");
+        livesLabel.setTextFill(PRIMARY_COLOR); // 使用蓝色
         livesLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        livesBox.getChildren().add(livesLabel);
         
-        // 使用爱心图标而不是增加生命的图标
+        // 创建一个VBox包含标题和内容
+        VBox infoBox = new VBox(5);
+        infoBox.setAlignment(Pos.CENTER_LEFT);
+        
+        // 创建一个HBox用于放置爱心图标
+        HBox heartIcons = new HBox(5);
+        heartIcons.setAlignment(Pos.CENTER_LEFT);
+        
+        // 添加爱心图标显示生命数
         for (int i = 0; i < playerLives; i++) {
-            try {
-                ImageView heartIcon = new ImageView(new Image(getClass().getResourceAsStream("/images/ui/heart.png")));
-                heartIcon.setFitWidth(20);
-                heartIcon.setFitHeight(20);
-                livesBox.getChildren().add(heartIcon);
-            } catch (Exception e) {
-                System.err.println("无法加载爱心图标: " + e.getMessage());
-                // 如果图标加载失败，使用文字替代
-                Text heartText = new Text("♥");
-                heartText.setFill(Color.RED);
-                heartText.setFont(Font.font("Arial", FontWeight.BOLD, 18));
-                livesBox.getChildren().add(heartText);
-            }
+            ImageView heartIcon = new ImageView(new Image(getClass().getResourceAsStream("/images/ui/heart.png")));
+            heartIcon.setFitWidth(20);
+            heartIcon.setFitHeight(20);
+            heartIcons.getChildren().add(heartIcon);
         }
+        
+        // 将标题和心形图标添加到VBox中
+        infoBox.getChildren().addAll(livesLabel, heartIcons);
+        livesBox.getChildren().add(infoBox);
         
         return livesBox;
     }
     
-    /**
-     * 创建增益效果显示区域
-     */
+    // 复原增益效果显示
     private HBox createPowerUpDisplay() {
         HBox powerUpBox = new HBox(10);
-        powerUpBox.setAlignment(Pos.CENTER);
+        powerUpBox.setAlignment(Pos.CENTER_LEFT);
+        powerUpBox.setPadding(new Insets(5));
+        powerUpBox.setMinWidth(200); // 设置固定最小宽度
+        powerUpBox.setPrefWidth(200); // 设置固定首选宽度
         
-        Text powerUpLabel = new Text("增益效果:");
+        // 创建标题
+        Label powerUpLabel = new Label("增益效果");
+        powerUpLabel.setTextFill(PRIMARY_COLOR); // 使用蓝色
         powerUpLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        powerUpLabel.setFill(PRIMARY_COLOR);
         
-        HBox powerUpContainer = new HBox(5);
-        powerUpContainer.setAlignment(Pos.CENTER);
-        powerUpContainer.setPrefHeight(30);
+        // 创建一个VBox包含标题和内容
+        VBox infoBox = new VBox(5);
+        infoBox.setAlignment(Pos.CENTER_LEFT);
         
-        // 添加所有可能的增益效果图标，但初始时设为不可见
-        for (Tank.PowerUpType type : Tank.PowerUpType.values()) {
-            try {
-                String imagePath = "/images/powerups/" + type.getName() + ".png";
-                Image powerUpImage = new Image(getClass().getResourceAsStream(imagePath));
-                ImageView powerUpView = new ImageView(powerUpImage);
-                powerUpView.setFitWidth(25);
-                powerUpView.setFitHeight(25);
-                powerUpView.setVisible(false); // 初始不可见
-                
-                powerUpContainer.getChildren().add(powerUpView);
-                powerUpIndicators.put(type.getName(), powerUpView);
-            } catch (Exception e) {
-                System.err.println("无法加载增益效果图片: " + type.getName() + ", " + e.getMessage());
-            }
-        }
+        // 创建一个HBox用于放置增益效果图标
+        HBox effectIcons = new HBox(10);
+        effectIcons.setAlignment(Pos.CENTER_LEFT);
         
-        powerUpBox.getChildren().addAll(powerUpLabel, powerUpContainer);
+        // 将标题和增益效果图标添加到VBox中
+        infoBox.getChildren().addAll(powerUpLabel, effectIcons);
+        powerUpBox.getChildren().add(infoBox);
+        
+        // 清空并重新创建增益效果指示器Map
+        powerUpIndicators.clear();
+        
         return powerUpBox;
     }
     
-    /**
-     * 更新增益效果显示
-     */
+    // 更新增益效果显示
     private void updatePowerUpDisplay() {
-        if (gameController == null || gameController.getPlayerTank() == null) return;
-        
-        Map<Tank.PowerUpType, Double> activeEffects = gameController.getPlayerTank().getActiveEffects();
-        
-        // 首先隐藏所有增益图标
-        for (ImageView indicator : powerUpIndicators.values()) {
-            indicator.setVisible(false);
-        }
-        
-        // 显示活跃的增益效果
-        for (Map.Entry<Tank.PowerUpType, Double> entry : activeEffects.entrySet()) {
-            String effectName = entry.getKey().getName();
-            ImageView indicator = powerUpIndicators.get(effectName);
-            if (indicator != null) {
-                indicator.setVisible(true);
-            }
-        }
-    }
-    
-    /**
-     * 更新生命显示
-     */
-    private void updateLivesDisplay() {
-        if (gameDataPanel != null) {
-            for (javafx.scene.Node node : gameDataPanel.getChildren()) {
-                if (node instanceof VBox && ((VBox) node).getChildren().get(0) instanceof Text) {
-                    Text title = (Text) ((VBox) node).getChildren().get(0);
-                    if (title.getText().equals("生命")) {
-                        VBox livesBox = (VBox) node;
-                        HBox heartsContainer = new HBox(5);
-                        heartsContainer.setAlignment(javafx.geometry.Pos.CENTER);
-                        
-                        // 使用爱心图标
-                        for (int i = 0; i < playerLives; i++) {
-                            try {
-                                ImageView heartIcon = new ImageView(new Image(getClass().getResourceAsStream("/images/ui/heart.png")));
-                                heartIcon.setFitWidth(20);
-                                heartIcon.setFitHeight(20);
-                                heartsContainer.getChildren().add(heartIcon);
-                            } catch (Exception e) {
-                                Text heartText = new Text("♥");
-                                heartText.setFill(Color.RED);
-                                heartText.setFont(Font.font("Arial", FontWeight.BOLD, 18));
-                                heartsContainer.getChildren().add(heartText);
+        // 找到增益效果显示区域
+        for (Node node : gameDataPanel.getChildren()) {
+            if (node instanceof HBox) {
+                HBox box = (HBox) node;
+                if (box.getChildren().size() > 0 && box.getChildren().get(0) instanceof VBox) {
+                    VBox infoBox = (VBox) box.getChildren().get(0);
+                    if (infoBox.getChildren().size() > 0 && infoBox.getChildren().get(0) instanceof Label) {
+                        Label label = (Label) infoBox.getChildren().get(0);
+                        if (label.getText().equals("增益效果")) {
+                            // 找到了增益效果区域
+                            HBox effectIcons = (HBox) infoBox.getChildren().get(1);
+                            effectIcons.getChildren().clear();
+                            
+                            // 如果玩家坦克存在且有增益效果，显示对应图标
+                            if (gameController != null && gameController.getPlayerTank() != null) {
+                                Map<Tank.PowerUpType, Double> activeEffects = 
+                                    gameController.getPlayerTank().getActiveEffects();
+                                
+                                for (Tank.PowerUpType effect : activeEffects.keySet()) {
+                                    String imagePath = "/images/powerups/" + effect.getName() + ".png";
+                                    try {
+                                        ImageView icon = new ImageView(
+                                            new Image(getClass().getResourceAsStream(imagePath))
+                                        );
+                                        icon.setFitWidth(30);
+                                        icon.setFitHeight(30);
+                                        effectIcons.getChildren().add(icon);
+                                        
+                                        // 添加文字显示剩余时间
+                                        Label timeLeft = new Label(
+                                            String.format("%.1fs", activeEffects.get(effect))
+                                        );
+                                        timeLeft.setTextFill(TEXT_COLOR);
+                                        effectIcons.getChildren().add(timeLeft);
+                                    } catch (Exception e) {
+                                        System.err.println("无法加载增益效果图标: " + imagePath);
+                                    }
+                                }
                             }
+                            break;
                         }
-                        
-                        // 更新显示
-                        if (livesBox.getChildren().size() > 1) {
-                            livesBox.getChildren().set(1, heartsContainer);
-                        } else {
-                            livesBox.getChildren().add(heartsContainer);
-                        }
-                        break;
                     }
                 }
             }
         }
     }
+    
+    /**
+     * 处理玩家坦克被摧毁的情况
+     */
+    private void handlePlayerDestroyed() {
+        System.out.println("玩家坦克被摧毁，处理复活逻辑");
+        
+        // 玩家坦克被摧毁，减少一条生命
+        playerLives--;
+        
+        // 更新生命显示
+        updateLivesDisplay();
+        
+        if (playerLives <= 0) {
+            // 没有生命了，游戏结束
+            showGameOverScreen();
+        } else {
+            // 还有生命，重生玩家
+            respawnPlayer();
+        }
+    }
+
+    /**
+     * 复活玩家坦克 - 无提示版本
+     */
+    private void respawnPlayer() {
+        System.out.println("正在重生玩家，剩余生命：" + playerLives);
+        
+        // 寻找有效的重生位置
+        LevelMap.MapPosition spawnPos = gameController.findValidSpawnPosition();
+        
+        if (spawnPos != null) {
+            // 确保当前选择的坦克类型保持不变
+            String tankType = TANK_TYPES.get(selectedTankType).toUpperCase();
+            
+            // 重新创建玩家坦克
+            gameController.respawnPlayerTank(tankType, spawnPos.getX(), spawnPos.getY());
+            
+            // 重置键盘控制状态
+            up = false;
+            down = false;
+            left = false;
+            right = false;
+            shooting = false;
+            
+            // 恢复子弹数量
+            bulletCount = 10;
+            updateBulletDisplay();
+            
+            // 更新健康显示
+            updateHealthDisplay();
+        } else {
+            // 如果找不到有效位置，直接结束游戏
+            showGameOverScreen();
+        }
+    }
+
+    /**
+     * 显示游戏结束界面
+     */
+    private void showGameOverScreen() {
+        Platform.runLater(() -> {
+            // 暂停游戏
+            gamePaused = true;
+            
+            // 停止游戏循环
+            if (gameLoop != null) {
+                gameLoop.stop();
+            }
+            
+            // 创建半透明背景
+            Rectangle overlay = new Rectangle(
+                    scene.getWidth(), 
+                    scene.getHeight(), 
+                    Color.rgb(0, 0, 0, 0.8));
+            
+            // 创建游戏结束信息
+            Text gameOverText = new Text("GAME OVER");
+            gameOverText.setFont(Font.font("Impact", FontWeight.BOLD, 72));
+            gameOverText.setFill(Color.RED);
+            gameOverText.setStroke(Color.BLACK);
+            gameOverText.setStrokeWidth(2);
+            
+            Text scoreText = new Text("得分: " + calculateScore());
+            scoreText.setFont(Font.font("Arial", FontWeight.BOLD, 36));
+            scoreText.setFill(Color.WHITE);
+            
+            // 创建按钮
+            JFXButton retryButton = createMenuButton("重新挑战", e -> restartGame());
+            JFXButton mainMenuButton = createMenuButton("返回主菜单", e -> {
+                cleanupGameResources();
+                showMainMenu();
+            });
+            
+            // 创建布局
+            VBox gameOverMenu = new VBox(30);
+            gameOverMenu.setAlignment(Pos.CENTER);
+            gameOverMenu.getChildren().addAll(
+                    gameOverText,
+                    scoreText,
+                    new Separator(),
+                    retryButton,
+                    mainMenuButton
+            );
+            
+            // 创建场景
+            StackPane gameOverRoot = new StackPane(overlay, gameOverMenu);
+            gameOverRoot.setAlignment(Pos.CENTER);
+            
+            // 添加到根布局
+            root.getChildren().add(gameOverRoot);
+        });
+    }
+
+    /**
+     * 计算游戏得分
+     */
+    private int calculateScore() {
+        if (gameController == null) return 0;
+        
+        // 根据关卡、击败敌人数量和剩余时间计算得分
+        int levelScore = gameController.getCurrentLevel() * 1000;
+        int enemyScore = gameController.getDefeatedEnemiesCount() * 200;
+        int timeScore = Math.max(0, 300000 - (int)totalGameTime) / 1000;
+        
+        return levelScore + enemyScore + timeScore;
+    }
+     /**
+     * 更新剩余敌人数量显示
+     */
+    private void updateEnemiesDisplay() {
+        if (gameDataPanel != null && gameController != null) {
+            for (Node node : gameDataPanel.getChildren()) {
+                if (node instanceof VBox) {
+                    VBox box = (VBox) node;
+                    if (box.getChildren().size() > 1 && box.getChildren().get(0) instanceof Text) {
+                        Text title = (Text) box.getChildren().get(0);
+                        if (title.getText().equals("剩余敌人")) {
+                            Text value = (Text) box.getChildren().get(1);
+                            int remainingEnemies = gameController.getRemainingEnemies();
+                            value.setText(Integer.toString(remainingEnemies));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 更新生命显示
+     */
+    private void updateLivesDisplay() {
+        // 找到生命显示区域
+        for (Node node : gameDataPanel.getChildren()) {
+            if (node instanceof HBox) {
+                HBox box = (HBox) node;
+                if (box.getChildren().size() > 0 && box.getChildren().get(0) instanceof VBox) {
+                    VBox infoBox = (VBox) box.getChildren().get(0);
+                    if (infoBox.getChildren().size() > 0 && infoBox.getChildren().get(0) instanceof Label) {
+                        Label label = (Label) infoBox.getChildren().get(0);
+                        if (label.getText().equals("生命")) {
+                            // 找到了生命区域
+                            HBox heartIcons = (HBox) infoBox.getChildren().get(1);
+                            heartIcons.getChildren().clear();
+                            
+                            // 添加爱心图标显示当前生命数
+                            for (int i = 0; i < playerLives; i++) {
+                                ImageView heartIcon = new ImageView(new Image(getClass().getResourceAsStream("/images/ui/heart.png")));
+                                heartIcon.setFitWidth(20);
+                                heartIcon.setFitHeight(20);
+                                heartIcons.getChildren().add(heartIcon);
+                            }
+                            
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 如果没有找到生命显示区域，重新创建一个
+        HBox livesDisplay = createLivesDisplay();
+        gameDataPanel.getChildren().add(livesDisplay);
+    }
 }
+

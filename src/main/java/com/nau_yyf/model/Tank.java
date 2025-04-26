@@ -1,5 +1,6 @@
 package com.nau_yyf.model;
 
+import com.nau_yyf.controller.GameController;
 import com.nau_yyf.util.AStarPathfinder;
 
 import java.util.HashMap;
@@ -156,6 +157,12 @@ public class Tank {
     private long stopDuration = 0; // 停止移动的持续时间
     private long lastStopTime = 0; // 上次停止移动的时间
     
+    // 在Tank类中添加以下变量用于跟踪坦克是否被卡住
+    private int lastX = -1;
+    private int lastY = -1;
+    private long lastMovementTime = 0;
+    private static final long STUCK_THRESHOLD = 2000; // 2秒卡住阈值
+    
     static {
         // 友方坦克参数: 生命值, 速度, 攻击力, 攻速(每秒), 子弹
         DEFAULT_STATS.put(TankType.LIGHT, new int[]{3, 3, 1, 3, 3});    
@@ -209,7 +216,51 @@ public class Tank {
         }
     }
     
-    // 移动方法
+    // 修改move方法，添加碰撞检测
+    public void move(GameController gameController) {
+        int actualSpeed = isEffectActive(PowerUpType.SPEED) ? (int)(speed * 1.5) : speed;
+        
+        // 计算下一个位置
+        int nextX = x;
+        int nextY = y;
+        
+        switch (direction) {
+            case UP:
+                nextY -= actualSpeed;
+                break;
+            case DOWN:
+                nextY += actualSpeed;
+                break;
+            case LEFT:
+                nextX -= actualSpeed;
+                break;
+            case RIGHT:
+                nextX += actualSpeed;
+                break;
+        }
+        
+        // 检查碰撞
+        String collisionType = gameController.checkCollision(nextX, nextY, width, height);
+        
+        if (collisionType == null) {
+            // 无碰撞，正常移动
+            x = nextX;
+            y = nextY;
+        } else if (collisionType.equals("water")) {
+            // 水池，移动但扣血（由于修改了checkCollision方法，这里只会在刚进入水池时触发）
+            x = nextX;
+            y = nextY;
+            
+            // 每次进入水池扣1点血，但不致死
+            if (health > 1) {
+                health--;
+                System.out.println("玩家进入水池，失去1点生命值！当前生命值：" + health);
+            }
+        }
+        // 其他情况（砖墙、钢墙）不移动
+    }
+    
+    // 保留原来的无参move方法以兼容AI代码
     public void move() {
         int actualSpeed = isEffectActive(PowerUpType.SPEED) ? (int)(speed * 1.5) : speed;
         x += direction.getDx() * actualSpeed;
@@ -452,23 +503,49 @@ public class Tank {
     }
     
     // AI行为方法 - 修改后加入探测范围和随机移动
-    public Bullet updateAI(boolean[][] grid, Tank playerTank) {
-        Bullet firedBullet = null; // 用于返回发射的子弹
+    public Bullet updateAI(boolean[][] grid, Tank playerTank, GameController gameController) {
+        Bullet firedBullet = null;
         
-        if (!isFriendly()) { // 只对敌方坦克执行AI
+        if (!isFriendly()) {
             long currentTime = System.currentTimeMillis();
             
             // 计算与玩家坦克的距离
             double distance = calculateDistance(playerTank);
             
+            // 调试输出
+            if (Math.random() < 0.01) {
+                System.out.println("敌方坦克(" + getType() + ")到玩家距离: " + distance + 
+                                 ", 探测范围: " + DETECTION_RANGE);
+            }
+            
             // 如果玩家在探测范围内，使用A*寻路追踪玩家
             if (distance <= DETECTION_RANGE) {
-                // 每隔一段时间重新计算路径
-                if (pathToTarget == null || pathToTarget.isEmpty() || 
-                    currentTime - lastPathfindingTime > PATHFINDING_INTERVAL) {
+                boolean needRecalculatePath = false;
+                
+                // 检查是否需要重新计算路径
+                if (pathToTarget == null || pathToTarget.isEmpty()) {
+                    needRecalculatePath = true;
+                } else if (currentTime - lastPathfindingTime > PATHFINDING_INTERVAL) {
+                    // 如果已经过了重新计算路径的间隔时间
+                    needRecalculatePath = true;
+                } else if (pathIndex >= pathToTarget.size()) {
+                    // 如果已经到达了路径的终点
+                    needRecalculatePath = true;
+                } else {
+                    // 检查玩家是否移动很远，需要更新路径
+                    AStarPathfinder.Node lastNode = pathToTarget.get(pathToTarget.size()-1);
+                    int targetGridX = playerTank.getX() / 40;
+                    int targetGridY = playerTank.getY() / 40;
                     
-                    // 计算网格单元格大小 (假设地图元素是40x40)
-                    int cellSize = 40;
+                    if (Math.abs(lastNode.getX() - targetGridX) > 2 || 
+                        Math.abs(lastNode.getY() - targetGridY) > 2) {
+                        needRecalculatePath = true;
+                    }
+                }
+                
+                // 重新计算路径
+                if (needRecalculatePath) {
+                    int cellSize = 40; // 网格单元格大小
                     
                     // 将坦克位置转换为网格坐标
                     int startX = x / cellSize;
@@ -476,65 +553,192 @@ public class Tank {
                     int targetX = playerTank.getX() / cellSize;
                     int targetY = playerTank.getY() / cellSize;
                     
-                    // 确保坐标在网格范围内
-                    if (startX >= 0 && startY >= 0 && targetX >= 0 && targetY >= 0 && 
-                        startX < grid[0].length && startY < grid.length && 
-                        targetX < grid[0].length && targetY < grid.length) {
-                        // 查找路径
-                        pathToTarget = AStarPathfinder.findPath(grid, startX, startY, targetX, targetY);
-                        pathIndex = 0;
+                    // 边界检查
+                    if (grid != null && grid.length > 0 && grid[0].length > 0) {
+                        int gridWidth = grid[0].length;
+                        int gridHeight = grid.length;
+                        
+                        startX = Math.max(0, Math.min(startX, gridWidth - 1));
+                        startY = Math.max(0, Math.min(startY, gridHeight - 1));
+                        targetX = Math.max(0, Math.min(targetX, gridWidth - 1));
+                        targetY = Math.max(0, Math.min(targetY, gridHeight - 1));
+                        
+                        System.out.println("计算从(" + startX + "," + startY + ")到(" + targetX + "," + targetY + ")的A*路径");
+                        
+                        // 使用A*算法查找路径
+                        List<AStarPathfinder.Node> newPath = AStarPathfinder.findPath(
+                            grid, startX, startY, targetX, targetY);
+                        
+                        if (newPath != null && !newPath.isEmpty()) {
+                            pathToTarget = newPath;
+                            pathIndex = 0;
+                            System.out.println("找到包含" + newPath.size() + "个节点的路径");
+                            
+                            // 打印路径以便调试
+                            for (int i = 0; i < newPath.size(); i++) {
+                                AStarPathfinder.Node node = newPath.get(i);
+                                System.out.println("路径点 " + i + ": (" + node.getX() + "," + node.getY() + ")");
+                            }
+                        } else {
+                            System.out.println("A*算法未找到路径，切换到直接移动");
+                            pathToTarget = null;
+                        }
                         lastPathfindingTime = currentTime;
                     }
                 }
                 
-                // 如果有路径且还未到达终点，沿着路径移动
+                // 如果有路径，严格按照路径移动
                 if (pathToTarget != null && !pathToTarget.isEmpty() && pathIndex < pathToTarget.size()) {
                     AStarPathfinder.Node nextNode = pathToTarget.get(pathIndex);
                     
-                    // 计算网格单元格大小
+                    // 计算网格中节点的中心点像素坐标
                     int cellSize = 40;
+                    int targetCenterX = nextNode.getX() * cellSize + cellSize/2;
+                    int targetCenterY = nextNode.getY() * cellSize + cellSize/2;
                     
-                    // 使用getter方法访问节点坐标
-                    int targetX = nextNode.getX() * cellSize + cellSize/2 - width/2;
-                    int targetY = nextNode.getY() * cellSize + cellSize/2 - height/2;
+                    // 计算坦克中心点
+                    int tankCenterX = x + width/2;
+                    int tankCenterY = y + height/2;
                     
-                    // 确定移动方向
-                    if (Math.abs(targetX - x) > Math.abs(targetY - y)) {
-                        // 水平移动
-                        if (targetX > x) {
-                            setDirection(Direction.RIGHT);
-                        } else {
-                            setDirection(Direction.LEFT);
+                    // 计算坦克中心点到目标中心点的距离
+                    double nodeDistance = Math.sqrt(
+                        Math.pow(targetCenterX - tankCenterX, 2) + 
+                        Math.pow(targetCenterY - tankCenterY, 2));
+                    
+                    // 判断是否已经达到当前路径点（使用更精确的距离判断）
+                    if (nodeDistance < speed) {
+                        // 已经足够接近这个路径点，移动到下一个
+                        pathIndex++;
+                        System.out.println("到达路径点" + (pathIndex-1) + "，前进到下一点: " + pathIndex);
+                        
+                        // 如果已经是最后一个点，重新计算路径
+                        if (pathIndex >= pathToTarget.size()) {
+                            System.out.println("已达到路径终点，将在下一次更新重新计算路径");
                         }
                     } else {
-                        // 垂直移动
-                        if (targetY > y) {
-                            setDirection(Direction.DOWN);
+                        // 还没到达当前路径点，继续移动
+                        // 计算移动方向
+                        if (Math.abs(targetCenterX - tankCenterX) > Math.abs(targetCenterY - tankCenterY)) {
+                            // 水平移动
+                            if (targetCenterX > tankCenterX) {
+                                setDirection(Direction.RIGHT);
+                            } else {
+                                setDirection(Direction.LEFT);
+                            }
                         } else {
-                            setDirection(Direction.UP);
+                            // 垂直移动
+                            if (targetCenterY > tankCenterY) {
+                                setDirection(Direction.DOWN);
+                            } else {
+                                setDirection(Direction.UP);
+                            }
+                        }
+                        
+                        // 移动前记录当前位置
+                        int oldX = x;
+                        int oldY = y;
+                        
+                        // 执行移动
+                        if (gameController != null) {
+                            move(gameController);
+                        } else {
+                            move();
+                        }
+                        
+                        // 检查是否有实际移动
+                        if (oldX == x && oldY == y) {
+                            // 坦克被卡住，无法朝当前方向移动
+                            System.out.println("坦克被卡住，无法移动到路径点" + pathIndex);
+                            
+                            // 尝试更改方向或重新计算路径
+                            lastPathfindingTime = 0; // 强制下次更新重新计算路径
+                        }
+                        
+                        // 在追踪玩家过程中尝试开火
+                        if (Math.random() < 0.3 && canFire()) {
+                            firedBullet = fire();
                         }
                     }
+                } else {
+                    // 没有有效路径，直接向玩家移动
+                    moveDirectlyTowardsPlayer(playerTank, gameController);
                     
-                    // 执行移动
-                    move();
-                    
-                    // 检查是否已经到达当前节点
-                    if (Math.abs(x - targetX) < speed && Math.abs(y - targetY) < speed) {
-                        pathIndex++;
-                    }
-                    
-                    // 在追踪玩家过程中，更频繁地尝试开火（30%概率）
-                    if (Math.random() < 0.3 && canFire()) {
-                        firedBullet = fire(); // 保存发射的子弹，而不只是调用fire()
+                    // 也尝试开火
+                    if (Math.random() < 0.2 && canFire()) {
+                        firedBullet = fire();
                     }
                 }
             } else {
-                // 玩家不在探测范围内，执行随机移动，可能返回子弹
-                firedBullet = updateRandomMovement(currentTime, grid);
+                // 玩家不在探测范围内，执行随机移动
+                firedBullet = updateRandomMovementWithCollision(currentTime, grid, gameController);
             }
         }
         
-        return firedBullet; // 返回发射的子弹，如果没有发射则返回null
+        return firedBullet;
+    }
+    
+    // 优化moveDirectlyTowardsPlayer方法，增加卡住检测
+    private void moveDirectlyTowardsPlayer(Tank playerTank, GameController gameController) {
+        // 记录移动前的位置
+        int oldX = x;
+        int oldY = y;
+        
+        // 计算玩家中心点
+        int playerCenterX = playerTank.getX() + playerTank.getWidth() / 2;
+        int playerCenterY = playerTank.getY() + playerTank.getHeight() / 2;
+        
+        // 计算敌方坦克中心点
+        int tankCenterX = x + width / 2;
+        int tankCenterY = y + height / 2;
+        
+        // 确定移动方向
+        if (Math.abs(playerCenterX - tankCenterX) > Math.abs(playerCenterY - tankCenterY)) {
+            // 水平移动
+            if (playerCenterX > tankCenterX) {
+                setDirection(Direction.RIGHT);
+            } else {
+                setDirection(Direction.LEFT);
+            }
+        } else {
+            // 垂直移动
+            if (playerCenterY > tankCenterY) {
+                setDirection(Direction.DOWN);
+            } else {
+                setDirection(Direction.UP);
+            }
+        }
+        
+        // 执行移动
+        if (gameController != null) {
+            move(gameController);
+        } else {
+            move();
+        }
+        
+        // 检查是否被卡住
+        if (oldX == x && oldY == y) {
+            // 被卡住了，尝试其他方向
+            Direction[] alternateDirections = {
+                Direction.UP, Direction.RIGHT, Direction.DOWN, Direction.LEFT
+            };
+            
+            for (Direction dir : alternateDirections) {
+                if (dir != direction) { // 尝试不同于当前方向的方向
+                    setDirection(dir);
+                    
+                    if (gameController != null) {
+                        move(gameController);
+                    } else {
+                        move();
+                    }
+                    
+                    // 如果移动成功，跳出循环
+                    if (x != oldX || y != oldY) {
+                        break;
+                    }
+                }
+            }
+        }
     }
     
     // 计算与另一个坦克的距离
@@ -549,8 +753,8 @@ public class Tank {
         return Math.sqrt(Math.pow(centerX2 - centerX1, 2) + Math.pow(centerY2 - centerY1, 2));
     }
     
-    // 修改随机移动方法，返回可能发射的子弹
-    private Bullet updateRandomMovement(long currentTime, boolean[][] grid) {
+    // 添加带碰撞检测的随机移动方法
+    private Bullet updateRandomMovementWithCollision(long currentTime, boolean[][] grid, GameController gameController) {
         // 如果当前正在停止状态
         if (!isMoving) {
             // 如果停止时间已结束
@@ -641,7 +845,7 @@ public class Tank {
         }
         
         // 执行移动
-        move();
+        move(gameController);
         
         // 随机尝试开火（10%概率）
         if (Math.random() < 0.1 && canFire()) {
@@ -656,5 +860,93 @@ public class Tank {
         // 随机选择一个方向: 0=上, 1=右, 2=下, 3=左
         int randomDir = (int)(Math.random() * 4);
         setDirection(Direction.fromValue(randomDir));
+    }
+    
+    /**
+     * 设置坦克是否被摧毁
+     */
+    public void setDestroyed(boolean destroyed) {
+        this.isDestroyed = destroyed;
+    }
+    
+    // 添加一个新方法来强制坦克脱离卡住状态
+    private void forceUnstuck(GameController gameController) {
+        // 尝试所有4个方向，按优先级：上、右、下、左
+        Direction[] directionsToTry = {
+            Direction.UP, Direction.RIGHT, Direction.DOWN, Direction.LEFT
+        };
+        
+        // 随机打乱方向顺序，增加多样性
+        shuffleDirections(directionsToTry);
+        
+        // 依次尝试每个方向
+        for (Direction dir : directionsToTry) {
+            // 计算该方向移动后的位置
+            int newX = x;
+            int newY = y;
+            
+            switch (dir) {
+                case UP: newY -= speed; break;
+                case DOWN: newY += speed; break;
+                case LEFT: newX -= speed; break;
+                case RIGHT: newX += speed; break;
+            }
+            
+            // 检查这个方向是否可以移动
+            if (gameController == null || 
+                gameController.checkCollision(newX, newY, width, height) == null ||
+                gameController.checkCollision(newX, newY, width, height).equals("water")) {
+                
+                // 这个方向可以移动，设置方向并移动
+                setDirection(dir);
+                if (gameController != null) {
+                    move(gameController);
+                } else {
+                    move();
+                }
+                
+                // 如果成功移动，更新最后移动时间和位置
+                lastMovementTime = System.currentTimeMillis();
+                lastX = x;
+                lastY = y;
+                System.out.println("坦克成功脱离卡住状态，移动方向: " + dir);
+                return;
+            }
+        }
+        
+        // 如果所有方向都不能移动，尝试更激进的移动（多走几步）
+        for (Direction dir : directionsToTry) {
+            // 设置方向
+            setDirection(dir);
+            
+            // 尝试连续移动3次，有可能能走出卡住的区域
+            for (int i = 0; i < 3; i++) {
+                if (gameController != null) {
+                    move(gameController);
+                } else {
+                    move();
+                }
+                
+                // 如果位置已经改变，说明成功移动
+                if (x != lastX || y != lastY) {
+                    lastMovementTime = System.currentTimeMillis();
+                    lastX = x;
+                    lastY = y;
+                    System.out.println("坦克通过激进移动脱离卡住状态");
+                    return;
+                }
+            }
+        }
+    }
+    
+    // 辅助方法：随机打乱方向数组
+    private void shuffleDirections(Direction[] directions) {
+        for (int i = directions.length - 1; i > 0; i--) {
+            int index = (int) (Math.random() * (i + 1));
+            // 交换元素
+            Direction temp = directions[index];
+            directions[index] = directions[i];
+            directions[i] = temp;
+        }
     }
 }

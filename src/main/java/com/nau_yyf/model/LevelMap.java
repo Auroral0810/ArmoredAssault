@@ -75,7 +75,9 @@ public class LevelMap {
     public MapPosition getPlayerBase() { return playerBase; }
     public void setPlayerBase(MapPosition playerBase) { this.playerBase = playerBase; }
     public MapPosition getPlayerSpawn() { return playerSpawn; }
-    public void setPlayerSpawn(MapPosition playerSpawn) { this.playerSpawn = playerSpawn; }
+    public void setPlayerSpawn(MapPosition position) {
+        this.playerSpawn = position;
+    }
     public List<MapElement> getElements() { return elements; }
     public void setElements(List<MapElement> elements) { this.elements = elements; }
     public List<EnemySpawn> getEnemies() { return enemies; }
