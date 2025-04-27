@@ -112,6 +112,12 @@ public class GameView {
     // 在GameView类中添加成员变量
     private Map<String, HBox> effectBoxMap = new HashMap<>(); // 存储每种效果的容器
     
+    // 添加以下成员变量，用于存储坦克选择界面的UI元素
+    private BorderPane tankSelectionLayout;
+    private List<VBox> tankOptionContainers = new ArrayList<>();
+    private List<ImageView> tankImages = new ArrayList<>();
+    private List<JFXButton> tankSelectButtons = new ArrayList<>();
+    
     public GameView(Stage stage) {
         this.stage = stage;
         this.stage.setTitle(GAME_TITLE);
@@ -304,153 +310,189 @@ public class GameView {
             // 清除当前内容
             root.getChildren().clear();
             
-            // 创建主布局
-            BorderPane mainLayout = new BorderPane();
-            
-            // 标题
-            Text titleText = new Text("选择你的坦克");
-            titleText.setFont(Font.font("Arial", FontWeight.BOLD, 36));
-            titleText.setFill(PRIMARY_COLOR);
-            
-            StackPane titlePane = new StackPane(titleText);
-            titlePane.setPadding(new Insets(30, 0, 30, 0));
-            mainLayout.setTop(titlePane);
-            
-            // 坦克选择区域
-            HBox tankSelectionArea = new HBox(50);
-            tankSelectionArea.setAlignment(Pos.CENTER);
-            tankSelectionArea.setPadding(new Insets(50));
-            
-            // 添加三种类型的坦克
-            for (int i = 0; i < TANK_TYPES.size(); i++) {
-                final int index = i;
-                String tankType = TANK_TYPES.get(i);
-                
-                VBox tankOption = new VBox(15);
-                tankOption.setAlignment(Pos.CENTER);
-                
-                // 坦克预览
-                ImageView tankImage = null;
-                try {
-                    // 直接使用PNG格式加载图片
-                    String imagePath = "/images/tanks/friendly/" + tankType + "/1.png";
-                    System.out.println("尝试加载坦克PNG图片: " + imagePath);
-                    
-                    InputStream imageStream = getClass().getResourceAsStream(imagePath);
-                    if (imageStream != null) {
-                        Image tankImg = new Image(imageStream);
-                        tankImage = new ImageView(tankImg);
-                        System.out.println("成功加载PNG图片: " + imagePath);
-                    } else {
-                        // PNG加载失败，尝试创建占位符
-                        System.out.println("PNG图片未找到，创建占位符");
-                        throw new Exception("PNG图片未找到");
-                    }
-                    
-                    // 设置图片大小
-                    tankImage.setFitWidth(120);
-                    tankImage.setFitHeight(120);
-                    tankImage.setPreserveRatio(true);
-                } catch (Exception e) {
-                    System.err.println("无法加载坦克图片: " + e.getMessage());
-                    
-                    // 创建一个简单的占位符
-                    javafx.scene.shape.Rectangle rect = new javafx.scene.shape.Rectangle(120, 120);
-                    if (tankType.equals("light")) {
-                        rect.setFill(Color.rgb(120, 200, 80));  // 浅绿色
-                    } else if (tankType.equals("standard")) {
-                        rect.setFill(Color.rgb(80, 150, 220));  // 蓝色
-                    } else {
-                        rect.setFill(Color.rgb(200, 80, 80));   // 红色
-                    }
-                    rect.setArcWidth(20);
-                    rect.setArcHeight(20);
-                    
-                    // 创建坦克形状轮廓
-                    javafx.scene.shape.Rectangle body = new javafx.scene.shape.Rectangle(80, 40);
-                    body.setFill(Color.rgb(50, 50, 50));
-                    body.setArcWidth(10);
-                    body.setArcHeight(10);
-                    
-                    javafx.scene.shape.Rectangle barrel = new javafx.scene.shape.Rectangle(60, 16);
-                    barrel.setFill(Color.rgb(70, 70, 70));
-                    barrel.setArcWidth(5);
-                    barrel.setArcHeight(5);
-                    
-                    Group tankShape = new Group(body, barrel);
-                    barrel.setTranslateX(30);
-                    
-                    StackPane placeholder = new StackPane(rect, tankShape);
-                    placeholder.setMaxSize(120, 120);
-                    
-                    // 将占位符添加到布局中
-                    tankOption.getChildren().add(placeholder);
-                    
-                    // 跳过其他步骤
-                    return;
-                }
-                
-                // 坦克名称和属性
-                Text tankName = new Text(getTankDisplayName(tankType));
-                tankName.setFont(Font.font("Arial", FontWeight.BOLD, 18));
-                tankName.setFill(TEXT_COLOR);
-                
-                Text tankDesc = new Text(getTankDescription(tankType));
-                tankDesc.setFont(Font.font("Arial", 14));
-                tankDesc.setFill(TEXT_COLOR);
-                tankDesc.setWrappingWidth(200);
-                tankDesc.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
-                
-                // 选择按钮
-                JFXButton selectButton = new JFXButton("选择");
-                selectButton.getStyleClass().add("tank-select-button");
-                selectButton.setButtonType(JFXButton.ButtonType.RAISED);
-                if (index == selectedTankType) {
-                    selectButton.setStyle("-fx-background-color: " + toHexString(SECONDARY_COLOR) + ";");
-                    selectButton.setText("已选择");
-                } else {
-                    selectButton.setStyle("-fx-background-color: " + toHexString(PRIMARY_COLOR) + ";");
-                }
-                
-                selectButton.setOnAction(e -> {
-                    selectedTankType = index;
-                    showTankSelection(); // 刷新界面
-                });
-                
-                // 将元素添加到坦克选项容器
-                tankOption.getChildren().addAll(tankImage, tankName, tankDesc, selectButton);
-                
-                // 添加边框效果（如果是当前选中的）
-                if (index == selectedTankType) {
-                    tankOption.setStyle("-fx-border-color: " + toHexString(SECONDARY_COLOR) + "; " +
-                                       "-fx-border-width: 3; " +
-                                       "-fx-border-radius: 5; " +
-                                       "-fx-padding: 10;");
-                } else {
-                    tankOption.setStyle("-fx-padding: 13;"); // 保持相同的总尺寸
-                }
-                
-                // 添加到选择区域
-                tankSelectionArea.getChildren().add(tankOption);
+            // 如果选择界面尚未初始化，创建它
+            if (tankSelectionLayout == null) {
+                initializeTankSelectionUI();
+            } else {
+                // 只更新选择状态
+                updateTankSelection();
             }
             
-            mainLayout.setCenter(tankSelectionArea);
-            
-            // 底部按钮区域
-            HBox bottomButtons = new HBox(20);
-            bottomButtons.setAlignment(Pos.CENTER);
-            bottomButtons.setPadding(new Insets(30));
-            
-            JFXButton backButton = createMenuButton("返回", e -> showSinglePlayerOptions());
-            JFXButton startButton = createMenuButton("开始游戏", e -> startGame());
-            startButton.setStyle("-fx-background-color: " + toHexString(SECONDARY_COLOR) + ";");
-            
-            bottomButtons.getChildren().addAll(backButton, startButton);
-            mainLayout.setBottom(bottomButtons);
-            
             // 将主布局添加到根布局
-            root.getChildren().add(mainLayout);
+            root.getChildren().add(tankSelectionLayout);
         });
+    }
+    
+    /**
+     * 初始化坦克选择界面UI
+     */
+    private void initializeTankSelectionUI() {
+        // 创建主布局
+        tankSelectionLayout = new BorderPane();
+        
+        // 标题
+        Text titleText = new Text("选择你的坦克");
+        titleText.setFont(Font.font("Arial", FontWeight.BOLD, 36));
+        titleText.setFill(PRIMARY_COLOR);
+        
+        StackPane titlePane = new StackPane(titleText);
+        titlePane.setPadding(new Insets(30, 0, 30, 0));
+        tankSelectionLayout.setTop(titlePane);
+        
+        // 坦克选择区域
+        HBox tankSelectionArea = new HBox(50);
+        tankSelectionArea.setAlignment(Pos.CENTER);
+        tankSelectionArea.setPadding(new Insets(50));
+        
+        // 添加三种类型的坦克
+        for (int i = 0; i < TANK_TYPES.size(); i++) {
+            final int index = i;
+            String tankType = TANK_TYPES.get(i);
+            
+            VBox tankOption = new VBox(15);
+            tankOption.setAlignment(Pos.CENTER);
+            
+            // 坦克预览
+            ImageView tankImage = null;
+            try {
+                // 使用PNG格式加载图片
+                String imagePath = "/images/tanks/friendly/" + tankType + "/1.png";
+                
+                InputStream imageStream = getClass().getResourceAsStream(imagePath);
+                if (imageStream != null) {
+                    Image tankImg = new Image(imageStream);
+                    tankImage = new ImageView(tankImg);
+                } else {
+                    // PNG加载失败，创建占位符
+                    throw new Exception("PNG图片未找到");
+                }
+                
+                // 设置图片大小
+                tankImage.setFitWidth(120);
+                tankImage.setFitHeight(120);
+                tankImage.setPreserveRatio(true);
+                
+                // 保存到列表中
+                tankImages.add(tankImage);
+            } catch (Exception e) {
+                // 创建一个简单的占位符
+                javafx.scene.shape.Rectangle rect = new javafx.scene.shape.Rectangle(120, 120);
+                if (tankType.equals("light")) {
+                    rect.setFill(Color.rgb(120, 200, 80));  // 浅绿色
+                } else if (tankType.equals("standard")) {
+                    rect.setFill(Color.rgb(80, 150, 220));  // 蓝色
+                } else {
+                    rect.setFill(Color.rgb(200, 80, 80));   // 红色
+                }
+                rect.setArcWidth(20);
+                rect.setArcHeight(20);
+                
+                // 创建坦克形状轮廓
+                javafx.scene.shape.Rectangle body = new javafx.scene.shape.Rectangle(80, 40);
+                body.setFill(Color.rgb(50, 50, 50));
+                body.setArcWidth(10);
+                body.setArcHeight(10);
+                
+                javafx.scene.shape.Rectangle barrel = new javafx.scene.shape.Rectangle(60, 16);
+                barrel.setFill(Color.rgb(70, 70, 70));
+                barrel.setArcWidth(5);
+                barrel.setArcHeight(5);
+                
+                Group tankShape = new Group(body, barrel);
+                barrel.setTranslateX(30);
+                
+                StackPane placeholder = new StackPane(rect, tankShape);
+                placeholder.setMaxSize(120, 120);
+                
+                // 将占位符添加到布局中
+                tankOption.getChildren().add(placeholder);
+                
+                System.err.println("无法加载坦克图片: " + e.getMessage());
+                continue;
+            }
+            
+            // 坦克名称和属性
+            Text tankName = new Text(getTankDisplayName(tankType));
+            tankName.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+            tankName.setFill(TEXT_COLOR);
+            
+            Text tankDesc = new Text(getTankDescription(tankType));
+            tankDesc.setFont(Font.font("Arial", 14));
+            tankDesc.setFill(TEXT_COLOR);
+            tankDesc.setWrappingWidth(200);
+            tankDesc.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+            
+            // 选择按钮
+            JFXButton selectButton = new JFXButton("选择");
+            selectButton.getStyleClass().add("tank-select-button");
+            selectButton.setButtonType(JFXButton.ButtonType.RAISED);
+            
+            if (index == selectedTankType) {
+                selectButton.setStyle("-fx-background-color: " + toHexString(SECONDARY_COLOR) + ";");
+                selectButton.setText("已选择");
+            } else {
+                selectButton.setStyle("-fx-background-color: " + toHexString(PRIMARY_COLOR) + ";");
+            }
+            
+            // 保存按钮引用
+            tankSelectButtons.add(selectButton);
+            
+            selectButton.setOnAction(e -> {
+                selectedTankType = index;
+                updateTankSelection(); // 只更新选择状态，不重新加载
+            });
+            
+            // 将元素添加到坦克选项容器
+            tankOption.getChildren().addAll(tankImage, tankName, tankDesc, selectButton);
+            
+            // 保存容器引用
+            tankOptionContainers.add(tankOption);
+            
+            // 添加到选择区域
+            tankSelectionArea.getChildren().add(tankOption);
+        }
+        
+        tankSelectionLayout.setCenter(tankSelectionArea);
+        
+        // 底部按钮区域
+        HBox bottomButtons = new HBox(20);
+        bottomButtons.setAlignment(Pos.CENTER);
+        bottomButtons.setPadding(new Insets(30));
+        
+        JFXButton backButton = createMenuButton("返回", e -> showSinglePlayerOptions());
+        JFXButton startButton = createMenuButton("开始游戏", e -> startGame());
+        startButton.setStyle("-fx-background-color: " + toHexString(SECONDARY_COLOR) + ";");
+        
+        bottomButtons.getChildren().addAll(backButton, startButton);
+        tankSelectionLayout.setBottom(bottomButtons);
+        
+        // 初始更新选择状态
+        updateTankSelection();
+    }
+    
+    /**
+     * 更新坦克选择状态
+     */
+    private void updateTankSelection() {
+        for (int i = 0; i < tankOptionContainers.size(); i++) {
+            VBox tankOption = tankOptionContainers.get(i);
+            JFXButton selectButton = tankSelectButtons.get(i);
+            
+            if (i == selectedTankType) {
+                // 选中样式
+                tankOption.setStyle("-fx-border-color: " + toHexString(SECONDARY_COLOR) + "; " +
+                                  "-fx-border-width: 3; " +
+                                  "-fx-border-radius: 5; " +
+                                  "-fx-padding: 10;");
+                selectButton.setStyle("-fx-background-color: " + toHexString(SECONDARY_COLOR) + ";");
+                selectButton.setText("已选择");
+            } else {
+                // 未选中样式
+                tankOption.setStyle("-fx-padding: 13;"); // 保持相同的总尺寸
+                selectButton.setStyle("-fx-background-color: " + toHexString(PRIMARY_COLOR) + ";");
+                selectButton.setText("选择");
+            }
+        }
     }
     
     /**
@@ -1078,7 +1120,7 @@ public class GameView {
     }
     
     /**
-     * 处理玩家输入 - 简化版本，移除重复的碰撞检测
+     * 处理玩家输入 - 支持加速度逻辑
      */
     private void handlePlayerInput() {
         // 获取玩家坦克
@@ -1091,35 +1133,35 @@ public class GameView {
         
         if (gameController == null) return;
         
-        boolean moved = false;
+        boolean anyKeyPressed = false;
         
         // 根据按键状态设置方向
         if (up) {
             playerTank.setDirection(Tank.Direction.UP);
-            moved = true;
+            anyKeyPressed = true;
         } 
         else if (down) {
             playerTank.setDirection(Tank.Direction.DOWN);
-            moved = true;
+            anyKeyPressed = true;
         }
         else if (left) {
             playerTank.setDirection(Tank.Direction.LEFT);
-            moved = true;
+            anyKeyPressed = true;
         } 
         else if (right) {
             playerTank.setDirection(Tank.Direction.RIGHT);
-            moved = true;
+            anyKeyPressed = true;
         }
         
-        // 如果有按键被按下，执行移动
-        if (moved) {
-            // 调用坦克的move方法
-            playerTank.move(gameController);
-            
-            // 移动后更新健康值显示
-            if (playerTank.isInWaterLastFrame()) {
-                updateHealthDisplay();
-            }
+        // 设置是否加速
+        playerTank.setAccelerating(anyKeyPressed);
+        
+        // 执行移动逻辑（无论是否按键都要调用，以处理减速）
+        playerTank.move(gameController);
+        
+        // 水池伤害处理
+        if (playerTank.isInWaterLastFrame()) {
+            updateHealthDisplay();
         }
         
         // 处理射击

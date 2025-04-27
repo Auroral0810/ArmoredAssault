@@ -141,7 +141,7 @@ public class Tank {
     private boolean isInvincible = false;
     
     // 坦克类型的默认参数（类型 -> [生命值, 速度, 攻击力, 攻速, 子弹速度]）
-    private static final Map<TankType, int[]> DEFAULT_STATS = new HashMap<>();
+    private static final Map<TankType, double[]> DEFAULT_STATS = new HashMap<>();
     
     // 添加用于敌方坦克AI的相关属性和方法
     private List<AStarPathfinder.Node> pathToTarget;
@@ -178,16 +178,24 @@ public class Tank {
     // 在Tank类中添加一个标记，记录上一帧是否在水中
     private boolean inWaterLastFrame = false;
     
+    // 在类的成员变量区域添加以下变量
+    private double acceleration; // 加速度
+    private double deceleration; // 减速度
+    private double currentSpeed; // 当前速度
+    private double maxSpeed; // 最大速度
+    private boolean isAccelerating = false; // 是否正在加速
+    private double[] lastMotion = new double[]{0, 0}; // 上一帧的运动方向 [x方向, y方向]
+    
     static {
-        // 友方坦克参数: 生命值, 速度, 攻击力, 攻速(每秒), 子弹
-        DEFAULT_STATS.put(TankType.LIGHT, new int[]{3, 3, 1, 3, 3});    
-        DEFAULT_STATS.put(TankType.STANDARD, new int[]{4, 2, 2, 2, 2});  
-        DEFAULT_STATS.put(TankType.HEAVY, new int[]{5, 2, 3, 1, 2});     
+        // 友方坦克参数: 生命值, 基础速度, 攻击力, 攻速(每秒), 子弹速度, 加速度, 最大速度, 减速度
+        DEFAULT_STATS.put(TankType.LIGHT, new double[]{3, 2.3, 1, 3, 3, 0.3, 4, 0.5});    
+        DEFAULT_STATS.put(TankType.STANDARD, new double[]{4, 1.8, 2, 2, 2, 0.2, 3, 0.4});  
+        DEFAULT_STATS.put(TankType.HEAVY, new double[]{5, 1.3, 3, 1, 2, 0.1, 2, 0.3});     
         
-        // 敌方坦克参数也相应降低
-        DEFAULT_STATS.put(TankType.BASIC, new int[]{1, 1, 1, 1, 2});
-        DEFAULT_STATS.put(TankType.ELITE, new int[]{2, 2, 2, 2, 3});
-        DEFAULT_STATS.put(TankType.BOSS, new int[]{5, 2, 3, 2, 3});
+        // 敌方坦克参数: 生命值, 基础速度, 攻击力, 攻速(每秒), 子弹速度, 加速度, 最大速度, 减速度
+        DEFAULT_STATS.put(TankType.BASIC, new double[]{2, 1.5, 1, 1, 2, 0.1, 2.2, 0.2});
+        DEFAULT_STATS.put(TankType.ELITE, new double[]{4, 1.8, 2, 2, 3, 0.15, 2.8, 0.3});
+        DEFAULT_STATS.put(TankType.BOSS, new double[]{7, 2, 3, 2, 3, 0.1, 3.2, 0.25});
     }
     
     // 构造函数
@@ -198,14 +206,18 @@ public class Tank {
         this.direction = Direction.UP;
         
         // 设置默认参数
-        int[] stats = DEFAULT_STATS.get(type);
-        this.maxHealth = stats[0];
+        double[] stats = DEFAULT_STATS.get(type);
+        this.maxHealth = (int)stats[0];
         this.health = maxHealth;
-        this.speed = stats[1];
-        this.attackPower = stats[2];
+        this.speed = (int)stats[1];
+        this.attackPower = (int)stats[2];
         this.fireRate = stats[3];
         this.fireDelay = 1000.0 / fireRate;
-        this.bulletSpeed = stats[4];
+        this.bulletSpeed = (int)stats[4];
+        this.acceleration = stats[5];
+        this.maxSpeed = stats[6];
+        this.deceleration = stats[7];
+        this.currentSpeed = 0; // 初始速度为0
         
         // 设置子弹类型
         setBulletTypeBasedOnTankType();
@@ -239,27 +251,59 @@ public class Tank {
         // 重置上一帧水池状态
         inWaterLastFrame = false;
         
-        // 速度增益效果 - 增加50%速度
-        int actualSpeed = isEffectActive(PowerUpType.SPEED) ? (int)(speed * 1.5) : speed;
+        // 计算加速度和最大速度（考虑速度增益效果）
+        double effectiveMaxSpeed = isEffectActive(PowerUpType.SPEED) ? maxSpeed * 1.5 : maxSpeed;
+        double effectiveAcceleration = isEffectActive(PowerUpType.SPEED) ? acceleration * 1.2 : acceleration;
+        
+        // 更新速度
+        if (isAccelerating) {
+            // 加速
+            currentSpeed = Math.min(effectiveMaxSpeed, currentSpeed + effectiveAcceleration);
+        } else {
+            // 减速
+            currentSpeed = Math.max(0, currentSpeed - deceleration);
+        }
+        
+        // 如果速度几乎为0，直接设为0
+        if (currentSpeed < 0.1) {
+            currentSpeed = 0;
+        }
+        
+        // 如果没有速度，不移动
+        if (currentSpeed <= 0) {
+            return;
+        }
         
         // 计算下一个位置
-        int nextX = x;
-        int nextY = y;
+        double nextX = x;
+        double nextY = y;
+        
+        // 保存运动方向
+        double dirX = 0;
+        double dirY = 0;
         
         switch (direction) {
             case UP:
-                nextY -= actualSpeed;
+                nextY -= currentSpeed;
+                dirY = -1;
                 break;
             case DOWN:
-                nextY += actualSpeed;
+                nextY += currentSpeed;
+                dirY = 1;
                 break;
             case LEFT:
-                nextX -= actualSpeed;
+                nextX -= currentSpeed;
+                dirX = -1;
                 break;
             case RIGHT:
-                nextX += actualSpeed;
+                nextX += currentSpeed;
+                dirX = 1;
                 break;
         }
+        
+        // 更新运动方向
+        lastMotion[0] = dirX;
+        lastMotion[1] = dirY;
         
         // 边界检查
         int mapWidth = (gameController.getMap() != null) ? gameController.getMap().getWidth() : 800;
@@ -267,28 +311,35 @@ public class Tank {
         
         if (nextX < 0) {
             nextX = 0;
+            currentSpeed *= 0.5; // 碰到边界减速
         } else if (nextX > mapWidth - width) {
             nextX = mapWidth - width;
+            currentSpeed *= 0.5; // 碰到边界减速
         }
         
         if (nextY < 0) {
             nextY = 0;
+            currentSpeed *= 0.5; // 碰到边界减速
         } else if (nextY > mapHeight - height) {
             nextY = mapHeight - height;
+            currentSpeed *= 0.5; // 碰到边界减速
         }
         
         // 检查碰撞
-        String collisionType = gameController.checkCollision(nextX, nextY, width, height);
+        String collisionType = gameController.checkCollision((int)nextX, (int)nextY, width, height);
         
         if (collisionType == null) {
             // 无碰撞，正常移动
-            x = nextX;
-            y = nextY;
+            x = (int)nextX;
+            y = (int)nextY;
         } else if (collisionType.equals("water")) {
-            // 水池，移动但需要检查是否处于无敌状态
-            x = nextX;
-            y = nextY;
+            // 水池，移动但需要减速和检查状态
+            x = (int)nextX;
+            y = (int)nextY;
             inWaterLastFrame = true;
+            
+            // 水池中移动减速
+            currentSpeed *= 0.7;
             
             // 敌方坦克不会受到水池伤害
             if (!isFriendly()) {
@@ -300,6 +351,14 @@ public class Tank {
                 return; // 无敌状态不受伤害，直接返回
             }
             
+            // 护盾可以抵挡水池伤害
+            if (isShielded) {
+                System.out.println("护盾抵挡了水池伤害！护盾已消失");
+                removeEffect(PowerUpType.SHIELD);
+                isShielded = false;
+                return;
+            }
+            
             // 不在无敌状态下
             health--;
             
@@ -307,6 +366,9 @@ public class Tank {
             if (health <= 0) {
                 isDestroyed = true;
             }
+        } else {
+            // 其他障碍物碰撞，减速或停止
+            currentSpeed *= 0.2; // 碰到障碍物大幅减速
         }
     }
     
@@ -617,7 +679,12 @@ public class Tank {
             // 计算与玩家坦克的距离
             double distance = calculateDistance(playerTank);
             
-
+            // 在执行移动前，设置是否加速
+            if (isMoving) {
+                setAccelerating(true);
+            } else {
+                setAccelerating(false);
+            }
             
             // 如果玩家在探测范围内，使用A*寻路追踪玩家
             if (distance <= DETECTION_RANGE) {
@@ -1042,5 +1109,19 @@ public class Tank {
     // 为标记添加getter方法
     public boolean isInWaterLastFrame() {
         return inWaterLastFrame;
+    }
+
+    // 添加设置/获取加速状态的方法
+    public void setAccelerating(boolean accelerating) {
+        this.isAccelerating = accelerating;
+    }
+
+    public boolean isAccelerating() {
+        return isAccelerating;
+    }
+
+    // 获取当前速度
+    public double getCurrentSpeed() {
+        return currentSpeed;
     }
 }

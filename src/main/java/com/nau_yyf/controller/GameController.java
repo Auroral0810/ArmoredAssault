@@ -578,8 +578,7 @@ public class GameController {
     
     
     /**
-     * 检查碰撞
-     * @return 返回碰撞的地形类型，如果没有碰撞则返回null
+     * 检查碰撞 - 支持double类型坐标
      */
     public String checkCollision(int x, int y, int width, int height) {
         if (levelMap == null) return null;
