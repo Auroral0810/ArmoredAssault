@@ -1,6 +1,6 @@
 package com.nau_yyf.service.serviceImpl;
 
-import com.nau_yyf.controller.GameController;
+import com.nau_yyf.controller.SingleGameController;
 import com.nau_yyf.model.Tank;
 import com.nau_yyf.service.EffectService;
 import com.nau_yyf.service.GameLoopService;
@@ -33,9 +33,9 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
      * 创建并启动游戏循环
      */
     @Override
-    public AnimationTimer createGameLoop(GameController gameController, 
-                                        Runnable renderCallback, 
-                                        TimeUpdateCallback timeUpdateCallback) {
+    public AnimationTimer createGameLoop(SingleGameController singleGameController,
+                                         Runnable renderCallback,
+                                         TimeUpdateCallback timeUpdateCallback) {
         // 重置时间相关变量
         gameStartTime = System.currentTimeMillis();
         lastUpdateTime = gameStartTime;
@@ -50,7 +50,7 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
             @Override
             public void handle(long now) {
                 // 检查gameController是否为null
-                if (gameController == null) {
+                if (singleGameController == null) {
                     return; // 如果控制器为null，不执行更新
                 }
                 
@@ -72,7 +72,7 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
                 
                 // 执行固定时间步长的逻辑更新
                 while (accumulator >= TIME_STEP) {
-                    updateGame(gameController, TIME_STEP);
+                    updateGame(singleGameController, TIME_STEP);
                     accumulator -= TIME_STEP;
                 }
                 
@@ -102,7 +102,7 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
                 lastUpdateTime = currentTime;
                 
                 // 添加对玩家坦克状态的检查
-                gameController.updatePlayerTank();
+                singleGameController.updatePlayerTank();
             }
         };
         
@@ -116,11 +116,11 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
      * 更新游戏状态
      */
     @Override
-    public void updateGame(GameController gameController, double deltaTime) {
-        if (gameController == null) return;
+    public void updateGame(SingleGameController singleGameController, double deltaTime) {
+        if (singleGameController == null) return;
         
         // 获取玩家坦克
-        Tank playerTank = gameController.getPlayerTank();
+        Tank playerTank = singleGameController.getPlayerTank();
         
         // 检查玩家坦克是否已死亡但未触发死亡处理
         if (playerTank != null && playerTank.isDead()) {
@@ -138,42 +138,42 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
         gameView.handlePlayerInput(playerTank);
         
         // 更新敌方坦克
-        gameController.updateEnemyTanks(); 
+        singleGameController.updateEnemyTanks();
         
         // 更新子弹
-        gameController.updateBullets(deltaTime);
+        singleGameController.updateBullets(deltaTime);
         
         // 检查碰撞 - 如果返回true，表示玩家失去生命，通过GameController事件处理
-        gameController.updateBulletsAndCheckCollisions();
+        singleGameController.updateBulletsAndCheckCollisions();
         
         // 检查玩家血量是否改变，如果改变则更新显示
         if (playerTank != null && playerTank.getHealth() != oldHealth) {
             SinglePlayerGameScreen gameScreen = gameView.getSinglePlayerGameStarter().getGameScreen();
-            gameScreen.updateHealthDisplay(gameController);
+            gameScreen.updateHealthDisplay(singleGameController);
             
             // 使用SinglePlayerGameScreen更新生命显示
             gameScreen.updateLivesDisplay(gameView.getPlayerLives());
         }
         
         // 检查敌方坦克与玩家坦克碰撞
-        if (gameController.checkEnemyPlayerCollisions()) {
+        if (singleGameController.checkEnemyPlayerCollisions()) {
             // 更新生命显示
             SinglePlayerGameScreen gameScreen = gameView.getSinglePlayerGameStarter().getGameScreen();
-            gameScreen.updateHealthDisplay(gameController);
+            gameScreen.updateHealthDisplay(singleGameController);
             
             // 使用SinglePlayerGameScreen更新生命显示
             gameScreen.updateLivesDisplay(gameView.getPlayerLives());
         }
         
         // 刷新子弹补给
-        updateBulletRefill(gameController, deltaTime);
+        updateBulletRefill(singleGameController, deltaTime);
         
         // 更新敌人显示 - 每帧更新确保数量显示正确
         SinglePlayerGameScreen gameScreen = gameView.getSinglePlayerGameStarter().getGameScreen();
-        gameScreen.updateEnemiesDisplay(gameController);
+        gameScreen.updateEnemiesDisplay(singleGameController);
         
         // 更新增益效果
-        gameController.updatePowerUps(deltaTime);
+        singleGameController.updatePowerUps(deltaTime);
         
         // 使用效果服务更新玩家坦克的增益效果
         if (playerTank != null) {
@@ -181,19 +181,19 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
         }
         
         // 使用效果服务更新闪烁效果
-        effectService.updatePowerUpBlinking(gameController.getPowerUps());
+        effectService.updatePowerUpBlinking(singleGameController.getPowerUps());
         
         // 更新UI显示
-        gameScreen.updatePowerUpUIDisplay(gameController, effectService);
+        gameScreen.updatePowerUpUIDisplay(singleGameController, effectService);
     }
 
     /**
      * 根据坦克类型恢复子弹
      */
-    private void updateBulletRefill(GameController gameController, double deltaTime) {
-        if (gameController == null) return;
+    private void updateBulletRefill(SingleGameController singleGameController, double deltaTime) {
+        if (singleGameController == null) return;
         
-        Tank playerTank = gameController.getPlayerTank();
+        Tank playerTank = singleGameController.getPlayerTank();
         if (playerTank != null) {
             // 获取当前子弹数量和上次刷新时间
             int bulletCount = gameView.getBulletCount();

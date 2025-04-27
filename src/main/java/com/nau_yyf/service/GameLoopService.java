@@ -1,6 +1,6 @@
 package com.nau_yyf.service;
 
-import com.nau_yyf.controller.GameController;
+import com.nau_yyf.controller.SingleGameController;
 import javafx.animation.AnimationTimer;
 
 /**
@@ -11,22 +11,22 @@ public interface GameLoopService {
     /**
      * 创建并启动游戏循环
      * 
-     * @param gameController 游戏控制器
+     * @param singleGameController 游戏控制器
      * @param renderCallback 渲染回调接口
      * @param timeUpdateCallback 时间更新回调接口
      * @return 创建的游戏循环对象
      */
-    AnimationTimer createGameLoop(GameController gameController, 
-                                  Runnable renderCallback, 
+    AnimationTimer createGameLoop(SingleGameController singleGameController,
+                                  Runnable renderCallback,
                                   TimeUpdateCallback timeUpdateCallback);
     
     /**
      * 更新游戏状态
      * 
-     * @param gameController 游戏控制器
+     * @param singleGameController 游戏控制器
      * @param deltaTime 时间步长
      */
-    void updateGame(GameController gameController, double deltaTime);
+    void updateGame(SingleGameController singleGameController, double deltaTime);
     
     /**
      * 暂停游戏循环

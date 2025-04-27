@@ -11,7 +11,7 @@ import javafx.application.Platform;
 public class SinglePlayerGameStarter {
 
     private GameView gameView;
-    private GameController gameController;
+    private SingleGameController singleGameController;
     private SinglePlayerGameScreen gameScreen;
 
     /**
@@ -32,25 +32,25 @@ public class SinglePlayerGameStarter {
      */
     public void startGame(String selectedTankType, int level) {
         // 创建游戏控制器并加载关卡
-        gameController = new GameController();
-        gameController.loadLevel(level);
-        gameController.setPlayerTankType(selectedTankType);
+        singleGameController = new SingleGameController();
+        singleGameController.loadLevel(level);
+        singleGameController.setPlayerTankType(selectedTankType);
 
         // 设置对GameView的引用
-        gameController.setGameView(gameView);
+        singleGameController.setGameView(gameView);
 
         // 确保GameView也拥有对此控制器的引用
-        gameView.setGameController(gameController);
+        gameView.setGameController(singleGameController);
 
         // 设置事件监听器
-        gameController.setGameEventListener(new GameController.GameEventListener() {
+        singleGameController.setGameEventListener(new SingleGameController.GameEventListener() {
             @Override
             public void onPlayerDestroyed() {
                 // 在JavaFX应用线程中处理玩家坦克摧毁事件
                 Platform.runLater(() -> {
                     // 修改为调用SinglePlayerGameScreen的方法
                     gameScreen.handlePlayerDestroyed(
-                            gameController,
+                            singleGameController,
                             selectedTankType,
                             gameView.getPlayerLives());
                 });
@@ -62,7 +62,7 @@ public class SinglePlayerGameStarter {
         gameView.setIsPauseMenuOpen(false);
 
         // 显示游戏屏幕 - 先显示界面再设置生命值和子弹数
-        gameScreen.show(gameController);
+        gameScreen.show(singleGameController);
 
         // 现在gameDataPanel已初始化，可以安全设置这些值
         gameView.setPlayerLives(3);
@@ -71,7 +71,7 @@ public class SinglePlayerGameStarter {
         // 立即更新所有显示元素
         gameView.updateHealthDisplay();
         gameScreen.updateLivesDisplay(gameView.getPlayerLives());
-        gameScreen.updateEnemiesDisplay(gameController);
+        gameScreen.updateEnemiesDisplay(singleGameController);
         gameView.updateBulletDisplay();
 
         // 记录游戏开始时间
@@ -93,17 +93,17 @@ public class SinglePlayerGameStarter {
      * 
      * @return the gameController
      */
-    public GameController getGameController() {
-        return gameController;
+    public SingleGameController getGameController() {
+        return singleGameController;
     }
 
     /**
      * 设置游戏控制器
      * 
-     * @param gameController the gameController to set
+     * @param singleGameController the gameController to set
      */
-    public void setGameController(GameController gameController) {
-        this.gameController = gameController;
+    public void setGameController(SingleGameController singleGameController) {
+        this.singleGameController = singleGameController;
     }
 
     /**

@@ -1,6 +1,6 @@
 package com.nau_yyf.service;
 
-import com.nau_yyf.controller.GameController;
+import com.nau_yyf.controller.SingleGameController;
 import java.io.File;
 
 /**
@@ -11,29 +11,29 @@ public interface GameStateService {
     /**
      * 保存游戏状态
      * 
-     * @param gameController 游戏控制器
+     * @param singleGameController 游戏控制器
      * @param saveName 存档名称
      * @return 保存是否成功
      */
-    boolean saveGame(GameController gameController, String saveName);
+    boolean saveGame(SingleGameController singleGameController, String saveName);
     
     /**
      * 加载游戏状态
      * 
-     * @param gameController 游戏控制器
+     * @param singleGameController 游戏控制器
      * @param saveFile 存档文件
      * @return 加载是否成功
      */
-    boolean loadGame(GameController gameController, File saveFile);
+    boolean loadGame(SingleGameController singleGameController, File saveFile);
     
     /**
      * 重新开始当前关卡
      * 
-     * @param gameController 游戏控制器
+     * @param singleGameController 游戏控制器
      * @param tankType 坦克类型
      * @param level 关卡
      */
-    void restartGame(GameController gameController, String tankType, int level);
+    void restartGame(SingleGameController singleGameController, String tankType, int level);
     
     /**
      * 计算游戏得分
@@ -49,15 +49,15 @@ public interface GameStateService {
     /**
      * 检查关卡是否完成
      * 
-     * @param gameController 游戏控制器
+     * @param singleGameController 游戏控制器
      * @return 关卡是否完成
      */
-    boolean isLevelCompleted(GameController gameController);
+    boolean isLevelCompleted(SingleGameController singleGameController);
     
     /**
      * 清理游戏资源
      * 
-     * @param gameController 游戏控制器
+     * @param singleGameController 游戏控制器
      */
-    void cleanupGameResources(GameController gameController);
+    void cleanupGameResources(SingleGameController singleGameController);
 }

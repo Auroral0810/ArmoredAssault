@@ -1,0 +1,136 @@
+package com.nau_yyf.view.multiGame;
+
+import com.jfoenix.controls.JFXButton;
+import com.nau_yyf.view.GameView;
+import javafx.application.Platform;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.Label;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.stage.Stage;
+
+/**
+ * 双人游戏选项界面视图组件
+ */
+public class MultiPlayerOptionsView {
+    
+    private GameView gameView;
+    private StackPane root;
+    private Stage stage;
+    
+    // 使用与单人游戏相同的颜色方案
+    private final Color PRIMARY_COLOR = Color.rgb(37, 160, 218);    // 蓝色
+    private final Color TEXT_COLOR = Color.WHITE;
+    private final Color BACKGROUND_COLOR = Color.rgb(27, 40, 56);   // 深蓝灰色
+    
+    /**
+     * 构造函数
+     * @param gameView 游戏主视图的引用
+     * @param root 根布局容器
+     * @param stage 主舞台
+     */
+    public MultiPlayerOptionsView(GameView gameView, StackPane root, Stage stage) {
+        this.gameView = gameView;
+        this.root = root;
+        this.stage = stage;
+    }
+    
+    /**
+     * 显示双人游戏选项界面
+     */
+    public void show() {
+        Platform.runLater(() -> {
+            // 清除当前内容
+            root.getChildren().clear();
+            
+            // 设置根布局背景色
+            root.setStyle("-fx-background-color: " + toHexString(BACKGROUND_COLOR) + ";");
+            
+            // 创建垂直布局容器
+            VBox optionsContainer = new VBox(20);
+            optionsContainer.setAlignment(Pos.CENTER);
+            optionsContainer.setPadding(new Insets(50, 0, 50, 0));
+            optionsContainer.setMaxWidth(600);
+            
+            // 界面标题
+            Text titleText = new Text("双人游戏");
+            titleText.setFont(Font.font("Arial", FontWeight.BOLD, 36));
+            titleText.setFill(PRIMARY_COLOR);
+            optionsContainer.getChildren().add(titleText);
+            
+            // 间隔
+            Region spacer1 = new Region();
+            VBox.setVgrow(spacer1, Priority.ALWAYS);
+            optionsContainer.getChildren().add(spacer1);
+            
+            // 创建按钮
+            JFXButton newGameButton = createMenuButton("新游戏", e -> gameView.showMultiTankSelection());
+            JFXButton vsComputerButton = createMenuButton("对战电脑", e -> gameView.showMessage("即将开启人机对战模式"));
+            JFXButton vsPlayerButton = createMenuButton("双人对战", e -> gameView.showMessage("双人对战功能即将推出"));
+            JFXButton loadGameButton = createMenuButton("加载游戏", e -> gameView.showMessage("双人游戏加载功能即将推出"));
+            JFXButton backButton = createMenuButton("返回主菜单", e -> gameView.showMainMenu());
+            
+            // 将按钮添加到布局容器
+            optionsContainer.getChildren().addAll(
+                    newGameButton,
+                    vsComputerButton,
+                    vsPlayerButton,
+                    loadGameButton,
+                    backButton
+            );
+            
+            // 额外的间隔
+            Region spacer2 = new Region();
+            VBox.setVgrow(spacer2, Priority.ALWAYS);
+            optionsContainer.getChildren().add(spacer2);
+            
+            // 提示标签
+            Label tipLabel = new Label("提示: 双人模式可以一起游玩，或者与电脑对战");
+            tipLabel.setTextFill(TEXT_COLOR);
+            tipLabel.setStyle("-fx-font-style: italic;");
+            optionsContainer.getChildren().add(tipLabel);
+            
+            // 将选项容器添加到根布局
+            root.getChildren().add(optionsContainer);
+            
+            // 显示舞台
+            stage.show();
+        });
+    }
+    
+    /**
+     * 创建菜单按钮
+     * @param text 按钮文本
+     * @param action 按钮动作
+     * @return 配置好的JFXButton
+     */
+    private JFXButton createMenuButton(String text, javafx.event.EventHandler<javafx.event.ActionEvent> action) {
+        JFXButton button = new JFXButton(text);
+        button.setButtonType(JFXButton.ButtonType.RAISED);
+        button.setTextFill(TEXT_COLOR);
+        button.setStyle("-fx-background-color: " + toHexString(PRIMARY_COLOR) + "; -fx-font-size: 16px;");
+        button.setPrefWidth(200);
+        button.setPrefHeight(40);
+        button.setOnAction(action);
+        return button;
+    }
+    
+    /**
+     * 将Color对象转换为十六进制字符串
+     * @param color 颜色
+     * @return 十六进制表示
+     */
+    private String toHexString(Color color) {
+        return String.format("#%02X%02X%02X",
+                (int) (color.getRed() * 255),
+                (int) (color.getGreen() * 255),
+                (int) (color.getBlue() * 255));
+    }
+} 

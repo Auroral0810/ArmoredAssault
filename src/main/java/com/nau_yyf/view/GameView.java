@@ -1,6 +1,6 @@
 package com.nau_yyf.view;
 
-import com.nau_yyf.controller.GameController;
+import com.nau_yyf.controller.SingleGameController;
 import com.nau_yyf.controller.SinglePlayerGameStarter;
 import com.nau_yyf.model.Tank;
 import com.nau_yyf.view.singleGame.SingleGameOverScreen;
@@ -37,6 +37,9 @@ import com.nau_yyf.service.serviceImpl.SingleGameLoopServiceImpl;
 import com.nau_yyf.service.serviceImpl.SinglePlayerServiceImpl;
 import com.nau_yyf.service.RenderService;
 import com.nau_yyf.service.serviceImpl.SingleRenderServiceImpl;
+import com.nau_yyf.view.multiGame.MultiPlayerOptionsView;
+import com.nau_yyf.view.multiGame.MultiTankSelectionView;
+import com.nau_yyf.util.TankUtil;
 
 /**
  * 游戏视图类，负责管理游戏界面和用户交互
@@ -50,7 +53,7 @@ public class GameView {
     private Stage stage;
     private Scene scene;
     private StackPane root;
-    private GameController gameController;
+    private SingleGameController singleGameController;
 
     /** 游戏主题常量 */
     private final String GAME_TITLE = "TANK 2025";
@@ -99,6 +102,14 @@ public class GameView {
     private GameLoopService gameLoopService;
     private PlayerService playerService;
     private RenderService renderService;
+
+    /** 双人模式相关组件 */
+    private MultiPlayerOptionsView multiPlayerOptionsView;
+    private MultiTankSelectionView multiTankSelectionView;
+
+    /** 双人游戏相关变量 */
+    private String p1TankType;
+    private String p2TankType;
 
     /**
      * 构造函数，初始化游戏视图
@@ -161,6 +172,10 @@ public class GameView {
         this.singleLevelCompletedView = new SingleLevelCompletedView(this, root, scene);
         this.singleGameOverScreen = new SingleGameOverScreen(this, root, scene);
         this.settingsDialog = new SettingsDialog(this, root);
+
+        // 初始化双人模式组件
+        this.multiPlayerOptionsView = new MultiPlayerOptionsView(this, root, stage);
+        this.multiTankSelectionView = new MultiTankSelectionView(this, root, stage);
 
         // 初始化服务层
         this.keyboardService = new SingleKeyboardServiceImpl();
@@ -225,7 +240,7 @@ public class GameView {
     public void setupKeyboardControls() {
         // 使用键盘服务设置控制
         keyboardService.setupKeyboardControls(
-                gameController,
+                singleGameController,
                 gameCanvas,
                 this::showPauseMenu, // 暂停回调
                 this::closePauseMenu // 恢复回调
@@ -261,7 +276,7 @@ public class GameView {
 
         // 创建并启动新的游戏循环
         gameLoop = gameLoopService.createGameLoop(
-                gameController,
+                singleGameController,
                 this::renderGame, // 渲染回调
                 this::updateTimeDisplay // 时间更新回调
         );
@@ -274,7 +289,7 @@ public class GameView {
         // 使用渲染服务渲染游戏
         if (gc != null && gameCanvas != null) {
             renderService.renderGame(
-                gameController, 
+                    singleGameController,
                 gc,
                 gameCanvas.getWidth(),
                 gameCanvas.getHeight()
@@ -340,13 +355,13 @@ public class GameView {
             // 关闭暂停菜单
             closePauseMenu();
 
-            if (gameController != null) {
+            if (singleGameController != null) {
                 // 获取当前关卡和坦克类型
-                int currentLevel = gameController.getCurrentLevel();
-                String tankType = gameController.getPlayerTank().getTypeString();
+                int currentLevel = singleGameController.getCurrentLevel();
+                String tankType = singleGameController.getPlayerTank().getTypeString();
 
                 // 使用游戏状态服务重启游戏
-                gameStateService.restartGame(gameController, tankType, currentLevel);
+                gameStateService.restartGame(singleGameController, tankType, currentLevel);
             }
         });
     }
@@ -363,7 +378,7 @@ public class GameView {
 
         dialog.showAndWait().ifPresent(saveName -> {
             // 使用游戏状态服务保存游戏
-            boolean success = gameStateService.saveGame(gameController, saveName);
+            boolean success = gameStateService.saveGame(singleGameController, saveName);
 
             // 显示结果
             if (success) {
@@ -412,8 +427,8 @@ public class GameView {
         totalGameTime = 0;
 
         // 设置gameController为null前确保没有引用它的任务在运行
-        if (gameController != null) {
-            gameController = null;
+        if (singleGameController != null) {
+            singleGameController = null;
         }
 
         // 清空UI
@@ -448,11 +463,11 @@ public class GameView {
      * @param playerTank 玩家坦克对象
      */
     public void handlePlayerInput(Tank playerTank) {
-        if (playerTank == null || gameController == null)
+        if (playerTank == null || singleGameController == null)
             return;
 
         // 使用PlayerService处理输入
-        int newBulletCount = playerService.handlePlayerInput(gameController, inputState, bulletCount);
+        int newBulletCount = playerService.handlePlayerInput(singleGameController, inputState, bulletCount);
 
         // 如果子弹数量变化，更新显示
         if (newBulletCount != bulletCount) {
@@ -497,12 +512,12 @@ public class GameView {
      * 更新增益效果UI显示
      */
     public void updatePowerUpUIDisplay() {
-        if (gameController == null || gameController.getPlayerTank() == null)
+        if (singleGameController == null || singleGameController.getPlayerTank() == null)
             return;
 
         if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
             singlePlayerGameStarter.getGameScreen()
-                    .updatePowerUpUIDisplay(gameController, effectService);
+                    .updatePowerUpUIDisplay(singleGameController, effectService);
         }
     }
 
@@ -520,7 +535,7 @@ public class GameView {
      */
     public void loadGame() {
         // 使用游戏状态服务加载游戏
-        boolean success = ((SingleGameStateServiceImpl) gameStateService).showLoadGameDialog(gameController);
+        boolean success = ((SingleGameStateServiceImpl) gameStateService).showLoadGameDialog(singleGameController);
 
         if (success) {
             // 加载成功，切换到游戏界面
@@ -539,8 +554,8 @@ public class GameView {
      * 显示游戏主界面
      */
     private void showGameScreen() {
-        if (singlePlayerGameStarter != null && gameController != null) {
-            singlePlayerGameStarter.getGameScreen().show(gameController);
+        if (singlePlayerGameStarter != null && singleGameController != null) {
+            singlePlayerGameStarter.getGameScreen().show(singleGameController);
         } else {
             System.err.println("无法显示游戏屏幕: gameController 或 singlePlayerGameStarter 为 null");
         }
@@ -568,11 +583,11 @@ public class GameView {
      * 更新玩家血量显示
      */
     public void updateHealthDisplay() {
-        if (gameController == null)
+        if (singleGameController == null)
             return;
 
         if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
-            singlePlayerGameStarter.getGameScreen().updateHealthDisplay(gameController);
+            singlePlayerGameStarter.getGameScreen().updateHealthDisplay(singleGameController);
         }
     }
 
@@ -580,11 +595,55 @@ public class GameView {
      * 更新子弹数量显示
      */
     public void updateBulletDisplay() {
-        if (gameController == null) return;
+        if (singleGameController == null) return;
         
         if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
             singlePlayerGameStarter.getGameScreen().updateBulletDisplay(bulletCount);
         }
+    }
+
+    /**
+     * 显示双人游戏选项界面
+     */
+    public void showMultiPlayerOptions() {
+        multiPlayerOptionsView.show();
+    }
+
+    /**
+     * 显示双人坦克选择界面
+     */
+    public void showMultiTankSelection() {
+        multiTankSelectionView.show();
+    }
+
+    /**
+     * 显示双人游戏关卡选择对话框
+     * @param p1TankType 玩家1坦克类型
+     * @param p2TankType 玩家2坦克类型
+     */
+    public void showMultiPlayerLevelSelection(String p1TankType, String p2TankType) {
+        // 先将两种坦克类型存储起来
+        // 然后调用关卡选择对话框
+        // 注：这里使用的是与单人游戏相同的对话框，但后续可能需要创建专门的双人游戏关卡选择对话框
+        this.p1TankType = p1TankType;
+        this.p2TankType = p2TankType;
+        if (levelSelectionDialog == null) {
+            levelSelectionDialog = new LevelSelectionDialog(this, root);
+        }
+        levelSelectionDialog.show(p1TankType); // 传递玩家1的坦克类型作为参考
+    }
+
+    /**
+     * 启动双人游戏
+     * @param level 关卡编号
+     */
+    public void startMultiPlayerGame(int level) {
+        showMessage("即将开始双人游戏第" + level + "关\n玩家1坦克: " + 
+                    TankUtil.getTankDisplayName(p1TankType) + 
+                    "\n玩家2坦克: " + TankUtil.getTankDisplayName(p2TankType));
+        
+        // 以下是实际的游戏启动代码，需要在实现双人游戏逻辑后添加
+        // multiPlayerGameStarter.startGame(p1TankType, p2TankType, level);
     }
 
     /* ------ getter/setter方法 ------ */
@@ -681,8 +740,8 @@ public class GameView {
      * 获取游戏控制器
      * @return 游戏控制器
      */
-    public GameController getGameController() {
-        return gameController;
+    public SingleGameController getGameController() {
+        return singleGameController;
     }
 
     /**
@@ -707,7 +766,7 @@ public class GameView {
      */
     public int getScore() {
         // 使用游戏状态服务计算得分
-        return ((SingleGameStateServiceImpl) gameStateService).getScore(gameController);
+        return ((SingleGameStateServiceImpl) gameStateService).getScore(singleGameController);
     }
 
     /**
@@ -809,10 +868,10 @@ public class GameView {
 
     /**
      * 设置游戏控制器
-     * @param gameController 游戏控制器
+     * @param singleGameController 游戏控制器
      */
-    public void setGameController(GameController gameController) {
-        this.gameController = gameController;
+    public void setGameController(SingleGameController singleGameController) {
+        this.singleGameController = singleGameController;
     }
 
     /**
@@ -821,5 +880,21 @@ public class GameView {
      */
     public void setPowerUpProgressBars(Map<String, ProgressBar> progressBars) {
         this.powerUpProgressBars = progressBars;
+    }
+
+    /**
+     * 获取玩家1的坦克类型
+     * @return 玩家1坦克类型
+     */
+    public String getP1TankType() {
+        return p1TankType;
+    }
+
+    /**
+     * 获取玩家2的坦克类型
+     * @return 玩家2坦克类型
+     */
+    public String getP2TankType() {
+        return p2TankType;
     }
 }

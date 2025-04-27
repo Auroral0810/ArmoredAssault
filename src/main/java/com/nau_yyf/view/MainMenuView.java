@@ -106,7 +106,7 @@ public class MainMenuView {
 
             // 创建按钮
             JFXButton singlePlayerButton = createMenuButton("单人游戏", e -> gameView.showSinglePlayerOptions());
-            JFXButton multiPlayerButton = createMenuButton("双人游戏", e -> gameView.showMessage("双人游戏功能即将推出"));
+            JFXButton multiPlayerButton = createMenuButton("双人游戏", e -> gameView.showMultiPlayerOptions());
             JFXButton onlineButton = createMenuButton("远程联机", e -> gameView.showMessage("联机功能即将推出"));
             JFXButton instructionsButton = createMenuButton("游戏说明", e -> gameView.showInstructions());
             JFXButton settingsButton = createMenuButton("设置", e -> gameView.showMessage("设置功能即将推出"));

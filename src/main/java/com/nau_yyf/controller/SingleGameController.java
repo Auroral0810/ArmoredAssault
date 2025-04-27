@@ -17,7 +17,7 @@ import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class GameController {
+public class SingleGameController {
     // 定义事件监听器接口
     public interface GameEventListener {
         void onPlayerDestroyed();
@@ -79,7 +79,7 @@ public class GameController {
     private GameView gameView; // 你需要有这个引用，或者用事件回调
 
 
-    public GameController() {
+    public SingleGameController() {
         // 预加载地图元素图片
         loadElementImages();
 

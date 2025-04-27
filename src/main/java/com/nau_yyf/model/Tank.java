@@ -1,6 +1,6 @@
 package com.nau_yyf.model;
 
-import com.nau_yyf.controller.GameController;
+import com.nau_yyf.controller.SingleGameController;
 import com.nau_yyf.util.AStarPathfinder;
 
 import java.util.HashMap;
@@ -252,7 +252,7 @@ public class Tank {
     }
 
     // move方法
-    public void move(GameController gameController) {
+    public void move(SingleGameController singleGameController) {
         // 如果坦克已经死亡，不允许移动
         if (isDead()) return;
 
@@ -314,8 +314,8 @@ public class Tank {
         lastMotion[1] = dirY;
 
         // 边界检查
-        int mapWidth = (gameController.getMap() != null) ? gameController.getMap().getWidth() : 800;
-        int mapHeight = (gameController.getMap() != null) ? gameController.getMap().getHeight() : 600;
+        int mapWidth = (singleGameController.getMap() != null) ? singleGameController.getMap().getWidth() : 800;
+        int mapHeight = (singleGameController.getMap() != null) ? singleGameController.getMap().getHeight() : 600;
 
         if (nextX < 0) {
             nextX = 0;
@@ -334,7 +334,7 @@ public class Tank {
         }
 
         // 检查碰撞
-        String collisionType = gameController.checkCollision((int) nextX, (int) nextY, width, height);
+        String collisionType = singleGameController.checkCollision((int) nextX, (int) nextY, width, height);
 
         if (collisionType == null) {
             // 无碰撞，正常移动
@@ -697,18 +697,18 @@ public class Tank {
     }
 
     // AI行为方法
-    public Bullet updateAI(boolean[][] grid, Tank playerTank, GameController gameController) {
+    public Bullet updateAI(boolean[][] grid, Tank playerTank, SingleGameController singleGameController) {
         // 如果处于出生保护状态，不执行AI逻辑
         if (isInSpawnProtection()) {
             return null;
         }
 
         // 添加空值检查
-        if (grid == null || playerTank == null || gameController == null) {
+        if (grid == null || playerTank == null || singleGameController == null) {
             // 如果关键参数为空，执行简单的随机移动
             setRandomDirection();
-            if (gameController != null) {
-                move(gameController);
+            if (singleGameController != null) {
+                move(singleGameController);
             }
             return null;
         }
@@ -734,7 +734,7 @@ public class Tank {
             setAccelerating(true);
 
             // 检查玩家坦克是否在草丛中
-            boolean playerInGrass = isPlayerInGrass(playerTank, gameController);
+            boolean playerInGrass = isPlayerInGrass(playerTank, singleGameController);
 
             // 计算与玩家坦克的距离
             double distance = calculateDistance(playerTank);
@@ -849,8 +849,8 @@ public class Tank {
                         int oldY = y;
 
                         // 执行移动
-                        if (gameController != null) {
-                            move(gameController);
+                        if (singleGameController != null) {
+                            move(singleGameController);
                         } else {
                             move();
                         }
@@ -868,7 +868,7 @@ public class Tank {
                     }
                 } else {
                     // 没有有效路径，直接向玩家移动
-                    moveDirectlyTowardsPlayer(playerTank, gameController);
+                    moveDirectlyTowardsPlayer(playerTank, singleGameController);
 
                     // 也尝试开火
                     if (Math.random() < 0.2 && canFire()) {
@@ -877,7 +877,7 @@ public class Tank {
                 }
             } else {
                 // 玩家不在探测范围内或在草丛中，执行随机移动
-                firedBullet = updateRandomMovementWithCollision(currentTime, grid, gameController);
+                firedBullet = updateRandomMovementWithCollision(currentTime, grid, singleGameController);
             }
         }
 
@@ -891,7 +891,7 @@ public class Tank {
     }
 
     // 优化moveDirectlyTowardsPlayer方法，增加卡住检测
-    private void moveDirectlyTowardsPlayer(Tank playerTank, GameController gameController) {
+    private void moveDirectlyTowardsPlayer(Tank playerTank, SingleGameController singleGameController) {
         // 记录移动前的位置
         int oldX = x;
         int oldY = y;
@@ -922,8 +922,8 @@ public class Tank {
         }
 
         // 执行移动
-        if (gameController != null) {
-            move(gameController);
+        if (singleGameController != null) {
+            move(singleGameController);
         } else {
             move();
         }
@@ -939,8 +939,8 @@ public class Tank {
                 if (dir != direction) { // 尝试不同于当前方向的方向
                     setDirection(dir);
 
-                    if (gameController != null) {
-                        move(gameController);
+                    if (singleGameController != null) {
+                        move(singleGameController);
                     } else {
                         move();
                     }
@@ -967,13 +967,13 @@ public class Tank {
     }
 
     // 添加带碰撞检测的随机移动方法
-    private Bullet updateRandomMovementWithCollision(long currentTime, boolean[][] grid, GameController gameController) {
+    private Bullet updateRandomMovementWithCollision(long currentTime, boolean[][] grid, SingleGameController singleGameController) {
         // 添加对grid的空值检查
         if (grid == null) {
             // 如果grid为空，执行简单的随机移动而不检查网格碰撞
             setRandomDirection();
-            if (gameController != null) {
-                move(gameController);
+            if (singleGameController != null) {
+                move(singleGameController);
             } else {
                 move();
             }
@@ -1078,7 +1078,7 @@ public class Tank {
         }
 
         // 执行移动
-        move(gameController);
+        move(singleGameController);
 
         // 随机尝试开火（10%概率）
         if (Math.random() < 0.1 && canFire()) {
@@ -1233,7 +1233,7 @@ public class Tank {
     }
 
     // 修改判断玩家是否在草丛中的方法
-    private boolean isPlayerInGrass(Tank playerTank, GameController gameController) {
+    private boolean isPlayerInGrass(Tank playerTank, SingleGameController singleGameController) {
         // 获取玩家坦克位置和尺寸
         int playerX = playerTank.getX();
         int playerY = playerTank.getY();
@@ -1244,8 +1244,8 @@ public class Tank {
         java.awt.Rectangle playerRect = new java.awt.Rectangle(playerX, playerY, playerWidth, playerHeight);
 
         // 获取地图元素并检查是否与草丛重叠
-        if (gameController.getMap() != null) {
-            for (LevelMap.MapElement element : gameController.getMap().getElements()) {
+        if (singleGameController.getMap() != null) {
+            for (LevelMap.MapElement element : singleGameController.getMap().getElements()) {
                 // 只检查草丛类型的元素
                 if (element.getType().equals("grass")) {
                     java.awt.Rectangle grassRect = new java.awt.Rectangle(

@@ -1,6 +1,6 @@
 package com.nau_yyf.service.serviceImpl;
 
-import com.nau_yyf.controller.GameController;
+import com.nau_yyf.controller.SingleGameController;
 import com.nau_yyf.service.GameStateService;
 import com.nau_yyf.view.GameView;
 import com.nau_yyf.view.singleGame.SinglePlayerGameScreen;
@@ -29,24 +29,24 @@ public class SingleGameStateServiceImpl implements GameStateService {
      * 保存游戏状态
      */
     @Override
-    public boolean saveGame(GameController gameController, String saveName) {
-        if (gameController == null)
+    public boolean saveGame(SingleGameController singleGameController, String saveName) {
+        if (singleGameController == null)
             return false;
 
         // 调用GameController的保存方法
-        return gameController.saveGame(saveName);
+        return singleGameController.saveGame(saveName);
     }
 
     /**
      * 加载游戏状态
      */
     @Override
-    public boolean loadGame(GameController gameController, File saveFile) {
-        if (gameController == null || saveFile == null)
+    public boolean loadGame(SingleGameController singleGameController, File saveFile) {
+        if (singleGameController == null || saveFile == null)
             return false;
 
         // 调用GameController的加载方法
-        return gameController.loadGame(saveFile);
+        return singleGameController.loadGame(saveFile);
     }
 
     /**
@@ -55,26 +55,26 @@ public class SingleGameStateServiceImpl implements GameStateService {
      *
      * @return 是否成功加载
      */
-    public boolean showLoadGameDialog(GameController gameController) {
+    public boolean showLoadGameDialog(SingleGameController singleGameController) {
         // 如果gameController为null，则创建一个新的
-        boolean needInitController = (gameController == null);
+        boolean needInitController = (singleGameController == null);
         String selectedTankType = "standard"; // 默认坦克类型
 
         if (needInitController) {
-            gameController = new GameController();
+            singleGameController = new SingleGameController();
             // 设置必要的监听器
-            GameController finalGameController = gameController;
-            gameController.setGameEventListener(new GameController.GameEventListener() {
+            SingleGameController finalSingleGameController = singleGameController;
+            singleGameController.setGameEventListener(new SingleGameController.GameEventListener() {
                 @Override
                 public void onPlayerDestroyed() {
                     // 直接获取SinglePlayerGameScreen
                     SinglePlayerGameScreen gameScreen = gameView.getSinglePlayerGameStarter().getGameScreen();
-                    gameScreen.handlePlayerDestroyed(finalGameController, selectedTankType, gameView.getPlayerLives());
+                    gameScreen.handlePlayerDestroyed(finalSingleGameController, selectedTankType, gameView.getPlayerLives());
                 }
             });
 
             // 设置视图引用
-            gameController.setGameView(gameView);
+            singleGameController.setGameView(gameView);
         }
 
         // 创建文件选择器
@@ -95,11 +95,11 @@ public class SingleGameStateServiceImpl implements GameStateService {
 
         if (selectedFile != null) {
             // 尝试加载游戏
-            boolean success = loadGame(gameController, selectedFile);
+            boolean success = loadGame(singleGameController, selectedFile);
 
             if (success && needInitController) {
                 // 如果是新创建的控制器并且加载成功，设置到GameView
-                gameView.setGameController(gameController);
+                gameView.setGameController(singleGameController);
             }
 
             return success;
@@ -112,8 +112,8 @@ public class SingleGameStateServiceImpl implements GameStateService {
      * 重新开始当前关卡
      */
     @Override
-    public void restartGame(GameController gameController, String tankType, int level) {
-        if (gameController == null)
+    public void restartGame(SingleGameController singleGameController, String tankType, int level) {
+        if (singleGameController == null)
             return;
 
         Platform.runLater(() -> {
@@ -125,7 +125,7 @@ public class SingleGameStateServiceImpl implements GameStateService {
             }
 
             // 清理游戏资源
-            cleanupGameResources(gameController);
+            cleanupGameResources(singleGameController);
 
             // 使用GameView的方法启动游戏
             gameView.startGameWithLevel(tankType, level);
@@ -169,17 +169,17 @@ public class SingleGameStateServiceImpl implements GameStateService {
      * 检查关卡是否完成
      */
     @Override
-    public boolean isLevelCompleted(GameController gameController) {
-        return gameController != null && gameController.isLevelCompleted();
+    public boolean isLevelCompleted(SingleGameController singleGameController) {
+        return singleGameController != null && singleGameController.isLevelCompleted();
     }
 
     /**
      * 清理游戏资源
      */
     @Override
-    public void cleanupGameResources(GameController gameController) {
+    public void cleanupGameResources(SingleGameController singleGameController) {
         // 清理游戏控制器资源
-        if (gameController != null) {
+        if (singleGameController != null) {
             // 在GameView中设置为null
             gameView.setGameController(null);
         }
@@ -191,12 +191,12 @@ public class SingleGameStateServiceImpl implements GameStateService {
     /**
      * 获取游戏得分
      */
-    public int getScore(GameController gameController) {
-        if (gameController == null) return 0;
+    public int getScore(SingleGameController singleGameController) {
+        if (singleGameController == null) return 0;
         
         // 获取游戏数据
-        int level = gameController.getCurrentLevel();
-        int defeatedEnemies = gameController.getDefeatedEnemiesCount();
+        int level = singleGameController.getCurrentLevel();
+        int defeatedEnemies = singleGameController.getDefeatedEnemiesCount();
         long totalGameTime = gameView.getTotalGameTime();
         int playerLives = gameView.getPlayerLives();
         

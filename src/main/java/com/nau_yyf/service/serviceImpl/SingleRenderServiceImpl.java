@@ -1,6 +1,6 @@
 package com.nau_yyf.service.serviceImpl;
 
-import com.nau_yyf.controller.GameController;
+import com.nau_yyf.controller.SingleGameController;
 import com.nau_yyf.model.LevelMap;
 import com.nau_yyf.model.Tank;
 import com.nau_yyf.service.RenderService;
@@ -18,9 +18,9 @@ public class SingleRenderServiceImpl implements RenderService {
      * 渲染整个游戏画面
      */
     @Override
-    public void renderGame(GameController gameController, GraphicsContext gc, double canvasWidth, double canvasHeight) {
+    public void renderGame(SingleGameController singleGameController, GraphicsContext gc, double canvasWidth, double canvasHeight) {
         // 添加空检查以防止崩溃
-        if (gameController == null) {
+        if (singleGameController == null) {
             return; // 如果gameController为null，直接返回不渲染
         }
         
@@ -29,21 +29,21 @@ public class SingleRenderServiceImpl implements RenderService {
         gc.fillRect(0, 0, canvasWidth, canvasHeight);
         
         // 渲染地图元素
-        LevelMap map = gameController.getMap();
+        LevelMap map = singleGameController.getMap();
         for (LevelMap.MapElement element : map.getElements()) {
             // 根据元素类型获取对应图片并渲染
-            Image elementImage = gameController.getElementImage(element.getType());
+            Image elementImage = singleGameController.getElementImage(element.getType());
             gc.drawImage(elementImage, element.getX(), element.getY(), 
                         element.getWidth(), element.getHeight());
         }
         
         // 渲染其他游戏对象
-        gameController.renderMap(gc);
+        singleGameController.renderMap(gc);
         
         // 渲染玩家坦克
-        Tank playerTank = gameController.getPlayerTank();
+        Tank playerTank = singleGameController.getPlayerTank();
         if (playerTank != null && !playerTank.isDead()) {
-            renderPlayerTank(playerTank, gameController, gc);
+            renderPlayerTank(playerTank, singleGameController, gc);
         }
     }
 
@@ -51,8 +51,8 @@ public class SingleRenderServiceImpl implements RenderService {
      * 渲染玩家坦克
      */
     @Override
-    public void renderPlayerTank(Tank playerTank, GameController gameController, GraphicsContext gc) {
-        if (playerTank == null || gameController == null) return;
+    public void renderPlayerTank(Tank playerTank, SingleGameController singleGameController, GraphicsContext gc) {
+        if (playerTank == null || singleGameController == null) return;
         
         boolean shouldRender = true;
         
@@ -63,7 +63,7 @@ public class SingleRenderServiceImpl implements RenderService {
         
         if (shouldRender) {
             String imageKey = "player_" + playerTank.getType().name().toLowerCase();
-            Image[] tankImgs = gameController.getTankImages().get(imageKey);
+            Image[] tankImgs = singleGameController.getTankImages().get(imageKey);
             
             if (tankImgs != null && playerTank.getDirection().ordinal() < tankImgs.length) {
                 gc.drawImage(tankImgs[playerTank.getDirection().ordinal()], 

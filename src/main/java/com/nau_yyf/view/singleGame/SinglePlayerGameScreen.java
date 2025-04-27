@@ -1,7 +1,7 @@
 package com.nau_yyf.view.singleGame;
 
 import com.jfoenix.controls.JFXButton;
-import com.nau_yyf.controller.GameController;
+import com.nau_yyf.controller.SingleGameController;
 import com.nau_yyf.model.Tank;
 import com.nau_yyf.service.EffectService;
 import com.nau_yyf.service.GameStateService;
@@ -53,9 +53,9 @@ public class SinglePlayerGameScreen {
     /**
      * 显示游戏主屏幕
      * 
-     * @param gameController 游戏控制器
+     * @param singleGameController 游戏控制器
      */
-    public void show(GameController gameController) {
+    public void show(SingleGameController singleGameController) {
         // 清除当前内容
         gameView.getRoot().getChildren().clear();
 
@@ -64,13 +64,13 @@ public class SinglePlayerGameScreen {
         gameLayout.setStyle("-fx-background-color: #1a2634;");
 
         // ---------- 顶部区域 ----------
-        HBox topInfoBar = createTopInfoBar(gameController);
+        HBox topInfoBar = createTopInfoBar(singleGameController);
 
         // ---------- 中央游戏区域 ----------
         HBox gameWithSidePanels = createGameArea();
 
         // ---------- 底部数据面板 ----------
-        gameDataPanel = createDataPanel(gameController);
+        gameDataPanel = createDataPanel(singleGameController);
         
         // 将各部分添加到布局
         gameLayout.setTop(topInfoBar);
@@ -98,14 +98,14 @@ public class SinglePlayerGameScreen {
     /**
      * 创建顶部信息栏
      */
-    private HBox createTopInfoBar(GameController gameController) {
+    private HBox createTopInfoBar(SingleGameController singleGameController) {
         HBox topInfoBar = new HBox(20);
         topInfoBar.setAlignment(Pos.CENTER_LEFT);
         topInfoBar.setPadding(new Insets(10, 20, 10, 20));
         topInfoBar.setStyle("-fx-background-color: rgba(0, 0, 0, 0.4);");
 
         // 关卡信息
-        Text levelInfo = new Text("第" + gameController.getCurrentLevel() + "关");
+        Text levelInfo = new Text("第" + singleGameController.getCurrentLevel() + "关");
         levelInfo.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         levelInfo.setFill(gameView.getPrimaryColor());
 
@@ -189,7 +189,7 @@ public class SinglePlayerGameScreen {
     /**
      * 创建数据面板
      */
-    private HBox createDataPanel(GameController gameController) {
+    private HBox createDataPanel(SingleGameController singleGameController) {
         HBox dataPanel = new HBox(20);
         dataPanel.setPadding(new Insets(10));
         dataPanel.setAlignment(Pos.CENTER); // 确保所有内容居中对齐
@@ -197,17 +197,17 @@ public class SinglePlayerGameScreen {
                 Color.rgb(0, 20, 40), CornerRadii.EMPTY, Insets.EMPTY)));
 
         // 使用方法创建各种信息显示
-        VBox playerInfo = createInfoBox("坦克类型", getTankDisplayName(gameController.getPlayerTank().getTypeString()));
+        VBox playerInfo = createInfoBox("坦克类型", getTankDisplayName(singleGameController.getPlayerTank().getTypeString()));
         playerInfo.setId("playerInfo");
 
-        VBox healthInfo = createInfoBox("血量", Integer.toString(gameController.getPlayerTank().getHealth()));
+        VBox healthInfo = createInfoBox("血量", Integer.toString(singleGameController.getPlayerTank().getHealth()));
         healthInfo.setId("healthInfo");
 
         VBox bulletInfo = createInfoBox("子弹", Integer.toString(gameView.getBulletCount()));
         bulletInfo.setId("bulletInfo");
 
         VBox enemiesInfo = createInfoBox("关卡目标", 
-                gameController.getDefeatedEnemiesCount() + "/" + gameController.getTotalEnemyTarget());
+                singleGameController.getDefeatedEnemiesCount() + "/" + singleGameController.getTotalEnemyTarget());
         enemiesInfo.setId("enemiesInfo");
 
         // 添加生命显示
@@ -215,7 +215,7 @@ public class SinglePlayerGameScreen {
         livesDisplay.setId("livesDisplay");
         
         // 创建增益效果信息框
-        VBox powerUpsInfo = createPowerUpsInfoBox(gameController, gameView.getEffectService());
+        VBox powerUpsInfo = createPowerUpsInfoBox(singleGameController, gameView.getEffectService());
         powerUpsInfo.setId("powerUpsInfo");
 
         // 在数据面板中添加所有信息，均匀分布
@@ -275,7 +275,7 @@ public class SinglePlayerGameScreen {
     /**
      * 创建增益信息框，风格与其他信息框一致
      */
-    private VBox createPowerUpsInfoBox(GameController gameController, EffectService effectService) {
+    private VBox createPowerUpsInfoBox(SingleGameController singleGameController, EffectService effectService) {
         VBox powerUpsBox = new VBox(5);
         powerUpsBox.setAlignment(Pos.CENTER);
         powerUpsBox.setMinWidth(120); // 设置最小宽度，与其他信息框保持一致
@@ -294,7 +294,7 @@ public class SinglePlayerGameScreen {
         Map<String, ProgressBar> powerUpProgressBars = new HashMap<>();
         
         // 防止gameController为null时出错
-        if (gameController == null) {
+        if (singleGameController == null) {
             powerUpsBox.getChildren().addAll(titleText, iconsContainer);
             return powerUpsBox;
         }
@@ -324,8 +324,8 @@ public class SinglePlayerGameScreen {
             // 使用安全的方式加载图标
             try {
                 Image icon = null;
-                if (gameController != null) {
-                    icon = gameController.getPowerUpImage(typeName);
+                if (singleGameController != null) {
+                    icon = singleGameController.getPowerUpImage(typeName);
                 }
                 
                 if (icon != null) {
@@ -395,8 +395,8 @@ public class SinglePlayerGameScreen {
     /**
      * 更新敌人数量显示 - 单人游戏专用
      */
-    public void updateEnemiesDisplay(GameController gameController) {
-        if (gameController == null || gameDataPanel == null)
+    public void updateEnemiesDisplay(SingleGameController singleGameController) {
+        if (singleGameController == null || gameDataPanel == null)
             return;
 
         // 找到敌人信息框
@@ -406,8 +406,8 @@ public class SinglePlayerGameScreen {
             Text enemiesValue = (Text) enemiesInfo.getChildren().get(1);
             if (enemiesValue != null) {
                 // 获取已摧毁的敌人数量和总目标数量
-                int defeated = gameController.getDefeatedEnemiesCount();
-                int total = gameController.getTotalEnemyTarget();
+                int defeated = singleGameController.getDefeatedEnemiesCount();
+                int total = singleGameController.getTotalEnemyTarget();
 
                 // 更新显示格式：已消灭/总数
                 enemiesValue.setText(defeated + "/" + total);
@@ -421,8 +421,8 @@ public class SinglePlayerGameScreen {
 
                 // 检查是否完成关卡
                 GameStateService gameStateService = gameView.getGameStateService();
-                if (gameStateService.isLevelCompleted(gameController)) {
-                    showLevelCompletedMessage(gameController);
+                if (gameStateService.isLevelCompleted(singleGameController)) {
+                    showLevelCompletedMessage(singleGameController);
                 }
             }
         }
@@ -507,13 +507,13 @@ public class SinglePlayerGameScreen {
     /**
      * 更新能力增强效果UI显示
      */
-    public void updatePowerUpUIDisplay(GameController gameController, EffectService effectService) {
-        if (gameController == null || gameController.getPlayerTank() == null)
+    public void updatePowerUpUIDisplay(SingleGameController singleGameController, EffectService effectService) {
+        if (singleGameController == null || singleGameController.getPlayerTank() == null)
             return;
         
         if (effectService instanceof SingleEffectServiceImpl) {
             ((SingleEffectServiceImpl)effectService).updateUIDisplay(
-                gameController.getPlayerTank(), 
+                singleGameController.getPlayerTank(),
                 gameView.getPowerUpProgressBars()
             );
         }
@@ -522,8 +522,8 @@ public class SinglePlayerGameScreen {
     /**
      * 更新血量显示
      */
-    public void updateHealthDisplay(GameController gameController) {
-        if (gameController == null || gameDataPanel == null)
+    public void updateHealthDisplay(SingleGameController singleGameController) {
+        if (singleGameController == null || gameDataPanel == null)
             return;
 
         // 找到血量信息框
@@ -531,9 +531,9 @@ public class SinglePlayerGameScreen {
         if (healthInfo != null && healthInfo.getChildren().size() > 1) {
             // 找到值文本
             Text healthValue = (Text) healthInfo.getChildren().get(1);
-            if (healthValue != null && gameController.getPlayerTank() != null) {
+            if (healthValue != null && singleGameController.getPlayerTank() != null) {
                 // 更新血量值
-                int currentHealth = gameController.getPlayerTank().getHealth();
+                int currentHealth = singleGameController.getPlayerTank().getHealth();
                 healthValue.setText(Integer.toString(currentHealth));
 
                 // 根据血量设置颜色
@@ -573,8 +573,8 @@ public class SinglePlayerGameScreen {
     /**
      * 处理玩家坦克被摧毁的情况 - 单人游戏专用
      */
-    public void handlePlayerDestroyed(GameController gameController, String currentTankType, int playerLives) {
-        if (gameController == null)
+    public void handlePlayerDestroyed(SingleGameController singleGameController, String currentTankType, int playerLives) {
+        if (singleGameController == null)
             return;
 
         // 获取PlayerService
@@ -582,18 +582,18 @@ public class SinglePlayerGameScreen {
 
         // 使用PlayerService处理玩家坦克被摧毁
         boolean playerRespawned = playerService.handlePlayerDestroyed(
-                gameController, currentTankType, playerLives);
+                singleGameController, currentTankType, playerLives);
 
         // 如果玩家未重生，显示游戏结束
         if (!playerRespawned && gameView.getPlayerLives() <= 0) {
-            showGameOverScreen(gameController);
+            showGameOverScreen(singleGameController);
         }
     }
 
     /**
      * 显示游戏结束界面 - 单人游戏专用
      */
-    private void showGameOverScreen(GameController gameController) {
+    private void showGameOverScreen(SingleGameController singleGameController) {
         // 暂停游戏
         gameView.setGamePaused(true);
 
@@ -601,7 +601,7 @@ public class SinglePlayerGameScreen {
         gameView.stopGameLoop();
 
         // 计算最终得分，并确保不为负数
-        int finalScore = ((SingleGameStateServiceImpl) gameView.getGameStateService()).getScore(gameController);
+        int finalScore = ((SingleGameStateServiceImpl) gameView.getGameStateService()).getScore(singleGameController);
         finalScore = Math.max(0, finalScore); // 确保分数不为负
 
         // 显示游戏结束界面
@@ -611,7 +611,7 @@ public class SinglePlayerGameScreen {
     /**
      * 显示关卡完成消息 - 单人游戏专用
      */
-    private void showLevelCompletedMessage(GameController gameController) {
+    private void showLevelCompletedMessage(SingleGameController singleGameController) {
         if (gameView.getRoot().lookup("#levelCompletedMessage") != null)
             return;
 
@@ -619,9 +619,9 @@ public class SinglePlayerGameScreen {
         gameView.setGamePaused(true);
 
         // 获取所需数据
-        int currentLevel = gameController.getCurrentLevel();
-        int defeatedEnemies = gameController.getDefeatedEnemiesCount();
-        String playerTankType = gameController.getPlayerTank().getTypeString();
+        int currentLevel = singleGameController.getCurrentLevel();
+        int defeatedEnemies = singleGameController.getDefeatedEnemiesCount();
+        String playerTankType = singleGameController.getPlayerTank().getTypeString();
         int totalLevels = 5; // 游戏总关卡数
 
         // 显示完成界面

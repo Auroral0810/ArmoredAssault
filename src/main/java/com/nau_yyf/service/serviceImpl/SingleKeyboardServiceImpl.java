@@ -1,6 +1,6 @@
 package com.nau_yyf.service.serviceImpl;
 
-import com.nau_yyf.controller.GameController;
+import com.nau_yyf.controller.SingleGameController;
 import com.nau_yyf.service.KeyboardService;
 import com.nau_yyf.service.PlayerService;
 import javafx.scene.Scene;
@@ -17,7 +17,7 @@ public class SingleKeyboardServiceImpl implements KeyboardService {
     private final PlayerService.InputState inputState = new PlayerService.InputState();
     
     // 游戏控制器引用
-    private GameController gameController;
+    private SingleGameController singleGameController;
     
     // 回调函数
     private Runnable pauseCallback;
@@ -27,12 +27,12 @@ public class SingleKeyboardServiceImpl implements KeyboardService {
      * 设置键盘控制
      */
     @Override
-    public void setupKeyboardControls(GameController gameController, 
-                                    Canvas gameCanvas, 
-                                    Runnable pauseCallback, 
-                                    Runnable resumeCallback) {
+    public void setupKeyboardControls(SingleGameController singleGameController,
+                                      Canvas gameCanvas,
+                                      Runnable pauseCallback,
+                                      Runnable resumeCallback) {
         // 保存引用
-        this.gameController = gameController;
+        this.singleGameController = singleGameController;
         this.pauseCallback = pauseCallback;
         this.resumeCallback = resumeCallback;
         
@@ -115,8 +115,8 @@ public class SingleKeyboardServiceImpl implements KeyboardService {
             }
             // 添加E键放置炸弹
             if (code.equals("E")) {
-                if (gameController != null) {
-                    gameController.placeBomb();
+                if (singleGameController != null) {
+                    singleGameController.placeBomb();
                 }
             }
         }
