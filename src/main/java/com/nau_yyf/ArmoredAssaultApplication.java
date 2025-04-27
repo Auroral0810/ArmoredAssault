@@ -8,7 +8,7 @@ import javafx.stage.Stage;
  * ArmoredAssault主应用类
  * 负责初始化和启动游戏
  */
-public class TankBattleApplication extends Application {
+public class ArmoredAssaultApplication extends Application {
 
     static {
         // macOS应用设置
@@ -49,7 +49,7 @@ public class TankBattleApplication extends Application {
      */
     public static class Launcher {
         public static void main(String[] args) {
-            TankBattleApplication.main(args);
+            ArmoredAssaultApplication.main(args);
         }
     }
 }

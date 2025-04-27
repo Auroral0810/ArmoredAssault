@@ -19,7 +19,7 @@
         <artifactId>javafx-maven-plugin</artifactId>
         <version>0.0.8</version>
         <configuration>
-          <mainClass>com.nau_yyf.TankBattleApplication</mainClass>
+          <mainClass>com.nau_yyf.ArmoredAssaultApplication</mainClass>
           <launcher>tanklauncher</launcher>
           <jlinkImageName>tankbattle</jlinkImageName>
           <jlinkZipName>tankbattlezip</jlinkZipName>
@@ -40,7 +40,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>com.nau_yyf.TankBattleApplication</mainClass>
+                  <mainClass>com.nau_yyf.ArmoredAssaultApplication</mainClass>
                 </transformer>
               </transformers>
             </configuration>
@@ -68,7 +68,7 @@
           <appVersion>1.0.0</appVersion>
           <vendor>NAU-YYF</vendor>
           <destination>target/dist</destination>
-          <mainClass>com.nau_yyf.TankBattleApplication</mainClass>
+          <mainClass>com.nau_yyf.ArmoredAssaultApplication</mainClass>
           <javaOptions>
             <option>-Dfile.encoding=UTF-8</option>
             <option>-Dapple.awt.application.name=ArmoredAssault</option>
