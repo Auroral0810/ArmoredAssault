@@ -16,6 +16,19 @@ import javafx.scene.shape.Rectangle;
 import java.util.Collections;
 
 public class GameController {
+    // 定义事件监听器接口
+    public interface GameEventListener {
+        void onPlayerDestroyed();
+    }
+    
+    // 添加eventListener变量
+    private GameEventListener eventListener;
+    
+    // 添加设置事件监听器的方法
+    public void setGameEventListener(GameEventListener listener) {
+        this.eventListener = listener;
+    }
+    
     private int currentLevel = 1;
     private LevelMap levelMap;
     private Tank playerTank;
@@ -880,7 +893,7 @@ public class GameController {
     }
     
     /**
-     * 重生玩家坦克 - 简化版本
+     * 重生玩家坦克
      */
     public void respawnPlayerTank(String tankType, int x, int y) {
         // 确保位置对齐到网格
@@ -1323,5 +1336,28 @@ public class GameController {
     public boolean isLevelCompleted() {
         // 关卡完成条件：已摧毁的坦克数量等于总目标且当前场上没有敌方坦克
         return enemyTanksDestroyed >= totalEnemyTanksToGenerate && enemyTanks.isEmpty();
+    }
+
+    /**
+     * 处理玩家坦克受到伤害
+     */
+    public void handlePlayerTankDamage(int damage) {
+        if (playerTank == null) return;
+        
+        // 调用takeDamage并检查返回值
+        boolean tankDestroyed = playerTank.takeDamage(damage);
+        
+        // 如果坦克被摧毁，立即通知GameView
+        if (tankDestroyed || playerTank.isDead()) {
+            System.out.println("玩家坦克被摧毁！");
+            
+            // 确保健康值设为0
+            playerTank.setHealth(0);
+            
+            // 通知GameView处理玩家死亡
+            if (eventListener != null) {
+                eventListener.onPlayerDestroyed();
+            }
+        }
     }
 }

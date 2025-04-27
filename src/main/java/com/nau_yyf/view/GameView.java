@@ -534,10 +534,21 @@ public class GameView {
         gameController.loadLevel(level);
         gameController.setPlayerTankType(selectedTankType);
         
+        // 设置事件监听器
+        gameController.setGameEventListener(new GameController.GameEventListener() {
+            @Override
+            public void onPlayerDestroyed() {
+                // 在JavaFX应用线程中处理玩家坦克摧毁事件
+                javafx.application.Platform.runLater(() -> {
+            handlePlayerDestroyed();
+                });
+            }
+        });
+        
         // 初始化游戏状态
-        gamePaused = false;
-        isPauseMenuOpen = false;
-        playerLives = 3;
+            gamePaused = false;
+            isPauseMenuOpen = false;
+            playerLives = 3;
         bulletCount = 10;
         
         // 显示游戏屏幕
@@ -870,6 +881,14 @@ public class GameView {
     private void updateGame(double deltaTime) {
         if (gameController == null || gamePaused) return;
         
+        // 检查玩家坦克是否死亡
+        Tank playerTank = gameController.getPlayerTank();
+        if (playerTank != null && playerTank.isDead()) {
+            // 如果玩家死亡但尚未处理，处理死亡事件
+            handlePlayerDestroyed();
+            return; // 死亡后不继续更新游戏状态
+        }
+        
         // 记录更新前的玩家血量
         int oldHealth = 0;
         if (gameController.getPlayerTank() != null) {
@@ -980,12 +999,20 @@ public class GameView {
         }
     }
     
-    // 修改handlePlayerInput方法，增加null检查
+    /**
+     * 处理玩家输入 - 添加死亡检查
+     */
     private void handlePlayerInput() {
         if (gameController == null) return;
         
+        // 首先检查玩家坦克是否死亡
         Tank playerTank = gameController.getPlayerTank();
-        if (playerTank == null) return;
+        if (playerTank == null || playerTank.isDead()) {
+            // 如果坦克已死亡，立即触发死亡处理
+            handlePlayerDestroyed();
+            // 停止处理任何输入
+            return;
+        }
         
         boolean moved = false;
         
@@ -1707,10 +1734,14 @@ public class GameView {
     }
     
     /**
-     * 处理玩家坦克被摧毁的情况 - 简化版本，直接复活
+     * 处理玩家坦克被摧毁的情况 - 修正版本
      */
     private void handlePlayerDestroyed() {
         if (gameController == null) return;
+        
+        // 避免多次调用此方法，检查玩家坦克是否已经处理
+        Tank playerTank = gameController.getPlayerTank();
+        if (playerTank == null || !playerTank.isDead()) return;
         
         // 减少玩家生命值
         playerLives--;
@@ -1724,7 +1755,7 @@ public class GameView {
             // 游戏结束，显示游戏结束界面
             showGameOverScreen();
         } else {
-            // 还有生命，立即重生玩家（无动画或延迟）
+            // 还有生命，立即重生玩家
             respawnPlayer();
         }
     }

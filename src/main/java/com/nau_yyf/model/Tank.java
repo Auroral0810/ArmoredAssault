@@ -1028,6 +1028,6 @@ public class Tank {
      * 检查坦克是否死亡
      */
     public boolean isDead() {
-        return health <= 0;
+        return health <= 0 || isDestroyed;
     }
 }
