@@ -587,7 +587,7 @@ public class GameController {
     
     
     /**
-     * 检查碰撞 - 支持double类型坐标
+     * 检查碰撞
      */
     public String checkCollision(int x, int y, int width, int height) {
         if (levelMap == null) return null;
@@ -654,7 +654,7 @@ public class GameController {
         for (LevelMap.MapElement element : levelMap.getElements()) {
             String type = element.getType();
             
-            // 跳过可以通过的元素（如草地）
+            // 跳过可以通过的元素
             if (type.equals("grass")) continue;
             
             Rectangle elementRect = new Rectangle(element.getX(), element.getY(), 

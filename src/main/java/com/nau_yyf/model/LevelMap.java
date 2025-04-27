@@ -190,4 +190,15 @@ public class LevelMap {
     public void setEnemies(List<EnemySpawn> enemies) {
         this.enemies = enemies;
     }
+
+    public boolean isGrassAt(int cellX, int cellY) {
+        // 确保坐标在地图范围内
+        if (cellX < 0 || cellX >= width || cellY < 0 || cellY >= height) {
+            return false;
+        }
+        
+        return elements.stream()
+                      .filter(element -> element.getX() == cellX && element.getY() == cellY)
+                      .anyMatch(element -> "grass".equals(element.getType()));
+    }
 }

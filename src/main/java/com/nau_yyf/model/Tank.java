@@ -6,6 +6,7 @@ import com.nau_yyf.util.AStarPathfinder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
+import java.awt.Rectangle;
 
 public class Tank {
     // 坦克类型枚举
@@ -721,17 +722,20 @@ public class Tank {
         if (!isFriendly()) {
             long currentTime = System.currentTimeMillis();
             
-            // 计算与玩家坦克的距离
-            double distance = calculateDistance(playerTank);
-            
             // 敌方坦克始终处于移动状态
             isMoving = true;
             
             // 在执行移动前，设置加速状态
             setAccelerating(true);
             
-            // 如果玩家在探测范围内，使用A*寻路追踪玩家
-            if (distance <= DETECTION_RANGE) {
+            // 检查玩家坦克是否在草丛中
+            boolean playerInGrass = isPlayerInGrass(playerTank, gameController);
+            
+            // 计算与玩家坦克的距离
+            double distance = calculateDistance(playerTank);
+            
+            // 如果玩家在探测范围内且不在草丛中，使用A*寻路追踪玩家
+            if (distance <= DETECTION_RANGE && !playerInGrass) {
                 boolean needRecalculatePath = false;
                 
                 // 检查是否需要重新计算路径
@@ -867,7 +871,7 @@ public class Tank {
                     }
                 }
             } else {
-                // 玩家不在探测范围内，执行随机移动
+                // 玩家不在探测范围内或在草丛中，执行随机移动
                 firedBullet = updateRandomMovementWithCollision(currentTime, grid, gameController);
             }
         }
@@ -1221,5 +1225,38 @@ public class Tank {
         randomMoveDuration = 2000 + (long)(Math.random() * 2000);
         stopDuration = 0;
         lastStopTime = 0;
+    }
+
+    // 修改判断玩家是否在草丛中的方法
+    private boolean isPlayerInGrass(Tank playerTank, GameController gameController) {
+        // 获取玩家坦克位置和尺寸
+        int playerX = playerTank.getX();
+        int playerY = playerTank.getY();
+        int playerWidth = playerTank.getWidth();
+        int playerHeight = playerTank.getHeight();
+        
+        // 创建玩家坦克的矩形区域
+        java.awt.Rectangle playerRect = new java.awt.Rectangle(playerX, playerY, playerWidth, playerHeight);
+        
+        // 获取地图元素并检查是否与草丛重叠
+        if (gameController.getMap() != null) {
+            for (LevelMap.MapElement element : gameController.getMap().getElements()) {
+                // 只检查草丛类型的元素
+                if (element.getType().equals("grass")) {
+                    java.awt.Rectangle grassRect = new java.awt.Rectangle(
+                        element.getX(), element.getY(), 
+                        element.getWidth(), element.getHeight()
+                    );
+                    
+                    // 使用java.awt.Rectangle的intersects方法
+                    if (playerRect.intersects(grassRect)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        // 没有与任何草丛重叠，返回false
+        return false;
     }
 }
