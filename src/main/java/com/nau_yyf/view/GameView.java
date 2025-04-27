@@ -1,6 +1,6 @@
 package com.nau_yyf.view;
 
-import com.jfoenix.controls.*;
+import com.jfoenix.controls.JFXButton;
 import com.nau_yyf.controller.GameController;
 import com.nau_yyf.model.Bullet;
 import com.nau_yyf.model.LevelMap;
@@ -18,8 +18,9 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.*;
-import javafx.scene.effect.DropShadow;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
@@ -33,7 +34,14 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.nau_yyf.service.KeyboardService;
+import com.nau_yyf.service.PlayerService;
+import com.nau_yyf.service.serviceImpl.SingleKeyboardServiceImpl;
 
 public class GameView {
     private Stage stage;
@@ -44,13 +52,10 @@ public class GameView {
     // 游戏标题和背景
     private final String GAME_TITLE = "TANK 2025";
     private final Color PRIMARY_COLOR = Color.rgb(37, 160, 218); // 蓝色
-    private final Color SECONDARY_COLOR = Color.rgb(76, 175, 80); // 绿色
     private final Color TEXT_COLOR = Color.WHITE;
     private final Color BACKGROUND_COLOR = Color.rgb(27, 40, 56); // 深蓝灰色
 
-    // 游戏Logo
-    private ImageView logoImageView;
-
+    // 画布相关变量
     private Canvas gameCanvas;
     private GraphicsContext gc;
 
@@ -62,13 +67,6 @@ public class GameView {
     private boolean isPauseMenuOpen = false; // 暂停菜单是否打开
     private Text timeInfo; // 时间显示文本
 
-    // 键盘控制相关变量
-    private boolean up = false;
-    private boolean down = false;
-    private boolean left = false;
-    private boolean right = false;
-    private boolean shooting = false;
-
     // 新增子弹数量和子弹补充时间
     private int bulletCount = 10; // 初始子弹数量
     private long lastBulletRefillTime = 0; // 上次子弹补充时间
@@ -76,7 +74,7 @@ public class GameView {
     // 添加成员变量
     private HBox gameDataPanel;
 
-    // 添加一个成员变量来跟踪游戏循环
+    // 添加成员变量跟踪游戏循环
     private AnimationTimer gameLoop;
 
     // 添加生命数相关变量
@@ -84,18 +82,9 @@ public class GameView {
     private Map<String, ImageView> powerUpIndicators = new HashMap<>(); // 存储增益效果指示器
     private Map<String, ProgressBar> powerUpProgressBars = new HashMap<>(); // 存储增益效果进度条
 
-    // 添加新的成员变量
-    private Map<String, Label> powerUpLabels;
-
     // 在GameView类中添加成员变量
     private Map<String, HBox> effectBoxMap = new HashMap<>(); // 存储每种效果的容器
-
-    // 添加以下成员变量，用于存储坦克选择界面的UI元素
-    private BorderPane tankSelectionLayout;
-    private List<VBox> tankOptionContainers = new ArrayList<>();
-    private List<ImageView> tankImages = new ArrayList<>();
-    private List<JFXButton> tankSelectButtons = new ArrayList<>();
-
+    
     // 添加MainMenuView组件引用
     private MainMenuView mainMenuView;
     private SinglePlayerOptionsView singlePlayerOptionsView;
@@ -117,6 +106,10 @@ public class GameView {
 
     // 添加SettingsDialog成员变量
     private SettingsDialog settingsDialog;
+
+    // 在GameView类的成员变量中添加
+    private KeyboardService keyboardService;
+    private PlayerService.InputState inputState = new PlayerService.InputState();
 
     public GameView(Stage stage) {
         this.stage = stage;
@@ -177,6 +170,9 @@ public class GameView {
         this.gameOverScreen = new GameOverScreen(this, root, scene);
         this.settingsDialog = new SettingsDialog(this, root);
 
+        // 初始化服务层
+        this.keyboardService = new SingleKeyboardServiceImpl();
+
         // 使用Platform.runLater处理后续的UI更新
         Platform.runLater(() -> {
             // 显示主菜单
@@ -223,96 +219,18 @@ public class GameView {
 
     // 键盘控制设置方法
     void setupKeyboardControls() {
-
-        // 重置按键状态
-        up = down = left = right = shooting = false;
-
-        // 1. 清除画布上的监听器
-        if (gameCanvas != null) {
-            gameCanvas.setOnKeyPressed(null);
-            gameCanvas.setOnKeyReleased(null);
-
-            // 移除所有键盘事件处理器
-            gameCanvas.removeEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {
-            });
-            gameCanvas.removeEventHandler(javafx.scene.input.KeyEvent.KEY_RELEASED, event -> {
-            });
+        // 使用键盘服务设置控制
+        keyboardService.setupKeyboardControls(
+            gameController,
+            gameCanvas,
+            this::showPauseMenu,  // 暂停回调
+            this::closePauseMenu  // 恢复回调
+        );
+        
+        // 获取初始输入状态
+        if (keyboardService instanceof SingleKeyboardServiceImpl) {
+            inputState = ((SingleKeyboardServiceImpl) keyboardService).getInputState();
         }
-
-        // 2. 清除场景上存在的监听器
-        if (scene != null) {
-            scene.setOnKeyPressed(null);
-            scene.setOnKeyReleased(null);
-        }
-
-        // 3. 清除根布局上存在的监听器
-        if (root != null) {
-            root.setOnKeyPressed(null);
-            root.setOnKeyReleased(null);
-        }
-
-        // 仅在画布级别添加新的监听器
-        gameCanvas.setOnKeyPressed(e -> {
-            String code = e.getCode().toString();
-
-            // 如果暂停菜单已打开
-            if (isPauseMenuOpen) {
-                if (code.equals("ESCAPE")) {
-                    closePauseMenu();
-                }
-                return;
-            }
-
-            // 处理游戏按键
-            if (!gamePaused) {
-                if (code.equals("UP") || code.equals("W")) {
-                    up = true;
-                }
-                if (code.equals("DOWN") || code.equals("S")) {
-                    down = true;
-                }
-                if (code.equals("LEFT") || code.equals("A")) {
-                    left = true;
-                }
-                if (code.equals("RIGHT") || code.equals("D")) {
-                    right = true;
-                }
-                if (code.equals("SPACE")) {
-                    shooting = true;
-                }
-                if (code.equals("ESCAPE")) {
-                    showPauseMenu();
-                }
-                // 添加E键放置炸弹
-                if (code.equals("E")) {
-                    if (gameController != null) {
-                        gameController.placeBomb();
-                    }
-                }
-            }
-            e.consume(); // 阻止事件继续传播
-        });
-
-        gameCanvas.setOnKeyReleased(e -> {
-            String code = e.getCode().toString();
-
-            if (code.equals("UP") || code.equals("W")) {
-                up = false;
-            }
-            if (code.equals("DOWN") || code.equals("S")) {
-                down = false;
-            }
-            if (code.equals("LEFT") || code.equals("A")) {
-                left = false;
-            }
-            if (code.equals("RIGHT") || code.equals("D")) {
-                right = false;
-            }
-            if (code.equals("SPACE")) {
-                shooting = false;
-            }
-            e.consume(); // 阻止事件继续传播
-        });
     }
 
     // 添加时间显示更新方法
@@ -583,45 +501,45 @@ public class GameView {
     private void handlePlayerInput() {
         // 获取玩家坦克
         Tank playerTank = gameController.getPlayerTank();
-
+        
         // 如果坦克不存在或已经死亡，不处理任何输入
         if (playerTank == null || playerTank.isDead()) {
             return;
         }
-
+        
         if (gameController == null)
             return;
-
+        
         boolean anyKeyPressed = false;
-
-        // 根据按键状态设置方向
-        if (up) {
+        
+        // 根据输入状态设置方向
+        if (inputState.isUp()) {
             playerTank.setDirection(Tank.Direction.UP);
             anyKeyPressed = true;
-        } else if (down) {
+        } else if (inputState.isDown()) {
             playerTank.setDirection(Tank.Direction.DOWN);
             anyKeyPressed = true;
-        } else if (left) {
+        } else if (inputState.isLeft()) {
             playerTank.setDirection(Tank.Direction.LEFT);
             anyKeyPressed = true;
-        } else if (right) {
+        } else if (inputState.isRight()) {
             playerTank.setDirection(Tank.Direction.RIGHT);
             anyKeyPressed = true;
         }
-
+        
         // 设置是否加速
         playerTank.setAccelerating(anyKeyPressed);
-
+        
         // 执行移动逻辑（无论是否按键都要调用，以处理减速）
         playerTank.move(gameController);
-
+        
         // 水池伤害处理
         if (playerTank.isInWaterLastFrame()) {
             updateHealthDisplay();
         }
-
+        
         // 处理射击
-        if (shooting && bulletCount > 0 && playerTank.canFire()) {
+        if (inputState.isShooting() && bulletCount > 0 && playerTank.canFire()) {
             Bullet bullet = playerTank.fire();
             if (bullet != null) {
                 bulletCount--;
@@ -729,7 +647,6 @@ public class GameView {
 
             // 重置所有游戏变量
             bulletCount = 10;
-            up = down = left = right = shooting = false;
             gamePaused = false;
             isPauseMenuOpen = false;
 
@@ -828,7 +745,6 @@ public class GameView {
 
         // 重置所有游戏变量
         bulletCount = 10;
-        up = down = left = right = shooting = false;
         gamePaused = false;
         isPauseMenuOpen = false;
         totalGameTime = 0;
@@ -854,6 +770,14 @@ public class GameView {
             gameLoop.stop();
             gameLoop = null; // 将引用设为null以便垃圾回收
         }
+
+        // 清除键盘控制
+        if (keyboardService != null && gameCanvas != null) {
+            keyboardService.clearKeyboardControls(gameCanvas);
+        }
+        
+        // 重置按键状态
+        inputState = new PlayerService.InputState();
     }
 
     /**
@@ -1308,7 +1232,7 @@ public class GameView {
 
     /**
      * 获取当前游戏得分
-     * 
+     *
      * @return 当前得分
      */
     public int getScore() {
@@ -1454,7 +1378,7 @@ public class GameView {
 
     /**
      * 设置游戏控制器
-     * 
+     *
      * @param gameController 游戏控制器
      */
     public void setGameController(GameController gameController) {
@@ -1463,7 +1387,6 @@ public class GameView {
 
     /**
      * 恢复游戏循环
-     * 由PauseMenuView调用以确保游戏循环正确重启
      */
     public void resumeGameLoop() {
         Platform.runLater(() -> {
