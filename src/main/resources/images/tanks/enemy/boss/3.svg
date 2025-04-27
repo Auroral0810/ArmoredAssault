@@ -1,8 +1,17 @@
 <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
   <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-    <feDropShadow dx="4" dy="5" stdDeviation="4" flood-opacity="0.5"/>
+    <!-- 替换feDropShadow为SVG 1.1兼容的滤镜 -->
+    <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
+    <feOffset dx="4" dy="5"/>
+    <feComponentTransfer>
+      <feFuncA type="linear" slope="0.5"/>
+    </feComponentTransfer>
+    <feMerge>
+      <feMergeNode/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
   </filter>
-  
+
   <filter id="bossGlow" x="-30%" y="-30%" width="160%" height="160%">
     <feGaussianBlur stdDeviation="3" result="blur" />
     <feFlood flood-color="#FF0000" flood-opacity="0.7" result="color" />
@@ -12,7 +21,7 @@
   
   <filter id="fireEffect" x="-30%" y="-30%" width="160%" height="160%">
     <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="1" />
-    <feDisplacementMap in="SourceGraphic" scale="5" />
+    <feDisplacementMap in="SourceGraphic" in2="blur" scale="5" />
   </filter>
   
   <!-- 背景阴影 - 增强威慑感 -->

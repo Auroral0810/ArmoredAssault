@@ -20,7 +20,6 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
-import com.nau_yyf.util.SVGLoader;
 import javafx.scene.Group;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -802,6 +801,12 @@ public class GameView {
     }
     // 修改startGameLoop方法，将AnimationTimer保存为成员变量
     private void startGameLoop() {
+        // 先停止旧的游戏循环（如果存在）
+        if (gameLoop != null) {
+            gameLoop.stop();
+        }
+        
+        // 重置时间相关变量
         gameStartTime = System.currentTimeMillis();
         lastUpdateTime = gameStartTime;
         
@@ -865,17 +870,17 @@ public class GameView {
     private void updateGame(double deltaTime) {
         if (gameController == null || gamePaused) return;
         
-        // 处理玩家输入
-        handlePlayerInput();
-        
-        // 更新敌方坦克
-        gameController.updateEnemyTanks(); 
-        
         // 记录更新前的玩家血量
         int oldHealth = 0;
         if (gameController.getPlayerTank() != null) {
             oldHealth = gameController.getPlayerTank().getHealth();
         }
+        
+        // 处理玩家输入
+        handlePlayerInput();
+        
+        // 更新敌方坦克
+        gameController.updateEnemyTanks(); 
         
         // 更新子弹
         gameController.updateBullets(deltaTime);
@@ -1575,6 +1580,12 @@ public class GameView {
         
         // 强制执行垃圾回收
         System.gc();
+        
+        // 确保游戏循环被停止
+        if (gameLoop != null) {
+            gameLoop.stop();
+            gameLoop = null;  // 将引用设为null以便垃圾回收
+        }
     }
     
     /**
@@ -1696,7 +1707,7 @@ public class GameView {
     }
     
     /**
-     * 处理玩家坦克被摧毁的情况
+     * 处理玩家坦克被摧毁的情况 - 简化版本，直接复活
      */
     private void handlePlayerDestroyed() {
         if (gameController == null) return;
@@ -1713,23 +1724,13 @@ public class GameView {
             // 游戏结束，显示游戏结束界面
             showGameOverScreen();
         } else {
-            // 还有生命，重生玩家
-            // 暂停短暂时间后重生
-            gamePaused = true; // 暂停游戏循环
-            
-            // 使用JavaFX的Timeline实现延迟重生，而不是Thread.sleep
-            Timeline respawnTimer = new Timeline(
-                new KeyFrame(Duration.seconds(1), event -> {
-                    gamePaused = false; // 恢复游戏循环
-                    respawnPlayer();
-                })
-            );
-            respawnTimer.play();
+            // 还有生命，立即重生玩家（无动画或延迟）
+            respawnPlayer();
         }
     }
 
     /**
-     * 复活玩家坦克 - 无提示版本
+     * 复活玩家坦克 - 简化直接版本
      */
     private void respawnPlayer() {
         if (gameController == null) return;
@@ -1740,7 +1741,12 @@ public class GameView {
         if (spawnPos != null) {
             // 重新创建玩家坦克
             String tankType = gameController.getPlayerTank().getTypeString();
-            gameController.respawnPlayerTank(tankType, spawnPos.getX(), spawnPos.getY());
+            
+            // 确保坐标是网格对齐的
+            int alignedX = (spawnPos.getX() / 40) * 40;
+            int alignedY = (spawnPos.getY() / 40) * 40;
+            
+            gameController.respawnPlayerTank(tankType, alignedX, alignedY);
             
             // 确保坦克血量已重置为满值
             System.out.println("玩家坦克重生，血量: " + gameController.getPlayerTank().getHealth());
@@ -1748,9 +1754,6 @@ public class GameView {
             // 更新界面显示
             updateHealthDisplay();
             updateLivesDisplay();
-            
-            // 给予短暂的无敌时间
-            gameController.getPlayerTank().applyPowerUp(Tank.PowerUpType.INVINCIBILITY);
         } else {
             // 如果找不到有效位置，直接结束游戏
             showGameOverScreen();
@@ -1758,6 +1761,51 @@ public class GameView {
         
         // 重置水池状态
         gameController.resetWaterState();
+    }
+
+    /**
+     * 添加坦克重生特效
+     */
+    private void addRespawnEffect(int x, int y) {
+        try {
+            // 创建特效容器
+            Group effectGroup = new Group();
+            
+            // 创建一个圆形特效
+            javafx.scene.shape.Circle circle = new javafx.scene.shape.Circle(20, Color.TRANSPARENT);
+            circle.setStroke(Color.LIGHTBLUE);
+            circle.setStrokeWidth(3);
+            
+            // 设置特效位置
+            effectGroup.setTranslateX(x + 20); // 坦克中心点X
+            effectGroup.setTranslateY(y + 20); // 坦克中心点Y
+            effectGroup.getChildren().add(circle);
+            
+            // 添加到游戏画布上层
+            StackPane gameArea = (StackPane)gameCanvas.getParent();
+            if (gameArea != null) {
+                gameArea.getChildren().add(effectGroup);
+                
+                // 创建动画：从小到大再消失
+                ScaleTransition scale = new ScaleTransition(Duration.millis(500), circle);
+                scale.setFromX(0.2);
+                scale.setFromY(0.2);
+                scale.setToX(2);
+                scale.setToY(2);
+                
+                FadeTransition fade = new FadeTransition(Duration.millis(500), effectGroup);
+                fade.setFromValue(1.0);
+                fade.setToValue(0.0);
+                fade.setDelay(Duration.millis(200));
+                
+                // 播放动画结束后移除特效
+                ParallelTransition transition = new ParallelTransition(scale, fade);
+                transition.setOnFinished(e -> gameArea.getChildren().remove(effectGroup));
+                transition.play();
+            }
+        } catch (Exception e) {
+            System.err.println("无法创建重生特效: " + e.getMessage());
+        }
     }
 
     /**

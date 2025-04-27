@@ -424,59 +424,78 @@ public class GameController {
         return grid;
     }
     
-    // 修改updateEnemyTanks方法，确保敌方坦克可以正确追踪玩家
+    /**
+     * 更新敌方坦克状态，包括生成新坦克
+     */
     public void updateEnemyTanks() {
-        if (playerTank == null) return;
-        
-        // 确保网格信息是最新的
-        if (grid == null) {
-            initializeGrid();
-        }
-        
-        // 检查是否需要生成新坦克
-        long currentTime = System.currentTimeMillis();
-        List<Long> timesToRemove = new ArrayList<>();
-        
-        // 检查是否有坦克需要重生
-        for (Long respawnTime : tankRespawnTimes) {
-            if (currentTime >= respawnTime) {
-                // 时间到，可以重生一个坦克
-                if (enemyTanks.size() < maxConcurrentEnemies && enemyTanksGenerated < totalEnemyTanksToGenerate) {
-                    spawnNewEnemyTank();
-                    timesToRemove.add(respawnTime);
-                }
-            }
-        }
-        
-        // 移除已处理的重生时间
-        tankRespawnTimes.removeAll(timesToRemove);
-        
-        // 更新现有坦克
-        for (Iterator<Tank> iterator = enemyTanks.iterator(); iterator.hasNext(); ) {
-            Tank enemy = iterator.next();
+        // 处理已有敌方坦克的AI和移动
+        Iterator<Tank> iterator = enemyTanks.iterator();
+        while (iterator.hasNext()) {
+            Tank tank = iterator.next();
             
-            // 检查敌方坦克是否被摧毁
-            if (enemy.isDestroyed()) {
+            // 检查坦克是否被摧毁
+            if (tank.isDestroyed()) {
                 iterator.remove();
-                enemyTanksDestroyed++; // 增加已摧毁计数
                 
-                // 安排新坦克生成（3秒后）
-                if (enemyTanksGenerated < totalEnemyTanksToGenerate) {
-                    tankRespawnTimes.add(System.currentTimeMillis() + 3000);
-                }
+                // 添加到延迟生成队列，2秒后生成新坦克
+                tankRespawnTimes.add(System.currentTimeMillis() + 2000);
                 
-                System.out.println("敌方坦克被摧毁！剩余: " + enemyTanks.size() + 
-                                  "，已摧毁: " + enemyTanksDestroyed + 
-                                  "，总目标: " + totalEnemyTanksToGenerate);
+                System.out.println("敌方坦克被移除，当前场上数量: " + (enemyTanks.size()) + 
+                                  ", 延迟生成队列大小: " + tankRespawnTimes.size());
                 continue;
             }
             
-            // 执行AI更新，传入网格和玩家坦克信息
-            Bullet enemyBullet = enemy.updateAI(grid, playerTank, this);
+            // 执行坦克AI逻辑
+            if (playerTank != null) {
+                Bullet firedBullet = tank.updateAI(grid, playerTank, this);
+                if (firedBullet != null) {
+                    addBullet(firedBullet);
+                }
+            }
+        }
+        
+        // 检查延迟生成队列
+        long currentTime = System.currentTimeMillis();
+        Iterator<Long> respawnIterator = tankRespawnTimes.iterator();
+        
+        // 当前敌方坦克数量
+        int currentEnemyCount = enemyTanks.size();
+        
+        while (respawnIterator.hasNext()) {
+            long respawnTime = respawnIterator.next();
             
-            // 如果敌方坦克发射了子弹，则将其添加到子弹列表中
-            if (enemyBullet != null) {
-                bullets.add(enemyBullet);
+            // 如果到达生成时间
+            if (currentTime >= respawnTime) {
+                respawnIterator.remove(); // 从队列中移除
+                
+                // 检查是否达到最大同时存在数量或是否已经生成了足够的坦克
+                if (currentEnemyCount < maxConcurrentEnemies && 
+                    enemyTanksGenerated < totalEnemyTanksToGenerate) {
+                    // 生成新坦克
+                    spawnNewEnemyTank();
+                    currentEnemyCount++; // 更新当前敌方坦克数量
+                } else {
+                    // 如果当前无法生成，重新加入队列，延迟500毫秒再次尝试
+                    tankRespawnTimes.add(currentTime + 500);
+                }
+            }
+        }
+        
+        // 每100帧打印一次调试信息，以免刷屏
+        if (Math.random() < 0.01) {
+            System.out.println("敌方坦克状态 - 场上数量: " + currentEnemyCount + 
+                              ", 已生成: " + enemyTanksGenerated + 
+                              ", 已摧毁: " + enemyTanksDestroyed + 
+                              ", 总目标: " + totalEnemyTanksToGenerate + 
+                              ", 最大同时存在: " + maxConcurrentEnemies);
+        }
+        
+        // 游戏开始时需要生成初始坦克
+        if (enemyTanks.isEmpty() && enemyTanksGenerated == 0 && tankRespawnTimes.isEmpty()) {
+            // 初始生成3个坦克
+            int initialTanks = Math.min(3, totalEnemyTanksToGenerate);
+            for (int i = 0; i < initialTanks; i++) {
+                spawnNewEnemyTank();
             }
         }
     }
@@ -697,56 +716,55 @@ public class GameController {
      * @return 是否发生碰撞
      */
     public boolean checkEnemyPlayerCollisions() {
-        if (playerTank == null) return false;
+        if (playerTank == null || playerTank.isDestroyed()) {
+            return false;
+        }
         
-        boolean collision = false;
-        Tank player = playerTank;
+        boolean collisionDetected = false;
         
-        // 创建玩家坦克的碰撞矩形
-        Rectangle playerRect = new Rectangle(
-            player.getX(), player.getY(), 
-            player.getWidth(), player.getHeight()
-        );
+        // 创建一个要删除的坦克列表，避免在迭代中修改集合
+        List<Tank> tanksToDestroy = new ArrayList<>();
         
-        // 使用迭代器以便安全删除
-        Iterator<Tank> iterator = enemyTanks.iterator();
-        while (iterator.hasNext()) {
-            Tank enemy = iterator.next();
+        // 检查每个敌方坦克
+        for (Tank enemyTank : enemyTanks) {
+            if (enemyTank.isDestroyed()) {
+                continue;
+            }
             
-            // 创建敌方坦克的碰撞矩形
-            Rectangle enemyRect = new Rectangle(
-                enemy.getX(), enemy.getY(),
-                enemy.getWidth(), enemy.getHeight()
-            );
-            
-            // 检查碰撞
-            if (playerRect.intersects(enemyRect.getBoundsInLocal())) {
-                collision = true;
+            // 检查玩家坦克和敌方坦克之间是否发生碰撞
+            if (checkTankCollision(playerTank, enemyTank)) {
+                collisionDetected = true;
                 
-                // 摧毁敌方坦克
-                iterator.remove();
+                // 碰撞发生时，减少玩家坦克的血量
+                playerTank.takeDamage(1);
                 
-                // 重要修复：增加击败敌人的计数
+                // 敌方坦克被摧毁
+                enemyTank.setHealth(0);
+                enemyTank.setDestroyed(true);
+                
+                // 记录要删除的坦克
+                tanksToDestroy.add(enemyTank);
+                
+                // 增加击毁敌方坦克计数
                 enemyTanksDestroyed++;
-                System.out.println("玩家坦克撞毁敌方坦克！击败敌人计数: " + enemyTanksDestroyed);
                 
-                // 添加到重生队列（如果需要）
-                if (enemyTanksGenerated < totalEnemyTanksToGenerate) {
-                    tankRespawnTimes.add(System.currentTimeMillis() + 3000);
-                }
+                System.out.println("玩家坦克与敌方坦克碰撞！玩家血量减少1，当前血量: " + playerTank.getHealth());
                 
-                // 对玩家坦克造成伤害
-                player.takeDamage(1);
-                
-                // 检查玩家坦克是否被摧毁
-                if (player.getHealth() <= 0) {
-                    // 玩家坦克被摧毁的处理逻辑
-                    return true;
+                // 检查玩家是否死亡
+                if (playerTank.getHealth() <= 0) {
+                    playerTank.setDestroyed(true);
+                    return true; // 玩家坦克被摧毁
                 }
             }
         }
         
-        return collision;
+        // 移除被摧毁的坦克
+        for (Tank tank : tanksToDestroy) {
+            // 如果使用了坦克池，可以考虑将坦克返回到池中而不是直接删除
+            enemyTanks.remove(tank);
+        }
+        
+        return collisionDetected;
     }
     
     /**
@@ -790,24 +808,93 @@ public class GameController {
      * 寻找玩家坦克的有效出生位置
      */
     public LevelMap.MapPosition findValidSpawnPosition() {
-        return findValidPosition();
+        // 定义玩家坦克周围的安全区域（100像素）
+        final int SAFE_DISTANCE = 100;
+        // 网格大小，确保坦克生成位置对齐到网格
+        final int GRID_SIZE = 40;
+        
+        // 获取地图尺寸
+        int mapWidth = levelMap.getWidth();
+        int mapHeight = levelMap.getHeight();
+        
+        // 最多尝试30次寻找合适的位置
+        for (int attempt = 0; attempt < 30; attempt++) {
+            // 生成网格对齐的坐标（确保是40的整数倍）
+            int gridX = (int)(Math.random() * ((mapWidth - 40) / GRID_SIZE));
+            int gridY = (int)(Math.random() * ((mapHeight - 40) / GRID_SIZE));
+            
+            // 将网格坐标转换为像素坐标，确保严格对齐到网格
+            int x = gridX * GRID_SIZE;
+            int y = gridY * GRID_SIZE;
+            
+            // 确保不会生成在地图边缘
+            if (x < GRID_SIZE || y < GRID_SIZE || x > mapWidth - 80 || y > mapHeight - 80) {
+                continue;
+            }
+            
+            // 检查位置是否有效（不与地图障碍物重叠）
+            if (isPositionValid(x, y, 40, 40)) {
+                // 检查是否在玩家坦克安全区域之外
+                if (playerTank != null) {
+                    int playerX = playerTank.getX();
+                    int playerY = playerTank.getY();
+                    
+                    // 计算与玩家的距离
+                    double distance = Math.sqrt(
+                        Math.pow(x + 20 - (playerX + 20), 2) + 
+                        Math.pow(y + 20 - (playerY + 20), 2)
+                    );
+                    
+                    // 如果在安全区域内，继续尝试
+                    if (distance < SAFE_DISTANCE) {
+                        continue;
+                    }
+                }
+                
+                // 检查与其他敌方坦克的碰撞
+                boolean collidesWithOtherTank = false;
+                for (Tank enemyTank : enemyTanks) {
+                    if (x < enemyTank.getX() + enemyTank.getWidth() &&
+                        x + 40 > enemyTank.getX() &&
+                        y < enemyTank.getY() + enemyTank.getHeight() &&
+                        y + 40 > enemyTank.getY()) {
+                        collidesWithOtherTank = true;
+                        break;
+                    }
+                }
+                
+                if (!collidesWithOtherTank) {
+                    // 创建并返回有效位置
+                    LevelMap.MapPosition position = new LevelMap.MapPosition();
+                    position.setX(x);
+                    position.setY(y);
+                    position.setWidth(40);
+                    position.setHeight(40);
+                    return position;
+                }
+            }
+        }
+        
+        System.out.println("无法找到合适的坦克生成位置");
+        return null; // 无法找到有效位置
     }
     
     /**
-     * 重新创建玩家坦克
+     * 重生玩家坦克 - 简化版本
      */
     public void respawnPlayerTank(String tankType, int x, int y) {
-        // 将字符串转换为TankType枚举
-        Tank.TankType type = Tank.TankType.valueOf(tankType.toUpperCase());
+        // 确保位置对齐到网格
+        int alignedX = (x / 40) * 40;
+        int alignedY = (y / 40) * 40;
         
-        // 创建全新的坦克对象
-        playerTank = new Tank(type, x, y);
+        // 创建新的玩家坦克
+        Tank.TankType type = Tank.TankType.fromString(tankType);
+        playerTank = new Tank(type, alignedX, alignedY);
         
-        // 确保坦克拥有完整血量
-        playerTank.setHealth(playerTank.getMaxHealth());
-        
-        // 默认朝上
+        // 设置初始方向为向上
         playerTank.setDirection(Tank.Direction.UP);
+        
+        System.out.println("玩家坦克已重生，类型: " + tankType + ", 位置: (" + alignedX + "," + alignedY + ")");
     }
     
     /**
@@ -999,71 +1086,46 @@ public class GameController {
      * @return 是否发生了碰撞
      */
     public boolean checkBulletTankCollisions(Bullet bullet) {
-        // 子弹碰撞检测区域
-        Rectangle bulletRect = new Rectangle(
-            bullet.getX() - 2.5, // 子弹中心点调整
-            bullet.getY() - 2.5,
-            15, 15 // 略大的碰撞检测范围以提高游戏体验
-        );
+        // 检查所有坦克(包括玩家坦克)
+        List<Tank> allTanks = new ArrayList<>(enemyTanks);
+        if (playerTank != null) {
+            allTanks.add(playerTank);
+        }
         
-        boolean collisionDetected = false;
-        
-        if (bullet.isFromPlayer()) {
-            // 玩家子弹与敌方坦克碰撞
-            for (Iterator<Tank> tankIt = enemyTanks.iterator(); tankIt.hasNext();) {
-                Tank enemyTank = tankIt.next();
-                Rectangle tankRect = new Rectangle(
-                    enemyTank.getX(), enemyTank.getY(),
-                    enemyTank.getWidth(), enemyTank.getHeight()
-                );
-                
-                if (bulletRect.intersects(tankRect.getBoundsInLocal())) {
-                    // 敌方坦克受到伤害
-                    boolean destroyed = enemyTank.takeDamage(bullet.getDamage());
-                    
-                    if (destroyed) {
-                        // 敌方坦克被摧毁
-                        tankIt.remove();
-                        enemyTanksDestroyed++; // 增加已摧毁计数
-                        
-                        // 安排新坦克生成（3秒后）
-                        if (enemyTanksGenerated < totalEnemyTanksToGenerate) {
-                            tankRespawnTimes.add(System.currentTimeMillis() + 3000);
-                            System.out.println("敌方坦克被摧毁！已安排3秒后生成新坦克，当前已摧毁: " + 
-                                             enemyTanksDestroyed + "/" + totalEnemyTanksToGenerate);
-                        }
-                    }
-                    
-                    bullet.destroy(); // 子弹被销毁
-                    collisionDetected = true;
-                    break;
-                }
+        for (Tank tank : allTanks) {
+            // 如果坦克已被摧毁，跳过
+            if (tank.isDestroyed()) {
+                continue;
             }
-        } else {
-            // 敌方子弹与玩家坦克碰撞
-            if (playerTank != null && !playerTank.isDestroyed()) {
-                Rectangle tankRect = new Rectangle(
-                    playerTank.getX(), playerTank.getY(),
-                    playerTank.getWidth(), playerTank.getHeight()
-                );
+            
+            // 检查子弹是否击中坦克
+            if (bullet.getX() < tank.getX() + tank.getWidth() &&
+                bullet.getX() + bullet.getWidth() > tank.getX() &&
+                bullet.getY() < tank.getY() + tank.getHeight() &&
+                bullet.getY() + bullet.getHeight() > tank.getY()) {
                 
-                if (bulletRect.intersects(tankRect.getBoundsInLocal())) {
-                    // 玩家坦克受到伤害
-                    boolean destroyed = playerTank.takeDamage(bullet.getDamage());
-                    
-                    if (destroyed) {
-                        System.out.println("玩家坦克被摧毁！");
-                    } else {
-                        System.out.println("玩家受到伤害！当前生命值: " + playerTank.getHealth());
-                    }
-                    
-                    bullet.destroy(); // 子弹被销毁
-                    collisionDetected = true;
+                // 如果子弹和坦克来自同一阵营，忽略碰撞
+                if (bullet.isFromPlayer() == tank.isFriendly()) {
+                    continue;
                 }
+                
+                // 子弹击中坦克，处理伤害
+                boolean isDestroyed = tank.takeDamage(bullet.getDamage());
+                
+                // 如果击中的是敌方坦克，并且该坦克被摧毁
+                if (!tank.isFriendly() && isDestroyed) {
+                    // 增加已击败敌方坦克计数
+                    enemyTanksDestroyed++;
+                    System.out.println("敌方坦克被摧毁，类型：" + tank.getTypeString() + 
+                                    "，已摧毁： " + enemyTanksDestroyed + 
+                                    "，目标： " + totalEnemyTanksToGenerate);
+                }
+                
+                return true; // 子弹命中，返回true以移除子弹
             }
         }
         
-        return collisionDetected;
+        return false; // 子弹未命中任何坦克
     }
 
     /**
@@ -1083,89 +1145,167 @@ public class GameController {
         return elementImages.get(elementType);
     }
 
-    // 配置不同关卡的敌方坦克参数
+    /**
+     * 配置每个关卡的敌方坦克参数
+     */
     private void configureEnemyTanksForLevel(int level) {
-        switch (level) {
+        // 清空现有的敌方坦克配置
+        enemyTypesToGenerate.clear();
+        
+        // 根据关卡设置最大同时存在的敌方坦克数量
+        if (level <= 3) {
+            maxConcurrentEnemies = 5; // 前三关最多5个敌方坦克
+        } else {
+            maxConcurrentEnemies = 6; // 第4、5关最多6个敌方坦克
+        }
+        
+        // 清空延迟生成队列
+        tankRespawnTimes.clear();
+        
+        // 根据关卡设置敌方坦克目标数量和类型分布
+        switch(level) {
             case 1:
+                // 第一关：15个坦克，全部是基础坦克
                 totalEnemyTanksToGenerate = 15;
-                maxConcurrentEnemies = 5;
+                System.out.println("第一关配置：击败15个基础坦克");
                 break;
+                
             case 2:
+                // 第二关：20个坦克，90%基础坦克，10%精英坦克
                 totalEnemyTanksToGenerate = 20;
-                maxConcurrentEnemies = 5;
+                System.out.println("第二关配置：击败20个坦克（10%精英坦克）");
                 break;
+                
             case 3:
-                totalEnemyTanksToGenerate = 25;
-                maxConcurrentEnemies = 6;
-                break;
-            case 4:
+                // 第三关：30个坦克，57%基础坦克，40%精英坦克，3%Boss坦克
                 totalEnemyTanksToGenerate = 30;
-                maxConcurrentEnemies = 6;
+                System.out.println("第三关配置：击败30个坦克（40%精英坦克，3%Boss坦克）");
                 break;
+                
+            case 4:
+                // 第四关：45个坦克，20%基础坦克，60%精英坦克，20%Boss坦克
+                totalEnemyTanksToGenerate = 45;
+                System.out.println("第四关配置：击败45个坦克（60%精英坦克，20%Boss坦克）");
+                break;
+                
             case 5:
-                totalEnemyTanksToGenerate = 35;
-                maxConcurrentEnemies = 7;
+                // 第五关：60个坦克，15%基础坦克，50%精英坦克，35%Boss坦克
+                totalEnemyTanksToGenerate = 60;
+                System.out.println("第五关配置：击败60个坦克（50%精英坦克，35%Boss坦克）");
                 break;
+                
             default:
+                // 默认配置，避免出错
                 totalEnemyTanksToGenerate = 15;
-                maxConcurrentEnemies = 5;
+                System.out.println("未知关卡，使用默认配置：15个坦克");
                 break;
         }
+        
+        // 重置敌方坦克统计信息
+        enemyTanksGenerated = 0;
+        enemyTanksDestroyed = 0;
+        
+        System.out.println("关卡 " + level + " 配置完成：目标敌方坦克数量=" + 
+                          totalEnemyTanksToGenerate + ", 最大同时存在数量=" + 
+                          maxConcurrentEnemies);
     }
 
     // 修改生成新敌方坦克
     private void spawnNewEnemyTank() {
-        // 找到一个有效的出生位置
-        LevelMap.MapPosition spawnPos = findValidPosition();
+        // 如果已经生成了足够的坦克，不再生成
+        if (enemyTanksGenerated >= totalEnemyTanksToGenerate) {
+            System.out.println("已达到坦克生成上限，不再生成新坦克");
+            return;
+        }
+        
+        // 寻找有效的生成位置
+        LevelMap.MapPosition spawnPos = findValidSpawnPosition();
         if (spawnPos != null) {
-            // 确定坦克类型 - 只使用确保有图像的类型
-            Tank.TankType tankType = Tank.TankType.BASIC; // 默认使用BASIC类型
+            // 决定要生成哪种类型的敌方坦克
+            Tank.TankType enemyType;
+            double random = Math.random();
             
-            // 只从池中选择确定支持的类型
-            if (!enemyTypesToGenerate.isEmpty()) {
-                tankType = enemyTypesToGenerate.remove(0);
-                
-                // 确保类型是有效的
-                if (tankType != Tank.TankType.BASIC && 
-                    tankType != Tank.TankType.ELITE && 
-                    tankType != Tank.TankType.BOSS) {
-                    System.out.println("警告：无效的坦克类型 " + tankType + "，使用BASIC类型替代");
-                    tankType = Tank.TankType.BASIC;
-                }
+            // 根据当前关卡决定敌方坦克类型
+            switch (currentLevel) {
+                case 1:
+                    // 第一关：100% 基础坦克
+                    enemyType = Tank.TankType.BASIC;
+                    break;
+                    
+                case 2:
+                    // 第二关：90% 基础坦克，10% 精英坦克
+                    if (random < 0.9) {
+                        enemyType = Tank.TankType.BASIC;
+                    } else {
+                        enemyType = Tank.TankType.ELITE;
+                    }
+                    break;
+                    
+                case 3:
+                    // 第三关：57% 基础坦克，40% 精英坦克，3% Boss坦克
+                    if (random < 0.57) {
+                        enemyType = Tank.TankType.BASIC;
+                    } else if (random < 0.97) { // 0.57 + 0.40 = 0.97
+                        enemyType = Tank.TankType.ELITE;
+                    } else {
+                        enemyType = Tank.TankType.BOSS;
+                    }
+                    break;
+                    
+                case 4:
+                    // 第四关：20% 基础坦克，60% 精英坦克，20% Boss坦克
+                    if (random < 0.2) {
+                        enemyType = Tank.TankType.BASIC;
+                    } else if (random < 0.8) { // 0.2 + 0.6 = 0.8
+                        enemyType = Tank.TankType.ELITE;
+                    } else {
+                        enemyType = Tank.TankType.BOSS;
+                    }
+                    break;
+                    
+                case 5:
+                    // 第五关：15% 基础坦克，50% 精英坦克，35% Boss坦克
+                    if (random < 0.15) {
+                        enemyType = Tank.TankType.BASIC;
+                    } else if (random < 0.65) { // 0.15 + 0.5 = 0.65
+                        enemyType = Tank.TankType.ELITE;
+                    } else {
+                        enemyType = Tank.TankType.BOSS;
+                    }
+                    break;
+                    
+                default:
+                    // 默认是基础坦克
+                    enemyType = Tank.TankType.BASIC;
+                    break;
             }
             
-            // 验证图像是否加载
-            String imageKey = "enemy_" + tankType.name().toLowerCase();
-            if (!tankImages.containsKey(imageKey)) {
-                System.out.println("警告：找不到坦克图像键 " + imageKey + "，使用BASIC类型替代");
-                tankType = Tank.TankType.BASIC;
-                imageKey = "enemy_basic";
-            }
+            // 创建新坦克并添加到列表中，确保位置是40的整数倍
+            int alignedX = (spawnPos.getX() / 40) * 40;
+            int alignedY = (spawnPos.getY() / 40) * 40;
             
-            // 再次检查图像是否存在
-            Image[] images = tankImages.get(imageKey);
-            if (images == null || images.length < 4 || images[0] == null) {
-                System.out.println("严重错误：即使对基本类型也找不到有效图像！使用红色方块替代");
-                // 在这种情况下，仍然创建坦克，但会在渲染时使用红色方块
-                tankType = Tank.TankType.BASIC;
-            }
+            Tank enemyTank = new Tank(enemyType, alignedX, alignedY);
             
-            // 创建并添加新坦克
-            Tank newTank = new Tank(tankType, spawnPos.getX(), spawnPos.getY());
-            newTank.setDirection(Tank.Direction.UP); // 确保方向为UP以避免数组越界
+            // 随机设置初始方向
+            int randomDir = (int)(Math.random() * 4);
+            enemyTank.setDirection(Tank.Direction.fromValue(randomDir));
             
-            // 最终安全检查
-            if (isPositionValid(spawnPos.getX(), spawnPos.getY(), 40, 40)) {
-                enemyTanks.add(newTank);
-                enemyTanksGenerated++;
-                System.out.println("成功生成坦克: " + tankType + 
-                                  " 在位置(" + spawnPos.getX() + "," + spawnPos.getY() + ")" +
-                                  " 图像键: " + imageKey);
-            } else {
-                tankRespawnTimes.add(System.currentTimeMillis() + 1000);
-            }
+            // 给坦克设置一个"出生保护"标记，防止立即移动
+            enemyTank.setInitialSpawnDelay(true);
+            
+            // 添加到敌方坦克列表
+            enemyTanks.add(enemyTank);
+            
+            // 增加已生成的坦克计数
+            enemyTanksGenerated++;
+            
+            System.out.println("成功生成敌方坦克 #" + enemyTanksGenerated + ", 类型: " + enemyType.getName() +
+                              ", 位置: (" + alignedX + "," + alignedY + ")" +
+                              ", 当前场上数量: " + enemyTanks.size());
         } else {
-            tankRespawnTimes.add(System.currentTimeMillis() + 1000);
+            System.out.println("无法找到有效的敌方坦克生成位置");
+            // 稍后再次尝试生成
+            tankRespawnTimes.add(System.currentTimeMillis() + 500);
         }
     }
 

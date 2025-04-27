@@ -163,6 +163,11 @@ public class Tank {
     private long lastMovementTime = 0;
     private static final long STUCK_THRESHOLD = 2000; // 2秒卡住阈值
     
+    // 添加新的成员变量来标记坦克是否刚刚生成
+    private boolean initialSpawnDelay = false;
+    private long spawnTime = 0;
+    private static final long SPAWN_PROTECTION_TIME = 500; // 500毫秒的出生保护时间
+    
     static {
         // 友方坦克参数: 生命值, 速度, 攻击力, 攻速(每秒), 子弹
         DEFAULT_STATS.put(TankType.LIGHT, new int[]{3, 3, 1, 3, 3});    
@@ -218,6 +223,9 @@ public class Tank {
     
     // 修改move方法，添加碰撞检测
     public void move(GameController gameController) {
+        // 如果坦克已经死亡，不允许移动
+        if (isDead()) return;
+        
         int actualSpeed = isEffectActive(PowerUpType.SPEED) ? (int)(speed * 1.5) : speed;
         
         // 计算下一个位置
@@ -262,6 +270,9 @@ public class Tank {
     
     // 保留原来的无参move方法以兼容AI代码
     public void move() {
+        // 如果坦克已经死亡，不允许移动
+        if (isDead()) return;
+        
         int actualSpeed = isEffectActive(PowerUpType.SPEED) ? (int)(speed * 1.5) : speed;
         x += direction.getDx() * actualSpeed;
         y += direction.getDy() * actualSpeed;
@@ -281,6 +292,9 @@ public class Tank {
     
     // 开火方法，返回创建的子弹
     public Bullet fire() {
+        // 如果坦克已经死亡，不允许射击
+        if (isDead()) return null;
+        
         long currentTime = System.currentTimeMillis();
         
         // 如果坦克类型是敌人且冷却时间不足，则不允许发射
@@ -342,6 +356,9 @@ public class Tank {
     
     // 受到伤害
     public boolean takeDamage(int damage) {
+        // 如果坦克已经死亡，不再处理伤害
+        if (isDead()) return false;
+        
         // 无敌或有护盾时不受伤害
         if (isInvincible || isShielded) {
             if (isShielded) {
@@ -353,6 +370,8 @@ public class Tank {
         }
         
         health -= damage;
+        System.out.println(type.getName() + " 坦克受到 " + damage + " 点伤害，剩余血量: " + health);
+        
         if (health <= 0) {
             health = 0;
             isDestroyed = true;
@@ -526,8 +545,13 @@ public class Tank {
         return speed;
     }
     
-    // AI行为方法 - 修改后加入探测范围和随机移动
+    // AI行为方法 - 添加出生保护检查
     public Bullet updateAI(boolean[][] grid, Tank playerTank, GameController gameController) {
+        // 如果处于出生保护状态，不执行AI逻辑
+        if (isInSpawnProtection()) {
+            return null;
+        }
+        
         Bullet firedBullet = null;
         
         if (!isFriendly()) {
@@ -972,5 +996,38 @@ public class Tank {
             directions[index] = directions[i];
             directions[i] = temp;
         }
+    }
+    
+    /**
+     * 设置坦克初始出生延迟
+     */
+    public void setInitialSpawnDelay(boolean delay) {
+        this.initialSpawnDelay = delay;
+        if (delay) {
+            this.spawnTime = System.currentTimeMillis();
+        }
+    }
+    
+    /**
+     * 检查坦克是否在出生保护期
+     */
+    public boolean isInSpawnProtection() {
+        if (!initialSpawnDelay) {
+            return false;
+        }
+        
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - spawnTime > SPAWN_PROTECTION_TIME) {
+            initialSpawnDelay = false; // 出生保护时间已过
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 检查坦克是否死亡
+     */
+    public boolean isDead() {
+        return health <= 0;
     }
 }
