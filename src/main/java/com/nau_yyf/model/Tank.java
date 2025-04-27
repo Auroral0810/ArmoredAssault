@@ -150,7 +150,7 @@ public class Tank {
     private static final long PATHFINDING_INTERVAL = 2000; // 每2秒重新计算路径
     
     // 新增字段
-    private static final int DETECTION_RANGE = 350; // 坦克探测范围
+    private static final int DETECTION_RANGE = 600; // 坦克探测范围
     private long lastDirectionChangeTime = 0; // 上次改变随机方向的时间
     private long randomMoveDuration = 2000; // 随机移动持续时间，2-4秒
     private boolean isMoving = false; // 是否正在移动
@@ -281,6 +281,30 @@ public class Tank {
     
     // 开火方法，返回创建的子弹
     public Bullet fire() {
+        long currentTime = System.currentTimeMillis();
+        
+        // 如果坦克类型是敌人且冷却时间不足，则不允许发射
+        if (!type.isFriendly() && currentTime - lastFireTime < fireDelay) {
+            return null;
+        }
+        
+        // 设置不同的冷却时间
+        if (!type.isFriendly()) {
+            switch (type) {
+                case BASIC:
+                    fireDelay = 3000; // 基础敌人3秒1发
+                    break;
+                case ELITE:
+                    fireDelay = 2500; // 精英敌人2.5秒1发
+                    break;
+                case BOSS:
+                    fireDelay = 2000; // Boss敌人2秒1发
+                    break;
+                default:
+                    fireDelay = 3000;
+            }
+        }
+        
         if (canFire()) {
             lastFireTime = System.currentTimeMillis();
             

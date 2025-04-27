@@ -45,6 +45,8 @@
   "enemies": [
     {"type": "basic", "spawnPoint": {"x": 120, "y": 40}},
     {"type": "basic", "spawnPoint": {"x": 380, "y": 40}},
-    {"type": "basic", "spawnPoint": {"x": 640, "y": 40}}
+    {"type": "basic", "spawnPoint": {"x": 640, "y": 40}},
+    {"type": "basic", "spawnPoint": {"x": 200, "y": 40}},
+    {"type": "basic", "spawnPoint": {"x": 560, "y": 40}}
   ]
 } 
