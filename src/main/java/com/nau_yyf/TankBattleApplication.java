@@ -19,6 +19,7 @@ public class TankBattleApplication extends Application {
 
     /**
      * JavaFX应用程序入口方法
+     *
      * @param primaryStage 主舞台
      */
     @Override
@@ -35,6 +36,7 @@ public class TankBattleApplication extends Application {
 
     /**
      * 程序主入口点
+     *
      * @param args 命令行参数
      */
     public static void main(String[] args) {

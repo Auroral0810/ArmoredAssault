@@ -196,9 +196,9 @@ public class LevelMap {
         if (cellX < 0 || cellX >= width || cellY < 0 || cellY >= height) {
             return false;
         }
-        
+
         return elements.stream()
-                      .filter(element -> element.getX() == cellX && element.getY() == cellY)
-                      .anyMatch(element -> "grass".equals(element.getType()));
+                .filter(element -> element.getX() == cellX && element.getY() == cellY)
+                .anyMatch(element -> "grass".equals(element.getType()));
     }
 }

@@ -1,60 +1,44 @@
 package com.nau_yyf.view;
-import com.jfoenix.controls.JFXButton;
-import com.jfoenix.controls.JFXDialog;
-import com.jfoenix.controls.JFXDialogLayout;
+
+import com.jfoenix.controls.*;
 import com.nau_yyf.controller.GameController;
 import com.nau_yyf.model.Bullet;
 import com.nau_yyf.model.LevelMap;
 import com.nau_yyf.model.PowerUp;
 import com.nau_yyf.model.Tank;
+import javafx.animation.AnimationTimer;
+import javafx.animation.FadeTransition;
+import javafx.animation.ParallelTransition;
+import javafx.animation.ScaleTransition;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.*;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.effect.GaussianBlur;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
-import javafx.stage.Stage;
-import javafx.scene.Group;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.animation.AnimationTimer;
-import javafx.scene.shape.Rectangle;
-import javafx.scene.control.Separator;
-import com.jfoenix.controls.JFXSlider;
-import com.jfoenix.controls.JFXRadioButton;
-import javafx.scene.control.ToggleGroup;
-import javafx.scene.Node;
-import javafx.animation.FadeTransition;
-import javafx.util.Duration;
-import java.util.Timer;
-import java.util.TimerTask;
-
-import java.util.Arrays;
-import java.util.List;
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.ArrayList;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
-import javafx.animation.ScaleTransition;
-import javafx.animation.ParallelTransition;
-import javafx.geometry.HPos;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.GridPane;
-import javafx.scene.effect.GaussianBlur;
-import javafx.scene.control.ProgressBar;
-import javafx.scene.input.KeyCode;
 import javafx.stage.FileChooser;
-import javafx.scene.control.TextInputDialog;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+
 import java.io.File;
+import java.io.InputStream;
+import java.util.*;
+
+import static com.nau_yyf.util.TankUtil.TANK_TYPES;
+import static com.nau_yyf.util.TankUtil.getTankDisplayName;
 
 public class GameView {
     private Stage stage;
@@ -68,10 +52,6 @@ public class GameView {
     private final Color SECONDARY_COLOR = Color.rgb(76, 175, 80);   // 绿色
     private final Color TEXT_COLOR = Color.WHITE;
     private final Color BACKGROUND_COLOR = Color.rgb(27, 40, 56);   // 深蓝灰色
-    
-    // 坦克类型和方向
-    private final List<String> TANK_TYPES = Arrays.asList("light", "standard", "heavy");
-    private int selectedTankType = 1; // 默认选择standard坦克
     
     // 游戏Logo
     private ImageView logoImageView;
@@ -120,6 +100,16 @@ public class GameView {
     private List<VBox> tankOptionContainers = new ArrayList<>();
     private List<ImageView> tankImages = new ArrayList<>();
     private List<JFXButton> tankSelectButtons = new ArrayList<>();
+
+    // 添加MainMenuView组件引用
+    private MainMenuView mainMenuView;
+    private SinglePlayerOptionsView singlePlayerOptionsView;
+    private TankSelectionView tankSelectionView;
+    private LevelSelectionDialog levelSelectionDialog;
+    private SinglePlayerGameStarter singlePlayerGameStarter;
+
+    // 添加一个字段记录当前使用的坦克类型
+    private String currentTankType = "standard"; // 默认使用标准坦克
     
     public GameView(Stage stage) {
         this.stage = stage;
@@ -134,8 +124,7 @@ public class GameView {
             System.err.println("无法加载应用图标: " + e.getMessage());
         }
         
-        Platform.runLater(() -> {
-            // 初始化根布局
+        // 初始化根布局 - 将这部分从Platform.runLater中移出
             root = new StackPane();
             
             // 加载背景图
@@ -168,6 +157,15 @@ public class GameView {
                 System.err.println("无法加载样式表: " + e.getMessage());
             }
             
+        // 初始化视图组件 - 在Platform.runLater之外初始化
+        this.mainMenuView = new MainMenuView(this, root, stage);
+        this.singlePlayerOptionsView = new SinglePlayerOptionsView(this, root, stage);
+        this.tankSelectionView = new TankSelectionView(this, root, stage);
+        this.levelSelectionDialog = new LevelSelectionDialog(this, root);
+        this.singlePlayerGameStarter = new SinglePlayerGameStarter(this);
+
+        // 使用Platform.runLater处理后续的UI更新
+        Platform.runLater(() -> {
             // 显示主菜单
             showMainMenu();
         });
@@ -177,606 +175,41 @@ public class GameView {
      * 显示主菜单
      */
     public void showMainMenu() {
-        Platform.runLater(() -> {
-            // 清除当前内容
-            root.getChildren().clear();
-            
-            // 创建垂直布局容器
-            VBox menuContainer = new VBox(20);
-            menuContainer.setAlignment(Pos.CENTER);
-            menuContainer.setPadding(new Insets(50, 0, 50, 0));
-            menuContainer.setMaxWidth(600);
-            
-            // 加载游戏Logo
-            try {
-                Image logoImage = new Image(getClass().getResourceAsStream("/images/logo/tank_logo.png"));
-                logoImageView = new ImageView(logoImage);
-                logoImageView.setFitWidth(250);
-                logoImageView.setFitHeight(250);
-                logoImageView.setPreserveRatio(true);
-            } catch (Exception e) {
-                System.err.println("无法加载Logo: " + e.getMessage());
-                // 使用文字替代
-                logoImageView = null;
-            }
-            
-            if (logoImageView != null) {
-                menuContainer.getChildren().add(logoImageView);
-            } else {
-                // 游戏标题作为备用
-                Text titleText = new Text(GAME_TITLE);
-                titleText.setFont(Font.font("Impact", FontWeight.BOLD, 72));
-                titleText.setFill(PRIMARY_COLOR);
-                
-                // 添加阴影效果
-                DropShadow dropShadow = new DropShadow();
-                dropShadow.setColor(Color.rgb(0, 0, 0, 0.5));
-                dropShadow.setRadius(5);
-                dropShadow.setOffsetX(3);
-                dropShadow.setOffsetY(3);
-                titleText.setEffect(dropShadow);
-                
-                menuContainer.getChildren().add(titleText);
-            }
-            
-            // 版本标签
-            Label versionLabel = new Label("Version 1.0");
-            versionLabel.setTextFill(TEXT_COLOR);
-            versionLabel.setStyle("-fx-font-style: italic;");
-            menuContainer.getChildren().add(versionLabel);
-            
-            // 间隔
-            Region spacer = new Region();
-            VBox.setVgrow(spacer, Priority.ALWAYS);
-            menuContainer.getChildren().add(spacer);
-            
-            // 创建按钮
-            JFXButton singlePlayerButton = createMenuButton("单人游戏", e -> showSinglePlayerOptions());
-            JFXButton multiPlayerButton = createMenuButton("双人游戏", e -> showMessage("双人游戏功能即将推出"));
-            JFXButton onlineButton = createMenuButton("远程联机", e -> showMessage("联机功能即将推出"));
-            JFXButton instructionsButton = createMenuButton("游戏说明", e -> showInstructions());
-            JFXButton settingsButton = createMenuButton("设置", e -> showMessage("设置功能即将推出"));
-            JFXButton exitButton = createMenuButton("退出游戏", e -> Platform.exit());
-            
-            // 将按钮添加到布局容器
-            menuContainer.getChildren().addAll(
-                    singlePlayerButton,
-                    multiPlayerButton,
-                    onlineButton,
-                    instructionsButton,
-                    settingsButton,
-                    exitButton
-            );
-            
-            // 将菜单容器添加到根布局
-            root.getChildren().add(menuContainer);
-            
-            // 显示舞台
-            stage.show();
-        });
+        mainMenuView.show();
     }
     
     /**
      * 显示单人游戏选项
      */
-    private void showSinglePlayerOptions() {
-        Platform.runLater(() -> {
-            // 清除当前内容
-            root.getChildren().clear();
-            
-            // 创建垂直布局容器
-            VBox optionsContainer = new VBox(20);
-            optionsContainer.setAlignment(Pos.CENTER);
-            optionsContainer.setPadding(new Insets(50, 0, 50, 0));
-            optionsContainer.setMaxWidth(600);
-            
-            // 标题
-            Text titleText = new Text("单人游戏");
-            titleText.setFont(Font.font("Arial", FontWeight.BOLD, 48));
-            titleText.setFill(PRIMARY_COLOR);
-            
-            // 添加阴影效果
-            DropShadow dropShadow = new DropShadow();
-            dropShadow.setColor(Color.rgb(0, 0, 0, 0.5));
-            dropShadow.setRadius(5);
-            dropShadow.setOffsetX(3);
-            dropShadow.setOffsetY(3);
-            titleText.setEffect(dropShadow);
-            
-            // 创建按钮
-            JFXButton newGameButton = createMenuButton("开始新游戏", e -> showTankSelection());
-            // 修改这一行，将消息提示改为实际的加载存档功能
-            JFXButton loadGameButton = createMenuButton("加载存档", e -> loadGame());
-            JFXButton backButton = createMenuButton("返回", e -> showMainMenu());
-            
-            // 将元素添加到布局容器
-            optionsContainer.getChildren().addAll(
-                    titleText,
-                    new Region(), // 间隔
-                    newGameButton,
-                    loadGameButton,
-                    backButton
-            );
-            
-            // 设置VBox垂直增长属性
-            VBox.setVgrow(optionsContainer.getChildren().get(1), Priority.ALWAYS);
-            
-            // 将菜单容器添加到根布局
-            root.getChildren().add(optionsContainer);
-        });
+    public void showSinglePlayerOptions() {
+        singlePlayerOptionsView.show();
     }
     
     /**
      * 显示坦克选择界面
      */
-    private void showTankSelection() {
-        Platform.runLater(() -> {
-            // 清除当前内容
-            root.getChildren().clear();
-            
-            // 如果选择界面尚未初始化，创建它
-            if (tankSelectionLayout == null) {
-                initializeTankSelectionUI();
-            } else {
-                // 只更新选择状态
-                updateTankSelection();
-            }
-            
-            // 将主布局添加到根布局
-            root.getChildren().add(tankSelectionLayout);
-        });
+    public void showTankSelection() {
+        tankSelectionView.show();
     }
-    
-    /**
-     * 初始化坦克选择界面UI
-     */
-    private void initializeTankSelectionUI() {
-        // 创建主布局
-        tankSelectionLayout = new BorderPane();
-        
-        // 标题
-        Text titleText = new Text("选择你的坦克");
-        titleText.setFont(Font.font("Arial", FontWeight.BOLD, 36));
-        titleText.setFill(PRIMARY_COLOR);
-        
-        StackPane titlePane = new StackPane(titleText);
-        titlePane.setPadding(new Insets(30, 0, 30, 0));
-        tankSelectionLayout.setTop(titlePane);
-        
-        // 坦克选择区域
-        HBox tankSelectionArea = new HBox(50);
-        tankSelectionArea.setAlignment(Pos.CENTER);
-        tankSelectionArea.setPadding(new Insets(50));
-        
-        // 添加三种类型的坦克
-        for (int i = 0; i < TANK_TYPES.size(); i++) {
-            final int index = i;
-            String tankType = TANK_TYPES.get(i);
-            
-            VBox tankOption = new VBox(15);
-            tankOption.setAlignment(Pos.CENTER);
-            
-            // 坦克预览
-            ImageView tankImage = null;
-            try {
-                // 使用PNG格式加载图片
-                String imagePath = "/images/tanks/friendly/" + tankType + "/1.png";
-                
-                InputStream imageStream = getClass().getResourceAsStream(imagePath);
-                if (imageStream != null) {
-                    Image tankImg = new Image(imageStream);
-                    tankImage = new ImageView(tankImg);
-                } else {
-                    // PNG加载失败，创建占位符
-                    throw new Exception("PNG图片未找到");
-                }
-                
-                // 设置图片大小
-                tankImage.setFitWidth(120);
-                tankImage.setFitHeight(120);
-                tankImage.setPreserveRatio(true);
-                
-                // 保存到列表中
-                tankImages.add(tankImage);
-            } catch (Exception e) {
-                // 创建一个简单的占位符
-                javafx.scene.shape.Rectangle rect = new javafx.scene.shape.Rectangle(120, 120);
-                if (tankType.equals("light")) {
-                    rect.setFill(Color.rgb(120, 200, 80));  // 浅绿色
-                } else if (tankType.equals("standard")) {
-                    rect.setFill(Color.rgb(80, 150, 220));  // 蓝色
-                } else {
-                    rect.setFill(Color.rgb(200, 80, 80));   // 红色
-                }
-                rect.setArcWidth(20);
-                rect.setArcHeight(20);
-                
-                // 创建坦克形状轮廓
-                javafx.scene.shape.Rectangle body = new javafx.scene.shape.Rectangle(80, 40);
-                body.setFill(Color.rgb(50, 50, 50));
-                body.setArcWidth(10);
-                body.setArcHeight(10);
-                
-                javafx.scene.shape.Rectangle barrel = new javafx.scene.shape.Rectangle(60, 16);
-                barrel.setFill(Color.rgb(70, 70, 70));
-                barrel.setArcWidth(5);
-                barrel.setArcHeight(5);
-                
-                Group tankShape = new Group(body, barrel);
-                barrel.setTranslateX(30);
-                
-                StackPane placeholder = new StackPane(rect, tankShape);
-                placeholder.setMaxSize(120, 120);
-                
-                // 将占位符添加到布局中
-                tankOption.getChildren().add(placeholder);
-                
-                System.err.println("无法加载坦克图片: " + e.getMessage());
-                continue;
-            }
-            
-            // 坦克名称和属性
-            Text tankName = new Text(getTankDisplayName(tankType));
-            tankName.setFont(Font.font("Arial", FontWeight.BOLD, 18));
-            tankName.setFill(TEXT_COLOR);
-            
-            Text tankDesc = new Text(getTankDescription(tankType));
-            tankDesc.setFont(Font.font("Arial", 14));
-            tankDesc.setFill(TEXT_COLOR);
-            tankDesc.setWrappingWidth(200);
-            tankDesc.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
-            
-            // 选择按钮
-            JFXButton selectButton = new JFXButton("选择");
-            selectButton.getStyleClass().add("tank-select-button");
-            selectButton.setButtonType(JFXButton.ButtonType.RAISED);
-            
-            if (index == selectedTankType) {
-                selectButton.setStyle("-fx-background-color: " + toHexString(SECONDARY_COLOR) + ";");
-                selectButton.setText("已选择");
-            } else {
-                selectButton.setStyle("-fx-background-color: " + toHexString(PRIMARY_COLOR) + ";");
-            }
-            
-            // 保存按钮引用
-            tankSelectButtons.add(selectButton);
-            
-            selectButton.setOnAction(e -> {
-                selectedTankType = index;
-                updateTankSelection(); // 只更新选择状态，不重新加载
-            });
-            
-            // 将元素添加到坦克选项容器
-            tankOption.getChildren().addAll(tankImage, tankName, tankDesc, selectButton);
-            
-            // 保存容器引用
-            tankOptionContainers.add(tankOption);
-            
-            // 添加到选择区域
-            tankSelectionArea.getChildren().add(tankOption);
-        }
-        
-        tankSelectionLayout.setCenter(tankSelectionArea);
-        
-        // 底部按钮区域
-        HBox bottomButtons = new HBox(20);
-        bottomButtons.setAlignment(Pos.CENTER);
-        bottomButtons.setPadding(new Insets(30));
-        
-        JFXButton backButton = createMenuButton("返回", e -> showSinglePlayerOptions());
-        JFXButton startButton = createMenuButton("开始游戏", e -> startGame());
-        startButton.setStyle("-fx-background-color: " + toHexString(SECONDARY_COLOR) + ";");
-        
-        bottomButtons.getChildren().addAll(backButton, startButton);
-        tankSelectionLayout.setBottom(bottomButtons);
-        
-        // 初始更新选择状态
-        updateTankSelection();
-    }
-    
-    /**
-     * 更新坦克选择状态
-     */
-    private void updateTankSelection() {
-        for (int i = 0; i < tankOptionContainers.size(); i++) {
-            VBox tankOption = tankOptionContainers.get(i);
-            JFXButton selectButton = tankSelectButtons.get(i);
-            
-            if (i == selectedTankType) {
-                // 选中样式
-                tankOption.setStyle("-fx-border-color: " + toHexString(SECONDARY_COLOR) + "; " +
-                                  "-fx-border-width: 3; " +
-                                  "-fx-border-radius: 5; " +
-                                  "-fx-padding: 10;");
-                selectButton.setStyle("-fx-background-color: " + toHexString(SECONDARY_COLOR) + ";");
-                selectButton.setText("已选择");
-            } else {
-                // 未选中样式
-                tankOption.setStyle("-fx-padding: 13;"); // 保持相同的总尺寸
-                selectButton.setStyle("-fx-background-color: " + toHexString(PRIMARY_COLOR) + ";");
-                selectButton.setText("选择");
-            }
-        }
-    }
-    
-    /**
-     * 获取坦克显示名称
-     */
-    private String getTankDisplayName(String tankType) {
-        switch (tankType) {
-            case "light": return "轻型坦克";
-            case "standard": return "标准坦克";
-            case "heavy": return "重型坦克";
-            default: return "未知坦克";
-        }
-    }
-    
-    /**
-     * 获取坦克描述
-     */
-    private String getTankDescription(String tankType) {
-        switch (tankType) {
-            case "light":
-                return "速度快，机动性强，但装甲薄，攻击力较弱。";
-            case "standard":
-                return "各项性能均衡，适合大多数战斗场景。";
-            case "heavy":
-                return "装甲厚，火力强大，但速度较慢，不适合快速战术。";
-            default:
-                return "";
-        }
-    }
-    
+
     /**
      * 开始游戏
      */
-    private void startGame() {
-        String selectedTank = TANK_TYPES.get(selectedTankType);
-        
-        // 显示关卡选择对话框
-        showLevelSelectionDialog(selectedTank);
+    public void startGame(String selectedTankType) {
+        this.currentTankType = selectedTankType; // 保存当前使用的坦克类型
+        levelSelectionDialog.show(selectedTankType);
     }
-    
-    // 添加关卡选择对话框方法
-    private void showLevelSelectionDialog(String selectedTankType) {
-        Platform.runLater(() -> {
-            JFXDialogLayout content = new JFXDialogLayout();
-            content.setHeading(new Text("选择关卡"));
-            
-            VBox levelOptions = new VBox(10);
-            levelOptions.setAlignment(Pos.CENTER);
-            
-            // 先创建对话框
-            JFXDialog dialog = new JFXDialog(root, content, JFXDialog.DialogTransition.CENTER);
-            
-            // 创建5个关卡选择按钮
-            for (int i = 1; i <= 5; i++) {
-                final int level = i;
-                JFXButton levelButton = new JFXButton("第 " + i + " 关");
-                levelButton.setPrefWidth(200);
-                levelButton.setButtonType(JFXButton.ButtonType.RAISED);
-                levelButton.setStyle("-fx-background-color: " + toHexString(PRIMARY_COLOR) + ";");
-                levelButton.setTextFill(TEXT_COLOR);
-                
-                // 使用已创建的对话框变量
-                levelButton.setOnAction(e -> {
-                    dialog.close();
-                    startGameWithLevel(selectedTankType, level);
-                });
-                
-                levelOptions.getChildren().add(levelButton);
-            }
-            
-            // 添加返回按钮
-            JFXButton backButton = new JFXButton("返回");
-            backButton.setPrefWidth(200);
-            backButton.setButtonType(JFXButton.ButtonType.RAISED);
-            backButton.setStyle("-fx-background-color: #999999;");
-            backButton.setTextFill(TEXT_COLOR);
-            
-            // 使用已创建的对话框变量
-            backButton.setOnAction(e -> dialog.close());
-            levelOptions.getChildren().add(backButton);
-            
-            content.setBody(levelOptions);
-            dialog.show();
-        });
-    }
-    
-    // 完全优化的游戏启动方法
-    private void startGameWithLevel(String selectedTankType, int level) {
-        // 创建游戏控制器并加载关卡
-        gameController = new GameController();
-        gameController.loadLevel(level);
-        gameController.setPlayerTankType(selectedTankType);
-        
-        // 设置对GameView的引用
-        gameController.setGameView(this);
-        
-        // 设置事件监听器
-        gameController.setGameEventListener(new GameController.GameEventListener() {
-            @Override
-            public void onPlayerDestroyed() {
-                // 在JavaFX应用线程中处理玩家坦克摧毁事件
-                javafx.application.Platform.runLater(() -> {
-            handlePlayerDestroyed();
-                });
-            }
-        });
-        
-        // 初始化游戏状态
-        gamePaused = false;
-        isPauseMenuOpen = false;
-        playerLives = 3;
-        bulletCount = 10;
-        
-        // 显示游戏屏幕
-        showGameScreen();
-        
-        // 立即更新所有显示元素
-        updateHealthDisplay();
-        updateLivesDisplay();
-        updateEnemiesDisplay();
-        updateBulletDisplay();
-        
-        // 记录游戏开始时间
-        gameStartTime = System.currentTimeMillis();
-        lastBulletRefillTime = gameStartTime;
-        
-        // 启动游戏循环
-        startGameLoop();
-    }
-    
-    private void showGameScreen() {
-        // 清除当前内容
-        root.getChildren().clear();
-        
-        // 创建简化的游戏主布局
-        BorderPane gameLayout = new BorderPane();
-        gameLayout.setStyle("-fx-background-color: #1a2634;");
-        
-        // ---------- 顶部区域 ----------
-        HBox topInfoBar = new HBox(20);
-        topInfoBar.setAlignment(Pos.CENTER_LEFT);
-        topInfoBar.setPadding(new Insets(10, 20, 10, 20));
-        topInfoBar.setStyle("-fx-background-color: rgba(0, 0, 0, 0.4);");
-        
-        // 关卡信息
-        Text levelInfo = new Text("第" + gameController.getCurrentLevel() + "关");
-        levelInfo.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-        levelInfo.setFill(PRIMARY_COLOR);
-        
-        // 游戏时间
-        timeInfo = new Text("00:00");
-        timeInfo.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-        timeInfo.setFill(TEXT_COLOR);
-        
-        // 添加设置按钮
-        JFXButton settingsButton = new JFXButton();
-        settingsButton.getStyleClass().add("settings-button");
-        settingsButton.setButtonType(JFXButton.ButtonType.RAISED);
-        settingsButton.setStyle("-fx-background-color: rgba(0, 0, 0, 0.5);");
-        settingsButton.setPrefSize(40, 40);
-        
-        try {
-            Text settingsIcon = new Text("\uf013");
-            settingsIcon.setFont(javafx.scene.text.Font.font("FontAwesome", 16));
-            settingsIcon.setFill(Color.WHITE);
-            settingsButton.setGraphic(settingsIcon);
-        } catch (Exception e) {
-            settingsButton.setText("⚙");
-            settingsButton.setTextFill(Color.WHITE);
-        }
-        
-        settingsButton.setOnAction(e -> showPauseMenu());
-        
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        
-        topInfoBar.getChildren().addAll(levelInfo, timeInfo, spacer, settingsButton);
-        
-        // ---------- 中央游戏区域 ----------
-        gameCanvas = new Canvas(800, 600);
-        gc = gameCanvas.getGraphicsContext2D();
-        
-        // 重要：确保画布可以获取焦点
-        gameCanvas.setFocusTraversable(true);
-        
-        // 创建游戏区域容器，添加明显的边框和背景
-        StackPane gameArea = new StackPane(gameCanvas);
-        gameArea.setStyle("-fx-border-color: #37a0da; -fx-border-width: 3; -fx-background-color: #0a1624;");
-        
-        // 创建左右两侧的面板，使游戏区域更加明显
-        VBox leftPanel = new VBox();
-        leftPanel.setPrefWidth(100);
-        leftPanel.setStyle("-fx-background-color: #2a3645; -fx-border-color: #37a0da; -fx-border-width: 0 2 0 0;");
-        
-        VBox rightPanel = new VBox();
-        rightPanel.setPrefWidth(100);
-        rightPanel.setStyle("-fx-background-color: #2a3645; -fx-border-color: #37a0da; -fx-border-width: 0 0 0 2;");
-        
-        // 创建包含左侧面板、游戏区域和右侧面板的水平布局
-        HBox gameWithSidePanels = new HBox();
-        gameWithSidePanels.getChildren().addAll(leftPanel, gameArea, rightPanel);
-        HBox.setHgrow(gameArea, Priority.ALWAYS);
-        
-        // ---------- 底部数据面板 ----------
-        gameDataPanel = new HBox(20);
-        gameDataPanel.setPadding(new Insets(10));
-        gameDataPanel.setAlignment(Pos.CENTER);
-        gameDataPanel.setBackground(new Background(new BackgroundFill(
-            Color.rgb(0, 20, 40), CornerRadii.EMPTY, Insets.EMPTY)));
-        
-        // 使用方法创建各种信息显示
-        VBox playerInfo = createInfoBox("坦克类型", getTankDisplayName(gameController.getPlayerTank().getTypeString()));
-        playerInfo.setId("playerInfo");
 
-        VBox healthInfo = createInfoBox("血量", Integer.toString(gameController.getPlayerTank().getHealth()));
-        healthInfo.setId("healthInfo");
-
-        VBox bulletInfo = createInfoBox("子弹", Integer.toString(bulletCount));
-        bulletInfo.setId("bulletInfo");
-
-        VBox enemiesInfo = createInfoBox("关卡目标", gameController.getDefeatedEnemiesCount() + "/" + gameController.getTotalEnemyTarget());
-        enemiesInfo.setId("enemiesInfo");
-
-        // 添加生命显示和增益效果区域
-        HBox livesDisplay = createLivesDisplay();
-        livesDisplay.setId("livesDisplay");
-        
-        // 在数据面板中添加所有信息
-        gameDataPanel.getChildren().addAll(playerInfo, healthInfo, bulletInfo, enemiesInfo, livesDisplay);
-        
-        // 添加增益效果状态栏
-        HBox powerUpStatusBar = createPowerUpStatusBar();
-        gameDataPanel.getChildren().add(powerUpStatusBar);
-        
-        // 将各部分添加到布局
-        gameLayout.setTop(topInfoBar);
-        gameLayout.setCenter(gameWithSidePanels);
-        gameLayout.setBottom(gameDataPanel);
-        
-        // 初始化游戏时间和子弹
-        gameStartTime = System.currentTimeMillis();
-        lastUpdateTime = gameStartTime;
-        totalGameTime = 0;
-        gamePaused = false;
-        bulletCount = 10;
-        lastBulletRefillTime = 0;
-        
-        // 添加游戏布局到根
-        root.getChildren().add(gameLayout);
-        
-        // 设置键盘控制（放在添加到场景之后）
-        setupKeyboardControls();
-        
-        // 确保画布获取焦点
-        Platform.runLater(() -> gameCanvas.requestFocus());
-        
-        // 开始游戏循环
-        startGameLoop();
-    }
     /**
-     * 创建信息显示框
+     * 以指定的坦克类型和关卡开始游戏
      */
-    private VBox createInfoBox(String title, String value) {
-        VBox infoBox = new VBox(5);
-        infoBox.setAlignment(Pos.CENTER);
-        
-        Text titleText = new Text(title);
-        titleText.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        titleText.setFill(PRIMARY_COLOR);
-        
-        Text valueText = new Text(value);
-        valueText.setFont(Font.font("Arial", 16));
-        valueText.setFill(TEXT_COLOR);
-        
-        infoBox.getChildren().addAll(titleText, valueText);
-        return infoBox;
+    public void startGameWithLevel(String selectedTankType, int level) {
+        // 使用SinglePlayerGameStarter启动游戏
+        singlePlayerGameStarter.startGame(selectedTankType, level);
     }
+
     // 键盘控制设置方法
-    private void setupKeyboardControls() {
-        System.out.println("重新设置键盘监听器...");
+    void setupKeyboardControls() {
         
         // 重置按键状态
         up = down = left = right = shooting = false;
@@ -787,8 +220,10 @@ public class GameView {
             gameCanvas.setOnKeyReleased(null);
             
             // 移除所有键盘事件处理器
-            gameCanvas.removeEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {});
-            gameCanvas.removeEventHandler(javafx.scene.input.KeyEvent.KEY_RELEASED, event -> {});
+            gameCanvas.removeEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {
+            });
+            gameCanvas.removeEventHandler(javafx.scene.input.KeyEvent.KEY_RELEASED, event -> {
+            });
         }
         
         // 2. 清除场景上存在的监听器
@@ -866,6 +301,7 @@ public class GameView {
             e.consume(); // 阻止事件继续传播
         });
     }
+
     // 添加时间显示更新方法
     private void updateTimeDisplay(long totalTimeMillis) {
         long seconds = totalTimeMillis / 1000;
@@ -874,8 +310,9 @@ public class GameView {
 
         timeInfo.setText(String.format("%02d:%02d", minutes, seconds));
     }
+
     // 游戏循环
-    private void startGameLoop() {
+    void startGameLoop() {
         // 先停止旧的游戏循环
         if (gameLoop != null) {
             gameLoop.stop();
@@ -1046,7 +483,7 @@ public class GameView {
             
             // 如果有攻击力增强效果，恢复速度提高20%
             if (playerTank.isEffectActive(Tank.PowerUpType.ATTACK)) {
-                refillDelay = (int)(refillDelay * 0.8);
+                refillDelay = (int) (refillDelay * 0.8);
             }
             
             // 检查是否到达恢复时间
@@ -1142,16 +579,13 @@ public class GameView {
         if (up) {
             playerTank.setDirection(Tank.Direction.UP);
             anyKeyPressed = true;
-        } 
-        else if (down) {
+        } else if (down) {
             playerTank.setDirection(Tank.Direction.DOWN);
             anyKeyPressed = true;
-        }
-        else if (left) {
+        } else if (left) {
             playerTank.setDirection(Tank.Direction.LEFT);
             anyKeyPressed = true;
-        } 
-        else if (right) {
+        } else if (right) {
             playerTank.setDirection(Tank.Direction.RIGHT);
             anyKeyPressed = true;
         }
@@ -1207,15 +641,15 @@ public class GameView {
     /**
      * 显示游戏说明
      */
-    private void showInstructions() {
+    public void showInstructions() {
         InstructionsView instructionsView = new InstructionsView(root);
         instructionsView.show();
     }
     
     /**
-     * 显示消息对话框
+     * 显示消息
      */
-    private void showMessage(String message) {
+    public void showMessage(String message) {
         Platform.runLater(() -> {
             JFXDialogLayout content = new JFXDialogLayout();
             content.setHeading(new Text("消息"));
@@ -1273,7 +707,7 @@ public class GameView {
     /**
      * 显示暂停菜单
      */
-    private void showPauseMenu() {
+    public void showPauseMenu() {
         if (isPauseMenuOpen) return; 
         
         Platform.runLater(() -> {
@@ -1390,21 +824,14 @@ public class GameView {
             lastUpdateTime = gameStartTime;
             lastBulletRefillTime = 0;
             
-            // 完全重新创建游戏控制器和游戏状态
-            gameController = new GameController();
-            gameController.loadLevel(currentLevel);
-            gameController.setPlayerTankType(tankType);
-            
             // 重置生命数
             playerLives = 3;
             
             // 确保游戏UI元素完全重建
             root.getChildren().clear(); // 确保UI完全清除
             
-            // 显示全新的游戏画面，包含全新的Canvas对象
-            showGameScreen();
-            
-            System.out.println("游戏已完全重置，创建了新的Canvas和键盘监听器");
+            // 使用新接口启动游戏
+            startGameWithLevel(tankType, currentLevel);
         });
     }
     
@@ -1601,7 +1028,7 @@ public class GameView {
     }
     
     // 添加子弹显示更新方法
-    private void updateBulletDisplay() {
+    void updateBulletDisplay() {
         Platform.runLater(() -> {
             // 找到子弹信息框并更新
             for (Node node : gameDataPanel.getChildren()) {
@@ -1632,8 +1059,10 @@ public class GameView {
         if (gameCanvas != null) {
             gameCanvas.setOnKeyPressed(null);
             gameCanvas.setOnKeyReleased(null);
-            gameCanvas.removeEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {});
-            gameCanvas.removeEventHandler(javafx.scene.input.KeyEvent.KEY_RELEASED, event -> {});
+            gameCanvas.removeEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {
+            });
+            gameCanvas.removeEventHandler(javafx.scene.input.KeyEvent.KEY_RELEASED, event -> {
+            });
         }
         
         // 重置所有游戏变量
@@ -1669,7 +1098,7 @@ public class GameView {
     /**
      * 创建生命数显示区域
      */
-    private HBox createLivesDisplay() {
+    HBox createLivesDisplay() {
         HBox livesBox = new HBox(10);
         livesBox.setAlignment(Pos.CENTER_LEFT);
         livesBox.setPadding(new Insets(5));
@@ -1750,7 +1179,7 @@ public class GameView {
     /**
      * 处理玩家坦克被摧毁的情况 - 修正版本
      */
-    private void handlePlayerDestroyed() {
+    public void handlePlayerDestroyed() {
         if (gameController == null) return;
         
         // 避免多次调用此方法，检查玩家坦克是否已经处理
@@ -1759,7 +1188,6 @@ public class GameView {
         
         // 减少玩家生命值
         playerLives--;
-        System.out.println("玩家失去一条生命，剩余: " + playerLives);
         
         // 更新生命显示
         updateLivesDisplay();
@@ -1770,12 +1198,12 @@ public class GameView {
             showGameOverScreen();
         } else {
             // 还有生命，立即重生玩家
-                    respawnPlayer();
+            respawnPlayer();
         }
     }
 
     /**
-     * 复活玩家坦克 - 简化直接版本
+     * 复活玩家坦克
      */
     private void respawnPlayer() {
         if (playerLives > 0) {
@@ -1783,7 +1211,6 @@ public class GameView {
         LevelMap.MapPosition spawnPos = gameController.findValidSpawnPosition();
         if (spawnPos != null) {
                 // 使用当前选择的坦克类型重生
-                String currentTankType = TANK_TYPES.get(selectedTankType);
                 gameController.respawnPlayerTank(currentTankType, spawnPos.getX(), spawnPos.getY());
                 
                 // 确保记录重生状态
@@ -1821,7 +1248,7 @@ public class GameView {
             effectGroup.getChildren().add(circle);
             
             // 添加到游戏画布上层
-            StackPane gameArea = (StackPane)gameCanvas.getParent();
+            StackPane gameArea = (StackPane) gameCanvas.getParent();
             if (gameArea != null) {
                 gameArea.getChildren().add(effectGroup);
                 
@@ -1913,13 +1340,13 @@ public class GameView {
         // 根据关卡、击败敌人数量和剩余时间计算得分
         int levelScore = gameController.getCurrentLevel() * 1000;
         int enemyScore = gameController.getDefeatedEnemiesCount() * 200;
-        int timeScore = Math.max(0, 300000 - (int)totalGameTime) / 1000;
+        int timeScore = Math.max(0, 300000 - (int) totalGameTime) / 1000;
         
         return levelScore + enemyScore + timeScore;
     }
     
     // 更新敌人数量显示
-    private void updateEnemiesDisplay() {
+    void updateEnemiesDisplay() {
         if (gameController == null || gameDataPanel == null) return;
         
         // 找到敌人信息框
@@ -1953,7 +1380,7 @@ public class GameView {
     /**
      * 更新生命显示
      */
-    private void updateLivesDisplay() {
+    void updateLivesDisplay() {
         // 找到生命显示区域
         for (Node node : gameDataPanel.getChildren()) {
             if (node instanceof HBox) {
@@ -2056,7 +1483,7 @@ public class GameView {
         String timeString = String.format("%02d:%02d", minutes, seconds);
         
         // 时间得分（越快越高）
-        int timeScore = Math.max(0, 300000 - (int)totalGameTime) / 1000;
+        int timeScore = Math.max(0, 300000 - (int) totalGameTime) / 1000;
         
         // 生命得分
         int lifeScore = playerLives * 500;
@@ -2409,7 +1836,7 @@ public class GameView {
     }
 
     // 修改创建增益效果状态栏的方法
-    private HBox createPowerUpStatusBar() {
+    HBox createPowerUpStatusBar() {
         // 创建一个紧凑的HBox容器
         HBox powerUpBar = new HBox(8);
         powerUpBar.setId("powerUpStatusBar");
@@ -2432,6 +1859,13 @@ public class GameView {
         HBox iconsContainer = new HBox(10);
         iconsContainer.setAlignment(Pos.CENTER);
         
+        // 防止gameController为null时出错
+        if (gameController == null) {
+            // 如果控制器为空，只返回空的状态栏
+            powerUpBar.getChildren().add(iconsContainer);
+            return powerUpBar;
+        }
+        
         // 为每种增益效果创建图标，但不包括即时效果(HEALTH)
         for (Tank.PowerUpType type : Tank.PowerUpType.values()) {
             if (type == Tank.PowerUpType.HEALTH) continue;
@@ -2453,12 +1887,16 @@ public class GameView {
             iconView.setFitWidth(30);
             iconView.setFitHeight(30);
             
-            // 尝试加载图标
+            // 使用安全的方式加载图标
             try {
-                Image icon = gameController.getPowerUpImage(typeName);
+                Image icon = null;
+                if (gameController != null) {
+                    icon = gameController.getPowerUpImage(typeName);
+                }
+                
                 if (icon != null) {
                     iconView.setImage(icon);
-            } else {
+                } else {
                     // 如果图标加载失败，显示一个占位符
                     Rectangle placeholder = new Rectangle(30, 30);
                     placeholder.setFill(Color.rgb(80, 200, 255, 0.7));
@@ -2468,6 +1906,12 @@ public class GameView {
                 }
             } catch (Exception e) {
                 System.err.println("无法加载" + typeName + "图标: " + e.getMessage());
+                // 添加一个占位符
+                Rectangle placeholder = new Rectangle(30, 30);
+                placeholder.setFill(Color.rgb(200, 100, 100, 0.7));
+                placeholder.setArcWidth(8);
+                placeholder.setArcHeight(8);
+                iconContainer.getChildren().add(placeholder);
             }
             
             // 将图标添加到容器
@@ -2600,7 +2044,7 @@ public class GameView {
     }
 
     // 添加加载游戏功能
-    private void loadGame() {
+    void loadGame() {
         // 确保gameController不为空
         if (gameController == null) {
             // 实例化一个新的GameController
@@ -2639,7 +2083,7 @@ public class GameView {
             boolean success = gameController.loadGame(selectedFile);
             if (success) {
                 // 加载成功，切换到游戏界面
-                showGameScreen();
+               showGameScreen();
                 // 重置游戏开始时间
                 resetGameStartTime();
                 // 启动游戏循环
@@ -2649,6 +2093,67 @@ public class GameView {
                 showMessage("游戏存档加载失败！");
             }
         }
+    }
+
+    // 添加必要的getter/setter方法
+    public StackPane getRoot() {
+        return root;
+    }
+
+    public Color getPrimaryColor() {
+        return PRIMARY_COLOR;
+    }
+
+    public Color getTextColor() {
+        return TEXT_COLOR;
+    }
+
+    public void setTimeInfo(Text timeInfo) {
+        this.timeInfo = timeInfo;
+    }
+
+    public void setGameCanvas(Canvas gameCanvas) {
+        this.gameCanvas = gameCanvas;
+    }
+
+    public void setGraphicsContext(GraphicsContext gc) {
+        this.gc = gc;
+    }
+
+    public void setGameDataPanel(HBox gameDataPanel) {
+        this.gameDataPanel = gameDataPanel;
+    }
+
+    public void setGamePaused(boolean paused) {
+        this.gamePaused = paused;
+    }
+
+    public void setIsPauseMenuOpen(boolean open) {
+        this.isPauseMenuOpen = open;
+    }
+
+    public void setLastUpdateTime(long time) {
+        this.lastUpdateTime = time;
+    }
+
+    public void setLastBulletRefillTime(long time) {
+        this.lastBulletRefillTime = time;
+    }
+
+    private void showGameScreen() {
+        if (singlePlayerGameStarter != null && gameController != null) {
+            singlePlayerGameStarter.getGameScreen().show(gameController);
+        } else {
+            System.err.println("无法显示游戏屏幕: gameController 或 singlePlayerGameStarter 为 null");
+        }
+    }
+
+    /**
+     * 设置游戏控制器
+     * @param gameController 游戏控制器
+     */
+    public void setGameController(GameController gameController) {
+        this.gameController = gameController;
     }
 }
 
