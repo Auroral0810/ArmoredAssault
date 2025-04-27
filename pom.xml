@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.nau_yyf</groupId>
-    <artifactId>Tank2025</artifactId>
+    <artifactId>ArmoredAssault</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
@@ -158,14 +158,14 @@
                 <artifactId>jpackage-maven-plugin</artifactId>
                 <version>1.4.0</version>
                 <configuration>
-                    <name>Tank2025</name>
+                    <name>ArmoredAssault</name>
                     <appVersion>1.0.0</appVersion>
                     <vendor>NAU-YYF</vendor>
                     <destination>target/dist</destination>
                     <mainClass>com.nau_yyf.TankBattleApplication</mainClass>
                     <javaOptions>
                         <option>-Dfile.encoding=UTF-8</option>
-                        <option>-Dapple.awt.application.name=Tank2025</option>
+                        <option>-Dapple.awt.application.name=ArmoredAssault</option>
                         <option>-Dapple.laf.useScreenMenuBar=true</option>
                     </javaOptions>
                     <icon>src/main/resources/images/logo/tank_logo.icns</icon>
@@ -175,8 +175,8 @@
                     <winMenu>true</winMenu>
                     <winMenuGroup>Tank 2025</winMenuGroup>
                     <winShortcut>true</winShortcut>
-                    <macPackageIdentifier>com.nau-yyf.tank2025</macPackageIdentifier>
-                    <macPackageName>Tank2025</macPackageName>
+                    <macPackageIdentifier>com.nau-yyf.ArmoredAssault</macPackageIdentifier>
+                    <macPackageName>ArmoredAssault</macPackageName>
                 </configuration>
                 <executions>
                     <execution>

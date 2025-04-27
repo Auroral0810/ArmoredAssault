@@ -991,8 +991,6 @@ public class GameController {
                             // 安排新坦克生成（3秒后）
                             if (enemyTanksGenerated < totalEnemyTanksToGenerate) {
                                 tankRespawnTimes.add(System.currentTimeMillis() + 3000);
-                                System.out.println("敌方坦克被摧毁！已安排3秒后生成新坦克，当前已摧毁: " +
-                                        enemyTanksDestroyed + "/" + totalEnemyTanksToGenerate);
                             }
                         }
                         break;
@@ -1162,9 +1160,6 @@ public class GameController {
                 if (!tank.isFriendly() && isDestroyed) {
                     // 增加已击败敌方坦克计数
                     enemyTanksDestroyed++;
-                    System.out.println("敌方坦克被摧毁，类型：" + tank.getTypeString() +
-                            "，已摧毁： " + enemyTanksDestroyed +
-                            "，目标： " + totalEnemyTanksToGenerate);
 
                     // 修改这部分逻辑：只要当前生成的敌方坦克数小于总目标数量，就安排新坦克生成
                     if (enemyTanksGenerated < totalEnemyTanksToGenerate) {
@@ -1262,9 +1257,6 @@ public class GameController {
         enemyTanksGenerated = 0;
         enemyTanksDestroyed = 0;
 
-        System.out.println("关卡 " + level + " 配置完成：目标敌方坦克数量=" +
-                totalEnemyTanksToGenerate + ", 最大同时存在数量=" +
-                maxConcurrentEnemies);
     }
 
     // 修改生成新敌方坦克
@@ -1509,9 +1501,6 @@ public class GameController {
         // 对于每种特定效果，可以额外处理
         switch (type) {
             case HEALTH:
-                // 如果已调用applyPowerUp，这里可以不再重复设置健康值
-                System.out.println("玩家恢复1点生命值，当前: " + playerTank.getHealth() + "/" +
-                        playerTank.getMaxHealth());
                 gameView.updateHealthDisplay();
                 break;
             case BOMB:

@@ -1,6 +1,7 @@
-package com.nau_yyf.view;
+package com.nau_yyf.view.singleGame;
 
 import com.jfoenix.controls.JFXButton;
+import com.nau_yyf.view.GameView;
 import javafx.animation.FadeTransition;
 import javafx.animation.ParallelTransition;
 import javafx.animation.ScaleTransition;
@@ -25,7 +26,7 @@ import javafx.util.Duration;
  * 关卡完成视图
  * 用于显示关卡完成后的统计信息和动画效果
  */
-public class LevelCompletedView {
+public class SingleLevelCompletedView {
 
     private GameView gameView;
     private StackPane root;
@@ -42,7 +43,7 @@ public class LevelCompletedView {
      * @param root 根布局
      * @param scene 场景
      */
-    public LevelCompletedView(GameView gameView, StackPane root, Scene scene) {
+    public SingleLevelCompletedView(GameView gameView, StackPane root, Scene scene) {
         this.gameView = gameView;
         this.root = root;
         this.scene = scene;

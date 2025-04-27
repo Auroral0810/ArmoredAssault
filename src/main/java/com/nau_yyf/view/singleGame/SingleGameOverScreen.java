@@ -1,6 +1,7 @@
-package com.nau_yyf.view;
+package com.nau_yyf.view.singleGame;
 
 import com.jfoenix.controls.JFXButton;
+import com.nau_yyf.view.GameView;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -17,7 +18,7 @@ import javafx.scene.text.Text;
  * 游戏结束界面
  * 处理游戏失败时的界面显示
  */
-public class GameOverScreen {
+public class SingleGameOverScreen {
     private GameView gameView;
     private StackPane root;
     private Scene scene;
@@ -29,7 +30,7 @@ public class GameOverScreen {
      * @param root 根布局
      * @param scene 场景
      */
-    public GameOverScreen(GameView gameView, StackPane root, Scene scene) {
+    public SingleGameOverScreen(GameView gameView, StackPane root, Scene scene) {
         this.gameView = gameView;
         this.root = root;
         this.scene = scene;
@@ -47,6 +48,7 @@ public class GameOverScreen {
                     scene.getWidth(), 
                     scene.getHeight(), 
                     Color.rgb(0, 0, 0, 0.8));
+            overlay.setMouseTransparent(true);
             
             // 创建游戏结束信息
             Text gameOverText = new Text("GAME OVER");
@@ -84,6 +86,10 @@ public class GameOverScreen {
             
             // 添加到根布局
             root.getChildren().add(gameOverRoot);
+            
+            // 确保按钮可以获得焦点
+            retryButton.setFocusTraversable(true);
+            mainMenuButton.setFocusTraversable(true);
         });
     }
     

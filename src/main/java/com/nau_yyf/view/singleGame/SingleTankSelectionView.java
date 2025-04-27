@@ -1,12 +1,12 @@
-package com.nau_yyf.view;
+package com.nau_yyf.view.singleGame;
 
 import com.jfoenix.controls.JFXButton;
 import com.nau_yyf.util.TankUtil;
+import com.nau_yyf.view.GameView;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
-import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
@@ -23,7 +23,7 @@ import java.util.List;
 /**
  * 坦克选择界面视图组件
  */
-public class TankSelectionView {
+public class SingleTankSelectionView {
     
     private GameView gameView;
     private StackPane root;
@@ -47,7 +47,7 @@ public class TankSelectionView {
      * @param root 根布局容器
      * @param stage 主舞台
      */
-    public TankSelectionView(GameView gameView, StackPane root, Stage stage) {
+    public SingleTankSelectionView(GameView gameView, StackPane root, Stage stage) {
         this.gameView = gameView;
         this.root = root;
         this.stage = stage;

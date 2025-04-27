@@ -5,16 +5,16 @@ import javafx.application.Application;
 import javafx.stage.Stage;
 
 /**
- * Tank2025主应用类
+ * ArmoredAssault主应用类
  * 负责初始化和启动游戏
  */
 public class TankBattleApplication extends Application {
 
     static {
         // macOS应用设置
-        System.setProperty("apple.awt.application.name", "Tank2025");
+        System.setProperty("apple.awt.application.name", "ArmoredAssault");
         System.setProperty("apple.laf.useScreenMenuBar", "true");
-        System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Tank2025");
+        System.setProperty("com.apple.mrj.application.apple.menu.about.name", "ArmoredAssault");
     }
 
     /**

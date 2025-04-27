@@ -8,6 +8,11 @@ target/
 .idea/jarRepositories.xml
 .idea/compiler.xml
 .idea/libraries/
+.idea/workspace.xml
+.idea/uiDesigner.xml
+.idea/encodings.xml
+.idea/.name
+.idea/misc.xml
 *.iws
 *.iml
 *.ipr
@@ -36,3 +41,58 @@ build/
 
 ### Mac OS ###
 .DS_Store
+.AppleDouble
+.LSOverride
+
+### Windows ###
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+### Java ###
+*.class
+*.log
+hs_err_pid*
+replay_pid*
+
+### Maven ###
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+
+### JSON Files ###
+*.json.bak
+*.json.tmp
+
+### Logs ###
+logs/
+*.log
+log/
+
+### Temporary Files ###
+*.tmp
+*.swp
+*~
+
+### Package Files ###
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+### 自定义配置文件 ###
+config.properties
+application-local.properties
+application-dev.properties
+application-prod.properties
+
+### 缓存文件 ###
+.cache/

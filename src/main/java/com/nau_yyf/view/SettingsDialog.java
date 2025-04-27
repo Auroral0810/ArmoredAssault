@@ -158,9 +158,7 @@ public class SettingsDialog {
     private void saveSettings() {
         // 将来实现：保存设置到配置文件或游戏状态
         int volume = (int) volumeSlider.getValue();
-        String difficulty = getDifficulty();
-        
-        System.out.println("设置已保存 - 音量: " + volume + ", 难度: " + difficulty);
+        String difficulty = getDifficulty();   
     }
     
     /**

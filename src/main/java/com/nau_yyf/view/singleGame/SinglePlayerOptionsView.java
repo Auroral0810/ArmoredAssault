@@ -1,6 +1,7 @@
-package com.nau_yyf.view;
+package com.nau_yyf.view.singleGame;
 
 import com.jfoenix.controls.JFXButton;
+import com.nau_yyf.view.GameView;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
