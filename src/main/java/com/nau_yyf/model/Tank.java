@@ -168,6 +168,16 @@ public class Tank {
     private long spawnTime = 0;
     private static final long SPAWN_PROTECTION_TIME = 500; // 500毫秒的出生保护时间
     
+    // 在Tank类的成员变量区域添加以下内容
+    private boolean isRespawnInvincible = false;
+    private long respawnInvincibleStartTime = 0;
+    private static final long RESPAWN_INVINCIBLE_DURATION = 5000; // 5秒无敌时间
+    private boolean respawnBlinkVisible = true; // 控制闪烁显示状态
+    private long lastBlinkTime = 0; // 上次闪烁时间
+    
+    // 在Tank类中添加一个标记，记录上一帧是否在水中
+    private boolean inWaterLastFrame = false;
+    
     static {
         // 友方坦克参数: 生命值, 速度, 攻击力, 攻速(每秒), 子弹
         DEFAULT_STATS.put(TankType.LIGHT, new int[]{3, 3, 1, 3, 3});    
@@ -221,10 +231,13 @@ public class Tank {
         }
     }
     
-    // 修改move方法，添加碰撞检测
+    // move方法
     public void move(GameController gameController) {
         // 如果坦克已经死亡，不允许移动
         if (isDead()) return;
+        
+        // 重置上一帧水池状态
+        inWaterLastFrame = false;
         
         // 速度增益效果 - 增加50%速度
         int actualSpeed = isEffectActive(PowerUpType.SPEED) ? (int)(speed * 1.5) : speed;
@@ -248,6 +261,22 @@ public class Tank {
                 break;
         }
         
+        // 边界检查
+        int mapWidth = (gameController.getMap() != null) ? gameController.getMap().getWidth() : 800;
+        int mapHeight = (gameController.getMap() != null) ? gameController.getMap().getHeight() : 600;
+        
+        if (nextX < 0) {
+            nextX = 0;
+        } else if (nextX > mapWidth - width) {
+            nextX = mapWidth - width;
+        }
+        
+        if (nextY < 0) {
+            nextY = 0;
+        } else if (nextY > mapHeight - height) {
+            nextY = mapHeight - height;
+        }
+        
         // 检查碰撞
         String collisionType = gameController.checkCollision(nextX, nextY, width, height);
         
@@ -256,20 +285,31 @@ public class Tank {
             x = nextX;
             y = nextY;
         } else if (collisionType.equals("water")) {
-            // 水池，移动但扣血（由于修改了checkCollision方法，这里只会在刚进入水池时触发）
+            // 水池，移动但需要检查是否处于无敌状态
             x = nextX;
             y = nextY;
+            inWaterLastFrame = true;
             
-            // 每次进入水池扣1点血，但不致死
-            if (health > 1) {
-                health--;
-                System.out.println("玩家进入水池，失去1点生命值！当前生命值：" + health);
+            // 敌方坦克不会受到水池伤害
+            if (!isFriendly()) {
+                return;
+            }
+            
+            // 检查是否处于任何无敌状态
+            if (isRespawnInvincible() || isInvincible) {
+                return; // 无敌状态不受伤害，直接返回
+            }
+            
+            // 不在无敌状态下
+            health--;
+            
+            // 检查是否死亡
+            if (health <= 0) {
+                isDestroyed = true;
             }
         }
-        // 其他情况（砖墙、钢墙）不移动
     }
     
-    // 保留原来的无参move方法以兼容AI代码
     public void move() {
         // 如果坦克已经死亡，不允许移动
         if (isDead()) return;
@@ -355,24 +395,32 @@ public class Tank {
         return null;
     }
     
-    // 受到伤害
+    // 受到伤害（优化逻辑判断，加入出生保护检查）
     public boolean takeDamage(int damage) {
         // 如果坦克已经死亡，不再处理伤害
         if (isDead()) return false;
         
-        // 无敌或有护盾时不受伤害
-        if (isInvincible || isShielded) {
-            if (isShielded) {
-                // 护盾被击中后移除，记录一条消息
-                System.out.println("护盾抵挡了伤害！护盾已消失");
-                removeEffect(PowerUpType.SHIELD);
-                isShielded = false;
+        // 无敌状态不受伤害（所有类型的无敌状态）
+        if (isRespawnInvincible() || isInvincible || isInSpawnProtection()) {
+            if (isRespawnInvincible()) {
+                System.out.println("复活无敌状态抵挡了伤害！");
+            } else if (isInSpawnProtection()) {
+                System.out.println("出生保护状态抵挡了伤害！");
+            } else {
+                System.out.println("无敌状态抵挡了伤害！");
             }
             return false;
         }
         
+        // 护盾可以抵挡一次伤害，然后消失
+        if (isShielded) {
+            System.out.println("护盾抵挡了伤害！护盾已消失");
+            removeEffect(PowerUpType.SHIELD);
+            isShielded = false;
+            return false;
+        }
+        
         health -= damage;
-        System.out.println(type.getName() + " 坦克受到 " + damage + " 点伤害，剩余血量: " + health);
         
         if (health <= 0) {
             health = 0;
@@ -390,9 +438,8 @@ public class Tank {
         // 应用效果
         switch (powerUpType) {
             case HEALTH:
-                // 生命恢复，但不超过最大生命值
+                // 生命恢复1
                 health = Math.min(maxHealth, health + 1);
-                // 生命恢复是即时效果，不需要保持状态
                 activeEffects.remove(PowerUpType.HEALTH);
                 break;
             case SHIELD:
@@ -402,8 +449,6 @@ public class Tank {
                 isInvincible = true;
                 break;
             case BOMB:
-                // 炸弹是持续性效果，不要立即移除
-                // 保留效果直到使用
                 break;
             // ATTACK和SPEED效果通过isEffectActive方法在相应功能中处理
         }
@@ -413,7 +458,15 @@ public class Tank {
     public void updateEffects(double deltaTime) {
         // 复制Map键集以避免并发修改异常
         for (PowerUpType effect : new HashMap<>(activeEffects).keySet()) {
-            double remainingTime = activeEffects.get(effect) - deltaTime;
+            double remainingTime = activeEffects.get(effect);
+            
+            // 如果是生命恢复的特殊标记，立即移除
+            if (effect == PowerUpType.HEALTH && remainingTime < 0) {
+                activeEffects.remove(effect);
+                continue;
+            }
+            
+            remainingTime -= deltaTime;
             if (remainingTime <= 0) {
                 // 效果结束
                 removeEffect(effect);
@@ -564,11 +617,7 @@ public class Tank {
             // 计算与玩家坦克的距离
             double distance = calculateDistance(playerTank);
             
-            // 调试输出
-            if (Math.random() < 0.01) {
-                System.out.println("敌方坦克(" + getType() + ")到玩家距离: " + distance + 
-                                 ", 探测范围: " + DETECTION_RANGE);
-            }
+
             
             // 如果玩家在探测范围内，使用A*寻路追踪玩家
             if (distance <= DETECTION_RANGE) {
@@ -615,7 +664,6 @@ public class Tank {
                         targetX = Math.max(0, Math.min(targetX, gridWidth - 1));
                         targetY = Math.max(0, Math.min(targetY, gridHeight - 1));
                         
-                        System.out.println("计算从(" + startX + "," + startY + ")到(" + targetX + "," + targetY + ")的A*路径");
                         
                         // 使用A*算法查找路径
                         List<AStarPathfinder.Node> newPath = AStarPathfinder.findPath(
@@ -624,15 +672,7 @@ public class Tank {
                         if (newPath != null && !newPath.isEmpty()) {
                             pathToTarget = newPath;
                             pathIndex = 0;
-                            System.out.println("找到包含" + newPath.size() + "个节点的路径");
-                            
-                            // 打印路径以便调试
-                            for (int i = 0; i < newPath.size(); i++) {
-                                AStarPathfinder.Node node = newPath.get(i);
-                                System.out.println("路径点 " + i + ": (" + node.getX() + "," + node.getY() + ")");
-                            }
                         } else {
-                            System.out.println("A*算法未找到路径，切换到直接移动");
                             pathToTarget = null;
                         }
                         lastPathfindingTime = currentTime;
@@ -661,11 +701,9 @@ public class Tank {
                     if (nodeDistance < speed) {
                         // 已经足够接近这个路径点，移动到下一个
                         pathIndex++;
-                        System.out.println("到达路径点" + (pathIndex-1) + "，前进到下一点: " + pathIndex);
                         
                         // 如果已经是最后一个点，重新计算路径
                         if (pathIndex >= pathToTarget.size()) {
-                            System.out.println("已达到路径终点，将在下一次更新重新计算路径");
                         }
                     } else {
                         // 还没到达当前路径点，继续移动
@@ -699,9 +737,6 @@ public class Tank {
                         
                         // 检查是否有实际移动
                         if (oldX == x && oldY == y) {
-                            // 坦克被卡住，无法朝当前方向移动
-                            System.out.println("坦克被卡住，无法移动到路径点" + pathIndex);
-                            
                             // 尝试更改方向或重新计算路径
                             lastPathfindingTime = 0; // 强制下次更新重新计算路径
                         }
@@ -920,87 +955,7 @@ public class Tank {
     public void setDestroyed(boolean destroyed) {
         this.isDestroyed = destroyed;
     }
-    
-    // 添加一个新方法来强制坦克脱离卡住状态
-    private void forceUnstuck(GameController gameController) {
-        // 尝试所有4个方向，按优先级：上、右、下、左
-        Direction[] directionsToTry = {
-            Direction.UP, Direction.RIGHT, Direction.DOWN, Direction.LEFT
-        };
-        
-        // 随机打乱方向顺序，增加多样性
-        shuffleDirections(directionsToTry);
-        
-        // 依次尝试每个方向
-        for (Direction dir : directionsToTry) {
-            // 计算该方向移动后的位置
-            int newX = x;
-            int newY = y;
-            
-            switch (dir) {
-                case UP: newY -= speed; break;
-                case DOWN: newY += speed; break;
-                case LEFT: newX -= speed; break;
-                case RIGHT: newX += speed; break;
-            }
-            
-            // 检查这个方向是否可以移动
-            if (gameController == null || 
-                gameController.checkCollision(newX, newY, width, height) == null ||
-                gameController.checkCollision(newX, newY, width, height).equals("water")) {
-                
-                // 这个方向可以移动，设置方向并移动
-                setDirection(dir);
-                if (gameController != null) {
-                    move(gameController);
-                } else {
-                    move();
-                }
-                
-                // 如果成功移动，更新最后移动时间和位置
-                lastMovementTime = System.currentTimeMillis();
-                lastX = x;
-                lastY = y;
-                System.out.println("坦克成功脱离卡住状态，移动方向: " + dir);
-                return;
-            }
-        }
-        
-        // 如果所有方向都不能移动，尝试更激进的移动（多走几步）
-        for (Direction dir : directionsToTry) {
-            // 设置方向
-            setDirection(dir);
-            
-            // 尝试连续移动3次，有可能能走出卡住的区域
-            for (int i = 0; i < 3; i++) {
-                if (gameController != null) {
-                    move(gameController);
-                } else {
-                    move();
-                }
-                
-                // 如果位置已经改变，说明成功移动
-                if (x != lastX || y != lastY) {
-                    lastMovementTime = System.currentTimeMillis();
-                    lastX = x;
-                    lastY = y;
-                    System.out.println("坦克通过激进移动脱离卡住状态");
-                    return;
-                }
-            }
-        }
-    }
-    
-    // 辅助方法：随机打乱方向数组
-    private void shuffleDirections(Direction[] directions) {
-        for (int i = directions.length - 1; i > 0; i--) {
-            int index = (int) (Math.random() * (i + 1));
-            // 交换元素
-            Direction temp = directions[index];
-            directions[index] = directions[i];
-            directions[i] = temp;
-        }
-    }
+
     
     /**
      * 设置坦克初始出生延迟
@@ -1033,5 +988,59 @@ public class Tank {
      */
     public boolean isDead() {
         return health <= 0 || isDestroyed;
+    }
+
+    /**
+     * 设置复活无敌状态
+     */
+    public void setRespawnInvincible(boolean invincible) {
+        this.isRespawnInvincible = invincible;
+        if (invincible) {
+            respawnInvincibleStartTime = System.currentTimeMillis();
+            respawnBlinkVisible = true;
+            lastBlinkTime = respawnInvincibleStartTime;
+        }
+    }
+
+    /**
+     * 检查是否处于复活无敌状态
+     */
+    public boolean isRespawnInvincible() {
+        if (!isRespawnInvincible) return false;
+        
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - respawnInvincibleStartTime > RESPAWN_INVINCIBLE_DURATION) {
+            isRespawnInvincible = false; // 无敌时间结束
+            return false;
+        }
+        
+        // 控制闪烁效果（每200毫秒切换一次可见性）
+        if (currentTime - lastBlinkTime > 200) {
+            respawnBlinkVisible = !respawnBlinkVisible;
+            lastBlinkTime = currentTime;
+        }
+        
+        return true;
+    }
+
+    /**
+     * 获取复活无敌状态下的可见性（用于闪烁效果）
+     */
+    public boolean isVisibleDuringRespawnInvincible() {
+        return !isRespawnInvincible || respawnBlinkVisible;
+    }
+
+    /**
+     * 获取复活无敌剩余时间（毫秒）
+     */
+    public long getRespawnInvincibleRemainingTime() {
+        if (!isRespawnInvincible) return 0;
+        return Math.max(0, RESPAWN_INVINCIBLE_DURATION - 
+                          (System.currentTimeMillis() - respawnInvincibleStartTime));
+    }
+
+    // 为标记添加getter方法
+    public boolean isInWaterLastFrame() {
+        return inWaterLastFrame;
     }
 }

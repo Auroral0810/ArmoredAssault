@@ -3,8 +3,11 @@ package com.nau_yyf;
 import com.nau_yyf.view.GameView;
 import javafx.application.Application;
 import javafx.stage.Stage;
-import java.awt.Taskbar;
 
+/**
+ * Tank2025主应用类
+ * 负责初始化和启动游戏
+ */
 public class TankBattleApplication extends Application {
 
     static {
@@ -12,31 +15,16 @@ public class TankBattleApplication extends Application {
         System.setProperty("apple.awt.application.name", "Tank2025");
         System.setProperty("apple.laf.useScreenMenuBar", "true");
         System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Tank2025");
-        System.setProperty("apple.awt.application.appearance", "system");
-        System.setProperty("apple.awt.brushMetalLook", "true");
-        System.setProperty("javafx.macosx.embedMenuBar", "false");
-        System.setProperty("glass.enableGestureSupport", "false");
-        System.setProperty("prism.verbose", "true");
-
-        try {
-            if (System.getProperty("os. name").toLowerCase().contains("mac")) {
-                final Taskbar taskbar = Taskbar.getTaskbar();
-                try {
-                    java.awt.Image image = new javax.swing.ImageIcon(
-                            TankBattleApplication.class.getResource("/images/logo/tank_logo.png")).getImage();
-                    taskbar.setIconImage(image);
-                } catch (final UnsupportedOperationException | SecurityException e) {
-                    System.err.println("Taskbar操作不支持: " + e.getMessage());
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("设置Dock图标失败: " + e.getMessage());
-        }
     }
 
+    /**
+     * JavaFX应用程序入口方法
+     * @param primaryStage 主舞台
+     */
     @Override
     public void start(Stage primaryStage) {
         try {
+            // 创建游戏视图并显示主菜单
             GameView gameView = new GameView(primaryStage);
             gameView.showMainMenu();
         } catch (Exception e) {
@@ -45,11 +33,18 @@ public class TankBattleApplication extends Application {
         }
     }
 
+    /**
+     * 程序主入口点
+     * @param args 命令行参数
+     */
     public static void main(String[] args) {
         launch(args);
     }
 
-    // 提供非JavaFX入口点，可以处理模块路径
+    /**
+     * 提供非JavaFX环境的入口点
+     * 用于处理模块路径问题
+     */
     public static class Launcher {
         public static void main(String[] args) {
             TankBattleApplication.main(args);

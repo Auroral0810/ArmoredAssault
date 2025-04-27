@@ -544,6 +544,9 @@ public class GameView {
         gameController.loadLevel(level);
         gameController.setPlayerTankType(selectedTankType);
         
+        // 设置对GameView的引用
+        gameController.setGameView(this);
+        
         // 设置事件监听器
         gameController.setGameEventListener(new GameController.GameEventListener() {
             @Override
@@ -556,9 +559,9 @@ public class GameView {
         });
         
         // 初始化游戏状态
-            gamePaused = false;
-            isPauseMenuOpen = false;
-            playerLives = 3;
+        gamePaused = false;
+        isPauseMenuOpen = false;
+        playerLives = 3;
         bulletCount = 10;
         
         // 显示游戏屏幕
@@ -787,6 +790,12 @@ public class GameView {
                 if (code.equals("ESCAPE")) {
                     showPauseMenu();
                 }
+                // 添加E键放置炸弹
+                if (code.equals("E")) {
+                    if (gameController != null) {
+                        gameController.placeBomb();
+                    }
+                }
             }
             e.consume(); // 阻止事件继续传播
         });
@@ -811,20 +820,6 @@ public class GameView {
             }
             e.consume(); // 阻止事件继续传播
         });
-        
-        // 添加E键放置炸弹
-        scene.setOnKeyPressed(e -> {
-            // 现有代码...
-            
-            // 添加E键放置炸弹
-            if (e.getCode() == KeyCode.E) {
-                if (gameController != null) {
-                    gameController.placeBomb();
-                }
-            }
-        });
-        
-        System.out.println("键盘监听器设置完成");
     }
     // 添加时间显示更新方法
     private void updateTimeDisplay(long totalTimeMillis) {
@@ -896,6 +891,9 @@ public class GameView {
                 }
                 
                 lastUpdateTime = currentTime;
+                
+                // 添加对玩家坦克状态的检查
+                gameController.updatePlayerTank();
             }
         };
         gameLoop.start();
@@ -903,14 +901,14 @@ public class GameView {
     
     // 新增方法：固定时间步长逻辑更新
     private void updateGame(double deltaTime) {
-        if (gameController == null || gamePaused) return;
-        
-        // 检查玩家坦克是否死亡
+        // 获取玩家坦克
         Tank playerTank = gameController.getPlayerTank();
+        
+        // 检查玩家坦克是否已死亡但未触发死亡处理
         if (playerTank != null && playerTank.isDead()) {
-            // 如果玩家死亡但尚未处理，处理死亡事件
+            // 确保调用玩家死亡处理
             handlePlayerDestroyed();
-            return; // 死亡后不继续更新游戏状态
+            return; // 玩家已死亡，不再进行其他更新
         }
         
         // 记录更新前的玩家血量
@@ -1011,8 +1009,6 @@ public class GameView {
                 bulletCount++;
                 lastBulletRefillTime = currentTime;
                 updateBulletDisplay();
-                
-                System.out.println("子弹已恢复，当前数量: " + bulletCount);
             }
         } else if (bulletCount >= 10) {
             // 子弹已满，重置计时器
@@ -1044,26 +1040,60 @@ public class GameView {
         if (gameController != null) {
             gameController.renderMap(gc);
         }
+        
+        // 渲染玩家坦克
+        Tank playerTank = gameController.getPlayerTank();
+        if (playerTank != null && !playerTank.isDead()) {
+            boolean shouldRender = true;
+            
+            // 检查是否处于复活无敌状态，并且需要闪烁
+            if (playerTank.isRespawnInvincible()) {
+                shouldRender = playerTank.isVisibleDuringRespawnInvincible();
+            }
+            
+            if (shouldRender) {
+                String imageKey = "player_" + playerTank.getType().name().toLowerCase();
+                Image[] tankImgs = gameController.getTankImages().get(imageKey);
+                
+                if (tankImgs != null && playerTank.getDirection().ordinal() < tankImgs.length) {
+                    gc.drawImage(tankImgs[playerTank.getDirection().ordinal()], 
+                               playerTank.getX(), playerTank.getY(), 40, 40);
+                    
+                    // 如果处于无敌状态，添加视觉效果
+                    if (playerTank.isRespawnInvincible() || playerTank.isInvincible()) {
+                        gc.setGlobalAlpha(0.3);
+                        gc.setFill(Color.YELLOW);
+                        gc.fillOval(playerTank.getX() - 5, playerTank.getY() - 5, 50, 50);
+                        gc.setGlobalAlpha(1.0);
+                    } else if (playerTank.isShielded()) {
+                        // 如果有护盾，绘制蓝色保护罩
+                        gc.setGlobalAlpha(0.3);
+                        gc.setFill(Color.BLUE);
+                        gc.fillOval(playerTank.getX() - 5, playerTank.getY() - 5, 50, 50);
+                        gc.setGlobalAlpha(1.0);
+                    }
+                }
+            }
+        }
     }
     
     /**
-     * 处理玩家输入 - 添加死亡检查
+     * 处理玩家输入 - 简化版本，移除重复的碰撞检测
      */
     private void handlePlayerInput() {
-        if (gameController == null) return;
-        
-        // 首先检查玩家坦克是否死亡
+        // 获取玩家坦克
         Tank playerTank = gameController.getPlayerTank();
+        
+        // 如果坦克不存在或已经死亡，不处理任何输入
         if (playerTank == null || playerTank.isDead()) {
-            // 如果坦克已死亡，立即触发死亡处理
-            handlePlayerDestroyed();
-            // 停止处理任何输入
             return;
         }
         
+        if (gameController == null) return;
+        
         boolean moved = false;
         
-        // 根据按键状态处理移动方向
+        // 根据按键状态设置方向
         if (up) {
             playerTank.setDirection(Tank.Direction.UP);
             moved = true;
@@ -1083,62 +1113,12 @@ public class GameView {
         
         // 如果有按键被按下，执行移动
         if (moved) {
-            // 计算下一个位置
-            int nextX = playerTank.getX();
-            int nextY = playerTank.getY();
+            // 调用坦克的move方法
+            playerTank.move(gameController);
             
-            int speed = playerTank.getSpeed();
-            
-            switch (playerTank.getDirection()) {
-                case UP:
-                    nextY -= speed;
-                    break;
-                case DOWN:
-                    nextY += speed;
-                    break;
-                case LEFT:
-                    nextX -= speed;
-                    break;
-                case RIGHT:
-                    nextX += speed;
-                    break;
-            }
-            
-            // 检查碰撞
-            String collisionType = gameController.checkCollision(nextX, nextY, playerTank.getWidth(), playerTank.getHeight());
-            
-            if (collisionType == null) {
-                // 无碰撞，正常移动
-                playerTank.setX(nextX);
-                playerTank.setY(nextY);
-            } else if (collisionType.equals("water")) {
-                // 水池碰撞处理
-                playerTank.setX(nextX);
-                playerTank.setY(nextY);
-                
-                // 如果只有1滴血，直接扣除一条命
-                if (playerTank.getHealth() <= 1) {
-                    playerTank.setHealth(0); // 设置血量为0
-                    handlePlayerDestroyed(); // 处理玩家死亡
-                } else {
-                    // 否则扣减一滴血
-                    playerTank.setHealth(playerTank.getHealth() - 1);
-                    updateHealthDisplay();
-                }
-            }
-            // 其他碰撞类型不移动
-            
-            // 边界检查
-            if (playerTank.getX() < 0) {
-                playerTank.setX(0);
-            } else if (playerTank.getX() > gameCanvas.getWidth() - playerTank.getWidth()) {
-                playerTank.setX((int)gameCanvas.getWidth() - playerTank.getWidth());
-            }
-            
-            if (playerTank.getY() < 0) {
-                playerTank.setY(0);
-            } else if (playerTank.getY() > gameCanvas.getHeight() - playerTank.getHeight()) {
-                playerTank.setY((int)gameCanvas.getHeight() - playerTank.getHeight());
+            // 移动后更新健康值显示
+            if (playerTank.isInWaterLastFrame()) {
+                updateHealthDisplay();
             }
         }
         
@@ -1154,7 +1134,7 @@ public class GameView {
     }
     
     // 更新血量显示方法
-    private void updateHealthDisplay() {
+    public void updateHealthDisplay() {
         if (gameController == null || gameDataPanel == null) return;
         
         // 找到血量信息框
@@ -1175,9 +1155,6 @@ public class GameView {
                 } else {
                     healthValue.setFill(TEXT_COLOR);
                 }
-                
-                // 调试输出血量
-                System.out.println("更新血量显示: " + currentHealth);
             }
         }
     }
@@ -1738,10 +1715,7 @@ public class GameView {
         // 添加调试输出
         Tank playerTank = gameController.getPlayerTank();
         Map<Tank.PowerUpType, Double> activeEffects = playerTank.getActiveEffects();
-        System.out.println("活动效果数量: " + activeEffects.size());
-        for (Map.Entry<Tank.PowerUpType, Double> entry : activeEffects.entrySet()) {
-            System.out.println("效果类型: " + entry.getKey().getName() + ", 剩余时间: " + entry.getValue());
-        }
+
         
         // 原有的更新逻辑...
     }
@@ -1769,7 +1743,7 @@ public class GameView {
             showGameOverScreen();
         } else {
             // 还有生命，立即重生玩家
-            respawnPlayer();
+                    respawnPlayer();
         }
     }
 
@@ -1777,34 +1751,28 @@ public class GameView {
      * 复活玩家坦克 - 简化直接版本
      */
     private void respawnPlayer() {
-        if (gameController == null) return;
-        
-        // 查找有效的重生位置
+        if (playerLives > 0) {
+            // 寻找有效的重生位置
         LevelMap.MapPosition spawnPos = gameController.findValidSpawnPosition();
-        
         if (spawnPos != null) {
-            // 重新创建玩家坦克
-            String tankType = gameController.getPlayerTank().getTypeString();
-            
-            // 确保坐标是网格对齐的
-            int alignedX = (spawnPos.getX() / 40) * 40;
-            int alignedY = (spawnPos.getY() / 40) * 40;
-            
-            gameController.respawnPlayerTank(tankType, alignedX, alignedY);
-            
-            // 确保坦克血量已重置为满值
-            System.out.println("玩家坦克重生，血量: " + gameController.getPlayerTank().getHealth());
-            
-            // 更新界面显示
-            updateHealthDisplay();
-            updateLivesDisplay();
+                // 使用当前选择的坦克类型重生
+                String currentTankType = TANK_TYPES.get(selectedTankType);
+                gameController.respawnPlayerTank(currentTankType, spawnPos.getX(), spawnPos.getY());
+                
+                // 确保记录重生状态
+                Tank playerTank = gameController.getPlayerTank();
+                if (playerTank != null) {
+                    // 添加重生效果
+                    addRespawnEffect(spawnPos.getX(), spawnPos.getY());
+                    
+                    // 明确确认无敌状态已设置
+                    System.out.println("玩家坦克已重生并设置无敌状态: " + 
+                                      (playerTank.isRespawnInvincible() ? "成功" : "失败"));
+                }
+            }
         } else {
-            // 如果找不到有效位置，直接结束游戏
             showGameOverScreen();
         }
-        
-        // 重置水池状态
-        gameController.resetWaterState();
     }
 
     /**

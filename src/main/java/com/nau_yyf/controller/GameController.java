@@ -5,6 +5,7 @@ import com.nau_yyf.model.Tank;
 import com.nau_yyf.model.PowerUp;
 import com.nau_yyf.model.Bomb;
 import com.nau_yyf.util.MapLoader;
+import com.nau_yyf.view.GameView;
 import javafx.scene.image.Image;
 import javafx.scene.canvas.GraphicsContext;
 import java.util.HashMap;
@@ -36,6 +37,11 @@ public class GameController {
     private Tank playerTank;
     private List<Tank> enemyTanks = new ArrayList<>();
     private final Map<String, Image> elementImages = new HashMap<>();
+
+    public Map<String, Image[]> getTankImages() {
+        return tankImages;
+    }
+
     private final Map<String, Image[]> tankImages = new HashMap<>();
     private List<Bullet> bullets = new ArrayList<>();
     private boolean[][] grid; // 地图的网格表示
@@ -69,8 +75,10 @@ public class GameController {
     private List<PowerUp> powerUps = new ArrayList<>();
     private Map<String, Image> powerUpImages = new HashMap<>();
     private long lastPowerUpSpawnTime = 0;
-    private static final long POWER_UP_SPAWN_INTERVAL = 6000; // 6秒
     private Bomb activeBomb = null; // 当前激活的炸弹
+    
+    private GameView gameView; // 你需要有这个引用，或者用事件回调
+
     
     public GameController() {
         // 预加载地图元素图片
@@ -485,117 +493,89 @@ public class GameController {
      * 更新敌方坦克状态，包括生成新坦克
      */
     public void updateEnemyTanks() {
-        // 使用副本进行迭代，避免并发修改异常
+        // 创建所有需要的临时列表，避免并发修改
         List<Tank> tanksToRemove = new ArrayList<>();
         List<Tank> enemyTanksCopy = new ArrayList<>(enemyTanks);
+        List<Bullet> newBullets = new ArrayList<>();
         
+        // 1. 第一步：处理现有坦克AI和子弹生成
         for (Tank enemyTank : enemyTanksCopy) {
-            // 检查坦克是否已经被摧毁
             if (enemyTank.isDestroyed()) {
                 tanksToRemove.add(enemyTank);
                 continue;
             }
             
-            // 执行坦克AI逻辑
             if (playerTank != null) {
                 Bullet firedBullet = enemyTank.updateAI(grid, playerTank, this);
                 if (firedBullet != null) {
-                    addBullet(firedBullet);
+                    newBullets.add(firedBullet);
                 }
             }
         }
         
-        // 迭代结束后统一删除坦克
-        if (!tanksToRemove.isEmpty()) {
+        // 2. 第二步：从集合中移除要删除的坦克
+        synchronized (enemyTanks) {
             enemyTanks.removeAll(tanksToRemove);
         }
         
-        // 检查延迟生成队列
+        // 3. 第三步：添加新子弹
+        for (Bullet bullet : newBullets) {
+            addBullet(bullet);
+        }
+        
+        // 4. 第四步：处理坦克重生逻辑（独立于第一步的循环）
         long currentTime = System.currentTimeMillis();
-        Iterator<Long> respawnIterator = tankRespawnTimes.iterator();
+        List<Long> respawnTimesToRemove = new ArrayList<>();
+        List<Long> respawnTimesToAdd = new ArrayList<>();
         
         // 当前敌方坦克数量
         int currentEnemyCount = enemyTanks.size();
         
-        while (respawnIterator.hasNext()) {
-            long respawnTime = respawnIterator.next();
-            
-            // 如果到达生成时间
+        // 检查重生时间队列
+        for (Long respawnTime : tankRespawnTimes) {
             if (currentTime >= respawnTime) {
-                respawnIterator.remove(); // 从队列中移除
+                respawnTimesToRemove.add(respawnTime);
                 
-                // 检查是否达到最大同时存在数量或是否已经生成了足够的坦克
                 if (currentEnemyCount < maxConcurrentEnemies && 
                     enemyTanksGenerated < totalEnemyTanksToGenerate) {
-                    // 生成新坦克
-                    spawnNewEnemyTank();
-                    currentEnemyCount++; // 更新当前敌方坦克数量
+                    // 标记需要生成新坦克，而不是立即生成
+                    currentEnemyCount++;
                 } else {
-                    // 如果当前无法生成，重新加入队列，延迟500毫秒再次尝试
-                    tankRespawnTimes.add(currentTime + 500);
+                    respawnTimesToAdd.add(currentTime + 500);
                 }
             }
         }
         
-        // 添加主动检测：如果当前敌方坦克数量少于最大数量，并且重生队列为空，则安排生成新坦克
-        if (currentEnemyCount < maxConcurrentEnemies && 
-            enemyTanksGenerated < totalEnemyTanksToGenerate && 
-            tankRespawnTimes.isEmpty()) {
-            
-            System.out.println("当前敌方坦克数量(" + currentEnemyCount + ")低于上限(" + maxConcurrentEnemies + 
-                              ")，安排生成新坦克");
-            
-            // 立即安排生成一个新坦克
-            tankRespawnTimes.add(currentTime + 1000); // 1秒后生成
+        // 5. 第五步：更新重生队列
+        synchronized (tankRespawnTimes) {
+            tankRespawnTimes.removeAll(respawnTimesToRemove);
+            tankRespawnTimes.addAll(respawnTimesToAdd);
         }
         
-        // 游戏开始时需要生成初始坦克
+        // 6. 第六步：生成新坦克（在所有迭代完成后）
+        for (int i = 0; i < respawnTimesToRemove.size() - respawnTimesToAdd.size(); i++) {
+            if (currentEnemyCount <= maxConcurrentEnemies && 
+                enemyTanksGenerated < totalEnemyTanksToGenerate) {
+                spawnNewEnemyTank();
+            }
+        }
+        
+        // 7. 第七步：如果没有足够的敌方坦克，安排生成新坦克
+        if (enemyTanks.size() < maxConcurrentEnemies && 
+            enemyTanksGenerated < totalEnemyTanksToGenerate && 
+            tankRespawnTimes.isEmpty()) {
+            tankRespawnTimes.add(currentTime + 1000);
+        }
+        
+        // 8. 第八步：游戏开始时生成初始坦克
         if (enemyTanks.isEmpty() && enemyTanksGenerated == 0 && tankRespawnTimes.isEmpty()) {
-            // 初始生成3个坦克
-            int initialTanks = Math.min(3, totalEnemyTanksToGenerate);
+            int initialTanks = Math.min(5, totalEnemyTanksToGenerate);
             for (int i = 0; i < initialTanks; i++) {
                 spawnNewEnemyTank();
             }
         }
     }
     
-    /**
-     * 初始化炮弹对象池
-     */
-    private void initBulletPool() {
-        for (int i = 0; i < INITIAL_POOL_SIZE; i++) {
-            bulletPool.add(new Bullet(0, 0, Tank.Direction.UP, "player_bullet", 0, 0, true));
-        }
-    }
-    
-    /**
-     * 从对象池获取炮弹对象
-     */
-    private Bullet getBulletFromPool(int x, int y, Tank.Direction direction, 
-                                  String bulletType, int speed, int damage, boolean fromPlayer) {
-        Bullet bullet;
-        if (bulletPool.isEmpty()) {
-            bullet = new Bullet(x, y, direction, bulletType, speed, damage, fromPlayer);
-        } else {
-            bullet = bulletPool.remove(bulletPool.size() - 1);
-            bullet.setX(x);
-            bullet.setY(y);
-            bullet.setDirection(direction);
-            bullet.setBulletType(bulletType);
-            bullet.setSpeed(speed);
-            bullet.setDamage(damage);
-            bullet.setFromPlayer(fromPlayer);
-            bullet.setDestroyed(false);
-        }
-        return bullet;
-    }
-    
-    /**
-     * 回收炮弹对象到对象池
-     */
-    private void returnBulletToPool(Bullet bullet) {
-        bulletPool.add(bullet);
-    }
     
     /**
      * 检查碰撞
@@ -622,6 +602,17 @@ public class GameController {
                 if (type.equals("water")) {
                     foundWater = true;
                     
+                    // 如果是玩家坦克并且处于无敌状态，则不触发水池伤害
+                    if (playerTank != null && 
+                        x == playerTank.getX() && 
+                        y == playerTank.getY() &&
+                        (playerTank.isRespawnInvincible() || 
+                         playerTank.isInvincible() || 
+                         playerTank.isShielded())) {
+                        
+                        continue;
+                    }
+                    
                     // 获取当前时间
                     long currentTime = System.currentTimeMillis();
                     
@@ -630,10 +621,6 @@ public class GameController {
                         // 冷却时间已过，可以扣血并更新上次扣血时间
                         result = type;
                         lastWaterDamageTime = currentTime;
-                        System.out.println("玩家进入水池并受到伤害！冷却时间开始计时"); // 调试输出
-                    } else {
-                        // 在冷却时间内，不扣血
-                        System.out.println("玩家在水池中，但处于冷却时间内，不受伤害"); // 调试输出
                     }
                 } else {
                     return type; // 如果是其他障碍物，直接返回
@@ -641,17 +628,13 @@ public class GameController {
             }
         }
         
-        // 更新水池状态
-        if (!foundWater && inWaterLastFrame) {
-            System.out.println("玩家离开水池！"); // 调试输出
-        }
         inWaterLastFrame = foundWater;
         
-        return result; // 返回碰撞类型（可能是水池或null）
+        return result; // 返回碰撞类型
     }
     
     /**
-     * 检查位置是否有效（不与障碍物重叠）
+     * 检查位置是否有效
      */
     private boolean isPositionValid(int x, int y, int width, int height) {
         if (levelMap == null) return false;
@@ -679,7 +662,7 @@ public class GameController {
     }
     
     /**
-     * 寻找有效的出生位置（修改后增加随机性）
+     * 寻找有效的出生位置
      */
     private LevelMap.MapPosition findValidPosition() {
         if (levelMap == null) return null;
@@ -794,8 +777,31 @@ public class GameController {
             if (checkTankCollision(playerTank, enemyTank)) {
                 collisionDetected = true;
                 
-                // 碰撞发生时，减少玩家坦克的血量
-                playerTank.takeDamage(1);
+                // 检查玩家是否处于无敌状态
+                if (playerTank.isInvincible() || playerTank.isRespawnInvincible()) {
+
+                } 
+                // 检查玩家是否有护盾
+                else if (playerTank.isShielded()) {
+                    // 移除护盾状态
+                    playerTank.removeEffect(Tank.PowerUpType.SHIELD);
+                } 
+                // 正常受到伤害
+                else {
+                    // 碰撞发生时，减少玩家坦克的血量
+                    playerTank.takeDamage(1);
+                    
+                    // 检查玩家是否死亡
+                    if (playerTank.getHealth() <= 0) {
+                        playerTank.setDestroyed(true);
+                        return true; // 玩家坦克被摧毁
+                    }
+                    
+                    // 更新血量显示
+                    if (gameView != null) {
+                        gameView.updateHealthDisplay();
+                    }
+                }
                 
                 // 敌方坦克被摧毁
                 enemyTank.setHealth(0);
@@ -806,14 +812,6 @@ public class GameController {
                 
                 // 增加击毁敌方坦克计数
                 enemyTanksDestroyed++;
-                
-                System.out.println("玩家坦克与敌方坦克碰撞！玩家血量减少1，当前血量: " + playerTank.getHealth());
-                
-                // 检查玩家是否死亡
-                if (playerTank.getHealth() <= 0) {
-                    playerTank.setDestroyed(true);
-                    return true; // 玩家坦克被摧毁
-                }
             }
         }
         
@@ -827,43 +825,6 @@ public class GameController {
         }
         
         return collisionDetected;
-    }
-    
-    /**
-     * 将一个坦克从另一个坦克推开一定距离
-     */
-    private void pushTankAway(Tank tankToPush, Tank referencePoint) {
-        // 计算两个坦克中心点
-        int tank1CenterX = tankToPush.getX() + tankToPush.getWidth() / 2;
-        int tank1CenterY = tankToPush.getY() + tankToPush.getHeight() / 2;
-        int tank2CenterX = referencePoint.getX() + referencePoint.getWidth() / 2;
-        int tank2CenterY = referencePoint.getY() + referencePoint.getHeight() / 2;
-        
-        // 计算推力方向
-        int pushDirX = tank1CenterX - tank2CenterX;
-        int pushDirY = tank1CenterY - tank2CenterY;
-        
-        // 归一化方向
-        double length = Math.sqrt(pushDirX * pushDirX + pushDirY * pushDirY);
-        if (length > 0) {
-            pushDirX = (int)(pushDirX / length * 20); // 推开20像素
-            pushDirY = (int)(pushDirY / length * 20);
-        } else {
-            // 如果坦克中心完全重合，默认向右上推
-            pushDirX = 20;
-            pushDirY = -20;
-        }
-        
-        // 应用推力
-        int newX = tankToPush.getX() + pushDirX;
-        int newY = tankToPush.getY() + pushDirY;
-        
-        // 确保坦克不会被推出地图边界
-        newX = Math.max(0, Math.min(newX, levelMap.getWidth() - tankToPush.getWidth()));
-        newY = Math.max(0, Math.min(newY, levelMap.getHeight() - tankToPush.getHeight()));
-        
-        tankToPush.setX(newX);
-        tankToPush.setY(newY);
     }
     
     /**
@@ -956,6 +917,9 @@ public class GameController {
         // 设置初始方向为向上
         playerTank.setDirection(Tank.Direction.UP);
         
+        // 设置复活无敌状态
+        playerTank.setRespawnInvincible(true);
+        
         System.out.println("玩家坦克已重生，类型: " + tankType + ", 位置: (" + alignedX + "," + alignedY + ")");
     }
     
@@ -1037,18 +1001,33 @@ public class GameController {
                         playerTank.getWidth(), playerTank.getHeight());
                     
                     if (bulletRect.intersects(tankRect.getBoundsInLocal())) {
-                        // 玩家坦克受到伤害
-                        if (playerTank.getHealth() > bullet.getDamage()) {
-                            // 扣血但不致死
-                            playerTank.setHealth(playerTank.getHealth() - bullet.getDamage());
-                            System.out.println("玩家受到伤害! 当前生命: " + playerTank.getHealth());
-                        } else {
-                            // 玩家血量不足，生命值减一
-                            playerTank.setHealth(0);
-                            playerLostLife = true;
-                            System.out.println("玩家坦克被摧毁!");
+                        // 检查玩家是否处于无敌状态
+                        if (playerTank.isInvincible() || playerTank.isRespawnInvincible()) {
+                            bulletHit = true;
+                        } 
+                        // 检查玩家是否有护盾
+                        else if (playerTank.isShielded()) {
+                            // 移除护盾状态
+                            playerTank.removeEffect(Tank.PowerUpType.SHIELD);
+                            bulletHit = true;
+                        } 
+                        // 正常受到伤害
+                        else {
+                            // 玩家坦克受到伤害
+                            if (playerTank.getHealth() > bullet.getDamage()) {
+                                // 扣血但不致死
+                                playerTank.setHealth(playerTank.getHealth() - bullet.getDamage());
+                                // 更新血量显示
+                                if (gameView != null) {
+                                    gameView.updateHealthDisplay();
+                                }
+                            } else {
+                                // 玩家血量不足，生命值减一
+                                playerTank.setHealth(0);
+                                playerLostLife = true;
+                            }
+                            bulletHit = true;
                         }
-                        bulletHit = true;
                     }
                 }
             }
@@ -1088,7 +1067,6 @@ public class GameController {
                 // 如果是砖块，移除它
                 if (element.getType().equals("brick")) {
                     levelMap.getElements().remove(i);
-                    System.out.println("砖块被子弹摧毁");
                 }
                 
                 // 返回碰撞的元素类型
@@ -1183,7 +1161,7 @@ public class GameController {
                                     "，目标： " + totalEnemyTanksToGenerate);
                     
                     // 修改这部分逻辑：只要当前生成的敌方坦克数小于总目标数量，就安排新坦克生成
-                    if (enemyTanksGenerated < totalEnemyTanksToGenerate) {
+                        if (enemyTanksGenerated < totalEnemyTanksToGenerate) {
                         tankRespawnTimes.add(System.currentTimeMillis() + 2000); // 改为2秒后生成
                         System.out.println("敌方坦克被摧毁！已安排2秒后生成新坦克");
                     }
@@ -1369,12 +1347,7 @@ public class GameController {
             
             // 增加已生成的坦克计数
                 enemyTanksGenerated++;
-            
-            System.out.println("成功生成敌方坦克 #" + enemyTanksGenerated + ", 类型: " + enemyType.getName() +
-                              ", 位置: (" + alignedX + "," + alignedY + ")" +
-                              ", 当前场上数量: " + enemyTanks.size());
             } else {
-            System.out.println("无法找到有效的敌方坦克生成位置");
             // 稍后再次尝试生成
             tankRespawnTimes.add(System.currentTimeMillis() + 500);
         }
@@ -1407,7 +1380,6 @@ public class GameController {
         
         // 如果坦克被摧毁，立即通知GameView
         if (tankDestroyed || playerTank.isDead()) {
-            System.out.println("玩家坦克被摧毁！");
             
             // 确保健康值设为0
             playerTank.setHealth(0);
@@ -1421,30 +1393,24 @@ public class GameController {
 
     // 优化增益效果图片加载
     private void loadPowerUpImages() {
-        System.out.println("开始加载增益效果图片...");
         String[] powerUpTypes = {"attack", "bomb", "health", "invincibility", "shield", "speed"};
         
         for (String type : powerUpTypes) {
             try {
                 String path = "/images/powerups/" + type + ".png";
-                System.out.println("尝试加载增益效果图片: " + path);
                 
                 InputStream is = getClass().getResourceAsStream(path);
                 if (is != null) {
                     Image image = new Image(is);
                     powerUpImages.put(type, image);
-                    System.out.println("成功加载增益效果图片: " + type + ", 尺寸: " + image.getWidth() + "x" + image.getHeight());
                 } else {
-                    System.err.println("无法找到增益效果图片资源: " + path);
                     // 尝试加载默认图片
                     Image defaultImage = new Image(getClass().getResourceAsStream("/images/default_icon.png"));
                     if (defaultImage != null) {
                         powerUpImages.put(type, defaultImage);
-                        System.out.println("使用默认图片替代: " + type);
                     }
                 }
             } catch (Exception e) {
-                System.err.println("加载增益效果图片失败: " + type + ", 错误: " + e.getMessage());
                 e.printStackTrace();
             }
         }
@@ -1486,7 +1452,7 @@ public class GameController {
             }
             
             // 增强碰撞检测逻辑，确保正确检测到碰撞
-            if (playerTank != null && !playerTank.isDestroyed()) {
+            if (playerTank != null && !playerTank.isDead()) {
                 boolean collides = checkPlayerPowerUpCollision(playerTank, powerUp);
                 if (collides) {
                     collectPowerUp(powerUp);
@@ -1538,44 +1504,36 @@ public class GameController {
                 // 如果已调用applyPowerUp，这里可以不再重复设置健康值
                 System.out.println("玩家恢复1点生命值，当前: " + playerTank.getHealth() + "/" + 
                                   playerTank.getMaxHealth());
+                gameView.updateHealthDisplay();
                 break;
             case BOMB:
                 System.out.println("获得炸弹道具，按E键使用");
-                // 确保炸弹被正确添加到活动效果中 (此行已包含在playerTank.applyPowerUp(type)中)
                 break;
             case ATTACK:
                 System.out.println("获得攻击增强，伤害提升50%，持续" + type.getDuration() + "秒");
-                playerTank.applyPowerUp(type);
                 break;
             case INVINCIBILITY:
                 System.out.println("获得无敌效果，持续" + type.getDuration() + "秒");
-                playerTank.applyPowerUp(type);
                 break;
             case SHIELD:
                 System.out.println("获得护盾效果，可抵挡一次伤害");
-                playerTank.applyPowerUp(type);
                 break;
             case SPEED:
                 System.out.println("获得速度提升，移动速度提升50%，持续" + type.getDuration() + "秒");
-                playerTank.applyPowerUp(type);
                 break;
         }
-        
-        // 特意打印当前活动效果，用于调试
-        System.out.println("收集增益效果后活动效果数量: " + playerTank.getActiveEffects().size());
+
     }
 
     // 优化随机生成逻辑，减少卡顿
     private void spawnRandomPowerUp() {
         if (levelMap == null) return;
         
-        // 修改为60%的概率
         if (Math.random() > 0.7) {
-            return; // 40%概率不生成
+            return; 
         }
         
         // 使用预计算的随机位置
-        // 提前找好位置，减少计算量
         LevelMap.MapPosition pos = findValidPowerUpPosition();
         if (pos != null) {
             // 随机选择增益效果类型
@@ -1583,10 +1541,8 @@ public class GameController {
             Tank.PowerUpType randomType = types[(int)(Math.random() * types.length)];
             
             // 创建增益效果并添加到列表
-            PowerUp powerUp = new PowerUp(pos.getX(), pos.getY(), randomType);
+            PowerUp powerUp = new PowerUp(pos.getX(), pos.getY(),Tank.PowerUpType.INVINCIBILITY);
             powerUps.add(powerUp);
-            
-            System.out.println("生成增益效果: " + randomType.getDisplayName() + " 位置: (" + pos.getX() + "," + pos.getY() + ")");
         }
     }
 
@@ -1633,10 +1589,9 @@ public class GameController {
         return null; // 找不到有效位置
     }
 
-    // 当坦克被摧毁时尝试生成增益效果 - 改为30%概率
+    // 当坦克被摧毁时尝试生成增益效果
     public void trySpawnPowerUpOnTankDestroyed(int x, int y) {
-        // 30%概率生成增益效果
-        if (Math.random() < 0.3) {
+        if (Math.random() < 0.6) {
             // 随机选择增益效果类型
             Tank.PowerUpType[] types = Tank.PowerUpType.values();
             Tank.PowerUpType randomType = types[(int)(Math.random() * types.length)];
@@ -1648,8 +1603,6 @@ public class GameController {
             // 创建增益效果并添加到列表
             PowerUp powerUp = new PowerUp(alignedX, alignedY, randomType);
             powerUps.add(powerUp);
-            
-            System.out.println("敌方坦克摧毁，生成增益效果: " + randomType.getDisplayName());
         }
     }
 
@@ -1746,8 +1699,15 @@ public class GameController {
         return powerUpImages.get(name);
     }
 
-    // 在Tank类中添加removeEffect方法
-    public void removeEffect(Tank.PowerUpType effect) {
-        playerTank.removeEffect(effect);
+    public void updatePlayerTank() {
+        // 如果坦克已死亡，但未通知视图
+        if (playerTank != null && playerTank.isDead() && eventListener != null) {
+            eventListener.onPlayerDestroyed();
+        }
+    }
+
+    // 在GameController类中添加一个setter方法来设置gameView引用
+    public void setGameView(GameView gameView) {
+        this.gameView = gameView;
     }
 }
