@@ -5,6 +5,7 @@ import com.jfoenix.controls.JFXDialogLayout;
 import com.nau_yyf.controller.GameController;
 import com.nau_yyf.model.Bullet;
 import com.nau_yyf.model.LevelMap;
+import com.nau_yyf.model.PowerUp;
 import com.nau_yyf.model.Tank;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -49,6 +50,8 @@ import javafx.geometry.HPos;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.effect.GaussianBlur;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.input.KeyCode;
 
 public class GameView {
     private Stage stage;
@@ -101,6 +104,13 @@ public class GameView {
     // 添加生命数相关变量
     private int playerLives = 3; // 初始生命数为3
     private Map<String, ImageView> powerUpIndicators = new HashMap<>(); // 存储增益效果指示器
+    private Map<String, ProgressBar> powerUpProgressBars = new HashMap<>(); // 存储增益效果进度条
+    
+    // 添加新的成员变量
+    private Map<String, Label> powerUpLabels;
+    
+    // 在GameView类中添加成员变量
+    private Map<String, HBox> effectBoxMap = new HashMap<>(); // 存储每种效果的容器
     
     public GameView(Stage stage) {
         this.stage = stage;
@@ -642,13 +652,14 @@ public class GameView {
         HBox.setHgrow(gameArea, Priority.ALWAYS);
         
         // ---------- 底部数据面板 ----------
-        gameDataPanel = new HBox(40);
-        gameDataPanel.setAlignment(Pos.CENTER);
+        gameDataPanel = new HBox(20);
         gameDataPanel.setPadding(new Insets(10));
-        gameDataPanel.setStyle("-fx-background-color: rgba(0, 0, 0, 0.4);");
+        gameDataPanel.setAlignment(Pos.CENTER);
+        gameDataPanel.setBackground(new Background(new BackgroundFill(
+            Color.rgb(0, 20, 40), CornerRadii.EMPTY, Insets.EMPTY)));
         
         // 使用方法创建各种信息显示
-        VBox playerInfo = createInfoBox("坦克类型", gameController.getPlayerTank().getTypeString());
+        VBox playerInfo = createInfoBox("坦克类型", getTankDisplayName(gameController.getPlayerTank().getTypeString()));
         playerInfo.setId("playerInfo");
 
         VBox healthInfo = createInfoBox("血量", Integer.toString(gameController.getPlayerTank().getHealth()));
@@ -663,12 +674,13 @@ public class GameView {
         // 添加生命显示和增益效果区域
         HBox livesDisplay = createLivesDisplay();
         livesDisplay.setId("livesDisplay");
-
-        HBox powerUpDisplay = createPowerUpDisplay();
-        powerUpDisplay.setId("powerUpDisplay");
         
         // 在数据面板中添加所有信息
-        gameDataPanel.getChildren().addAll(playerInfo, healthInfo, bulletInfo, enemiesInfo, livesDisplay, powerUpDisplay);
+        gameDataPanel.getChildren().addAll(playerInfo, healthInfo, bulletInfo, enemiesInfo, livesDisplay);
+        
+        // 添加增益效果状态栏
+        HBox powerUpStatusBar = createPowerUpStatusBar();
+        gameDataPanel.getChildren().add(powerUpStatusBar);
         
         // 将各部分添加到布局
         gameLayout.setTop(topInfoBar);
@@ -800,6 +812,18 @@ public class GameView {
             e.consume(); // 阻止事件继续传播
         });
         
+        // 添加E键放置炸弹
+        scene.setOnKeyPressed(e -> {
+            // 现有代码...
+            
+            // 添加E键放置炸弹
+            if (e.getCode() == KeyCode.E) {
+                if (gameController != null) {
+                    gameController.placeBomb();
+                }
+            }
+        });
+        
         System.out.println("键盘监听器设置完成");
     }
     // 添加时间显示更新方法
@@ -929,6 +953,29 @@ public class GameView {
         
         // 更新敌人显示 - 每帧更新确保数量显示正确
         updateEnemiesDisplay();
+        
+        // 更新增益效果
+        gameController.updatePowerUps(deltaTime);
+        
+        // 更新坦克的增益效果持续时间
+        if (gameController.getPlayerTank() != null) {
+            gameController.getPlayerTank().updateEffects(deltaTime);
+        }
+        
+        // 更新增益效果显示
+        updatePowerUpDisplay();
+        
+        // 更新闪烁效果
+        for (PowerUp powerUp : gameController.getPowerUps()) {
+            if (powerUp.shouldBlink()) {
+                if (Math.random() < 0.1) { // 每帧10%概率切换闪烁状态
+                    powerUp.toggleBlinking();
+                }
+            }
+        }
+        
+        // 更新UI显示
+        updatePowerUpUIDisplay();
     }
     
     // 新增方法：根据坦克类型恢复子弹
@@ -943,14 +990,14 @@ public class GameView {
             
             switch (tankType) {
                 case LIGHT:
-                    refillDelay = 1500; // 轻型坦克恢复最快：1.5秒
+                    refillDelay = 1000; // 轻型坦克恢复最快：1.5秒
                     break;
                 case HEAVY:
-                    refillDelay = 3000; // 重型坦克恢复最慢：3秒
+                    refillDelay = 1800; // 重型坦克恢复最慢：3秒
                     break;
                 case STANDARD:
                 default:
-                    refillDelay = 2000; // 标准坦克：2秒
+                    refillDelay = 1500; // 标准坦克：2秒
                     break;
             }
             
@@ -1161,7 +1208,7 @@ public class GameView {
             Text goalText = new Text(
                     "1. 消灭所有敌方坦克\n" +
                     "2. 保护己方基地不被摧毁\n" +
-                    "3. 收集道具提升能力");
+                    "3. 收集道具提升能力\n\n炸弹使用：拾取炸弹道具后，按E键放置炸弹，5秒后爆炸");
             
             instructionsContent.getChildren().addAll(
                     controlsTitle, controlsText, 
@@ -1686,51 +1733,17 @@ public class GameView {
     
     // 更新增益效果显示
     private void updatePowerUpDisplay() {
-        // 找到增益效果显示区域
-        for (Node node : gameDataPanel.getChildren()) {
-            if (node instanceof HBox) {
-                HBox box = (HBox) node;
-                if (box.getChildren().size() > 0 && box.getChildren().get(0) instanceof VBox) {
-                    VBox infoBox = (VBox) box.getChildren().get(0);
-                    if (infoBox.getChildren().size() > 0 && infoBox.getChildren().get(0) instanceof Label) {
-                        Label label = (Label) infoBox.getChildren().get(0);
-                        if (label.getText().equals("增益效果")) {
-                            // 找到了增益效果区域
-                            HBox effectIcons = (HBox) infoBox.getChildren().get(1);
-                            effectIcons.getChildren().clear();
-                            
-                            // 如果玩家坦克存在且有增益效果，显示对应图标
-                            if (gameController != null && gameController.getPlayerTank() != null) {
-                                Map<Tank.PowerUpType, Double> activeEffects = 
-                                    gameController.getPlayerTank().getActiveEffects();
-                                
-                                for (Tank.PowerUpType effect : activeEffects.keySet()) {
-                                    String imagePath = "/images/powerups/" + effect.getName() + ".png";
-                                    try {
-                                        ImageView icon = new ImageView(
-                                            new Image(getClass().getResourceAsStream(imagePath))
-                                        );
-                                        icon.setFitWidth(30);
-                                        icon.setFitHeight(30);
-                                        effectIcons.getChildren().add(icon);
-                                        
-                                        // 添加文字显示剩余时间
-                                        Label timeLeft = new Label(
-                                            String.format("%.1fs", activeEffects.get(effect))
-                                        );
-                                        timeLeft.setTextFill(TEXT_COLOR);
-                                        effectIcons.getChildren().add(timeLeft);
-                                    } catch (Exception e) {
-                                        System.err.println("无法加载增益效果图标: " + imagePath);
-                                    }
-                                }
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
+        if (gameController == null || gameController.getPlayerTank() == null) return;
+        
+        // 添加调试输出
+        Tank playerTank = gameController.getPlayerTank();
+        Map<Tank.PowerUpType, Double> activeEffects = playerTank.getActiveEffects();
+        System.out.println("活动效果数量: " + activeEffects.size());
+        for (Map.Entry<Tank.PowerUpType, Double> entry : activeEffects.entrySet()) {
+            System.out.println("效果类型: " + entry.getKey().getName() + ", 剩余时间: " + entry.getValue());
         }
+        
+        // 原有的更新逻辑...
     }
     
     /**
@@ -2355,6 +2368,198 @@ public class GameView {
         });
         
         return button;
+    }
+
+    // 初始化增益效果UI
+    private void initializePowerUpUI() {
+        HBox powerUpContainer = new HBox(10); // 10像素间距
+        powerUpContainer.setAlignment(Pos.CENTER);
+        
+        // 为每种增益效果创建显示组件
+        for (Tank.PowerUpType type : Tank.PowerUpType.values()) {
+            String typeName = type.getName();
+            
+            // 创建包含图标和进度条的VBox
+            VBox powerUpBox = new VBox(5);
+            powerUpBox.setAlignment(Pos.CENTER);
+            
+            // 创建图标
+            ImageView iconView = new ImageView();
+            iconView.setFitWidth(30);
+            iconView.setFitHeight(30);
+            Image icon = gameController.getPowerUpImage(typeName);
+            if (icon != null) {
+                iconView.setImage(icon);
+            }
+            iconView.setVisible(false); // 默认不可见
+            
+            // 创建进度条
+            ProgressBar progressBar = new ProgressBar(1.0);
+            progressBar.setPrefWidth(30);
+            progressBar.setPrefHeight(5);
+            progressBar.setVisible(false);
+            
+            // 添加到映射中以便更新
+            powerUpIndicators.put(typeName, iconView);
+            powerUpProgressBars.put(typeName, progressBar);
+            
+            // 添加到布局
+            powerUpBox.getChildren().addAll(iconView, progressBar);
+            powerUpContainer.getChildren().add(powerUpBox);
+        }
+        
+        // 添加到游戏界面
+        gameDataPanel.getChildren().add(powerUpContainer);
+    }
+
+    // 修改创建增益效果状态栏的方法
+    private HBox createPowerUpStatusBar() {
+        // 创建一个紧凑的HBox容器
+        HBox powerUpBar = new HBox(8);
+        powerUpBar.setId("powerUpStatusBar");
+        powerUpBar.setPadding(new Insets(5, 8, 5, 8));
+        powerUpBar.setAlignment(Pos.CENTER_LEFT);
+        powerUpBar.setStyle("-fx-background-color: rgba(0, 20, 40, 0.7); -fx-border-color: #00AAFF; -fx-border-radius: 4;");
+        
+        // 简化标题
+        Label titleLabel = new Label("增益:");
+        titleLabel.setTextFill(Color.CYAN);
+        titleLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        powerUpBar.getChildren().add(titleLabel);
+        
+        // 添加一个小间隔
+        Region spacer = new Region();
+        spacer.setPrefWidth(8);
+        powerUpBar.getChildren().add(spacer);
+        
+        // 创建一个图标容器，水平放置图标
+        HBox iconsContainer = new HBox(10);
+        iconsContainer.setAlignment(Pos.CENTER);
+        
+        // 为每种增益效果创建图标，但不包括即时效果(HEALTH)
+        for (Tank.PowerUpType type : Tank.PowerUpType.values()) {
+            if (type == Tank.PowerUpType.HEALTH) continue;
+            
+            String typeName = type.getName();
+            
+            // 创建一个HBox而不是VBox，使其水平布局
+            HBox effectBox = new HBox(2);
+            effectBox.setAlignment(Pos.CENTER);
+            effectBox.setPadding(new Insets(2));
+            
+            // 使用StackPane让进度条能够显示在图标底部
+            StackPane iconContainer = new StackPane();
+            iconContainer.setMinSize(30, 30);
+            iconContainer.setMaxSize(30, 30);
+            
+            // 创建图标
+            ImageView iconView = new ImageView();
+            iconView.setFitWidth(30);
+            iconView.setFitHeight(30);
+            
+            // 尝试加载图标
+            try {
+                Image icon = gameController.getPowerUpImage(typeName);
+                if (icon != null) {
+                    iconView.setImage(icon);
+                } else {
+                    // 如果图标加载失败，显示一个占位符
+                    Rectangle placeholder = new Rectangle(30, 30);
+                    placeholder.setFill(Color.rgb(80, 200, 255, 0.7));
+                    placeholder.setArcWidth(8);
+                    placeholder.setArcHeight(8);
+                    iconContainer.getChildren().add(placeholder);
+                }
+            } catch (Exception e) {
+                System.err.println("无法加载" + typeName + "图标: " + e.getMessage());
+            }
+            
+            // 将图标添加到容器
+            iconContainer.getChildren().add(iconView);
+            
+            // 创建进度条
+            ProgressBar progressBar = new ProgressBar(0);
+            progressBar.setPrefWidth(30);
+            progressBar.setPrefHeight(4);
+            progressBar.setStyle("-fx-accent: #00AAFF;");
+            
+            // 创建垂直布局用于图标和进度条，然后添加到HBox
+            VBox iconWithProgress = new VBox(0);
+            iconWithProgress.setAlignment(Pos.CENTER);
+            iconWithProgress.getChildren().addAll(iconContainer, progressBar);
+            
+            // 将垂直布局添加到效果盒子
+            effectBox.getChildren().add(iconWithProgress);
+            
+            // 添加边框效果
+            effectBox.setStyle("-fx-border-color: #004466; -fx-border-radius: 4;");
+            
+            // 初始设置为不可见
+            effectBox.setVisible(false);
+            
+            // 存储引用以供更新
+            powerUpIndicators.put(typeName, iconView);
+            powerUpProgressBars.put(typeName, progressBar);
+            effectBoxMap.put(typeName, effectBox); // 现在存储的是HBox，类型匹配
+            
+            // 将效果盒子添加到图标容器
+            iconsContainer.getChildren().add(effectBox);
+        }
+        
+        // 将图标容器添加到状态栏
+        powerUpBar.getChildren().add(iconsContainer);
+        
+        return powerUpBar;
+    }
+
+    // 修改更新增益效果UI显示的方法
+    private void updatePowerUpUIDisplay() {
+        if (gameController == null || gameController.getPlayerTank() == null) return;
+        
+        Tank playerTank = gameController.getPlayerTank();
+        Map<Tank.PowerUpType, Double> activeEffects = playerTank.getActiveEffects();
+        
+        // 更新每种效果的显示状态
+        for (Tank.PowerUpType type : Tank.PowerUpType.values()) {
+            if (type == Tank.PowerUpType.HEALTH) continue; // 跳过生命恢复
+            
+            String typeName = type.getName();
+            HBox effectBox = effectBoxMap.get(typeName);
+            
+            if (effectBox != null) {
+                // 检查效果是否激活
+                boolean isActive = activeEffects.containsKey(type);
+                effectBox.setVisible(isActive);
+                
+                // 如果效果激活，更新进度条
+                if (isActive) {
+                    double remainingTime = activeEffects.get(type);
+                    double maxTime = type.getDuration();
+                    double progress = remainingTime / maxTime;
+                    
+                    // 更新进度条
+                    ProgressBar progressBar = powerUpProgressBars.get(typeName);
+                    if (progressBar != null) {
+                        progressBar.setProgress(progress);
+                    }
+                    
+                    // 当剩余时间少于3秒时，添加闪烁效果
+                    if (remainingTime < 3.0) {
+                        // 闪烁效果
+                        if (Math.random() > 0.5) {
+                            effectBox.setStyle("-fx-border-color: #FF4400; -fx-border-radius: 4;");
+                            progressBar.setStyle("-fx-accent: #FF4400;");
+                        } else {
+                            effectBox.setStyle("-fx-border-color: #004466; -fx-border-radius: 4;");
+                            progressBar.setStyle("-fx-accent: #00AAFF;");
+                        }
+                    } else {
+                        effectBox.setStyle("-fx-border-color: #004466; -fx-border-radius: 4;");
+                        progressBar.setStyle("-fx-accent: #00AAFF;");
+                    }
+                }
+            }
+        }
     }
 }
 

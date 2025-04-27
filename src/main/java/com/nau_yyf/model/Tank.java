@@ -226,6 +226,7 @@ public class Tank {
         // 如果坦克已经死亡，不允许移动
         if (isDead()) return;
         
+        // 速度增益效果 - 增加50%速度
         int actualSpeed = isEffectActive(PowerUpType.SPEED) ? (int)(speed * 1.5) : speed;
         
         // 计算下一个位置
@@ -344,7 +345,7 @@ public class Tank {
                     break;
             }
             
-            // 子弹攻击力根据增益效果可能增加
+            // 子弹攻击力增益 - 增加50%伤害
             int bulletDamage = isEffectActive(PowerUpType.ATTACK) ? 
                     (int)(attackPower * 1.5) : attackPower;
             
@@ -362,7 +363,8 @@ public class Tank {
         // 无敌或有护盾时不受伤害
         if (isInvincible || isShielded) {
             if (isShielded) {
-                // 护盾被击中后移除
+                // 护盾被击中后移除，记录一条消息
+                System.out.println("护盾抵挡了伤害！护盾已消失");
                 removeEffect(PowerUpType.SHIELD);
                 isShielded = false;
             }
@@ -400,9 +402,8 @@ public class Tank {
                 isInvincible = true;
                 break;
             case BOMB:
-                // 炸弹是即时效果，不需要保持状态
-                activeEffects.remove(PowerUpType.BOMB);
-                // 炸弹效果在游戏控制器中处理
+                // 炸弹是持续性效果，不要立即移除
+                // 保留效果直到使用
                 break;
             // ATTACK和SPEED效果通过isEffectActive方法在相应功能中处理
         }
@@ -424,7 +425,7 @@ public class Tank {
     }
     
     // 移除效果
-    private void removeEffect(PowerUpType effect) {
+    public void removeEffect(PowerUpType effect) {
         activeEffects.remove(effect);
         
         // 重置相关状态
@@ -434,6 +435,9 @@ public class Tank {
                 break;
             case INVINCIBILITY:
                 isInvincible = false;
+                break;
+            case BOMB:
+                // 特殊处理炸弹效果，无需额外操作
                 break;
         }
     }

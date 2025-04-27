@@ -1,8 +1,9 @@
 package com.nau_yyf.controller;
-
 import com.nau_yyf.model.Bullet;
 import com.nau_yyf.model.LevelMap;
 import com.nau_yyf.model.Tank;
+import com.nau_yyf.model.PowerUp;
+import com.nau_yyf.model.Bomb;
 import com.nau_yyf.util.MapLoader;
 import javafx.scene.image.Image;
 import javafx.scene.canvas.GraphicsContext;
@@ -14,6 +15,7 @@ import java.util.Iterator;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import java.util.Collections;
+import java.io.InputStream;
 
 public class GameController {
     // 定义事件监听器接口
@@ -63,6 +65,13 @@ public class GameController {
     // 修改子弹渲染部分，预加载所有子弹图像
     private final Map<String, Image> bulletImages = new HashMap<>();
     
+    // 新增成员变量
+    private List<PowerUp> powerUps = new ArrayList<>();
+    private Map<String, Image> powerUpImages = new HashMap<>();
+    private long lastPowerUpSpawnTime = 0;
+    private static final long POWER_UP_SPAWN_INTERVAL = 6000; // 6秒
+    private Bomb activeBomb = null; // 当前激活的炸弹
+    
     public GameController() {
         // 预加载地图元素图片
         loadElementImages();
@@ -72,6 +81,9 @@ public class GameController {
         
         // 预加载子弹图片
         loadBulletImages();
+        
+        // 加载增益效果图片
+        loadPowerUpImages();
     }
     
     private void loadElementImages() {
@@ -388,6 +400,38 @@ public class GameController {
                 gc.fillOval(bullet.getX(), bullet.getY(), bullet.getWidth(), bullet.getHeight());
             }
         }
+        
+        // 优化增益效果渲染，使用缓存
+        for (PowerUp powerUp : powerUps) {
+            // 如果处于闪烁状态且当前不可见，则跳过渲染
+            if (powerUp.shouldBlink() && !powerUp.isVisible()) {
+                continue;
+            }
+            
+            String imageName = powerUp.getType().getName();
+            Image img = powerUpImages.get(imageName);
+            
+            if (img != null) {
+                // 避免图片加载错误造成的卡顿
+                gc.drawImage(img, powerUp.getX(), powerUp.getY(), powerUp.getWidth(), powerUp.getHeight());
+            } else {
+                // 如果找不到图像，显示紫色方块作为替代
+                gc.setFill(Color.PURPLE);
+                gc.fillRect(powerUp.getX(), powerUp.getY(), powerUp.getWidth(), powerUp.getHeight());
+            }
+        }
+        
+        // 渲染放置的炸弹
+        if (activeBomb != null) {
+            Image bombImg = powerUpImages.get("bomb_placed");
+            if (bombImg != null) {
+                gc.drawImage(bombImg, activeBomb.getX(), activeBomb.getY(), 30, 30);
+            } else {
+                // 如果找不到图像，显示红色方块作为替代
+                gc.setFill(Color.RED);
+                gc.fillRect(activeBomb.getX(), activeBomb.getY(), 30, 30);
+            }
+        }
     }
     
     public LevelMap getLevelMap() {
@@ -441,30 +485,29 @@ public class GameController {
      * 更新敌方坦克状态，包括生成新坦克
      */
     public void updateEnemyTanks() {
-        // 处理已有敌方坦克的AI和移动
-        Iterator<Tank> iterator = enemyTanks.iterator();
-        while (iterator.hasNext()) {
-            Tank tank = iterator.next();
-            
-            // 检查坦克是否被摧毁
-            if (tank.isDestroyed()) {
-                iterator.remove();
-                
-                // 添加到延迟生成队列，2秒后生成新坦克
-                tankRespawnTimes.add(System.currentTimeMillis() + 2000);
-                
-                System.out.println("敌方坦克被移除，当前场上数量: " + (enemyTanks.size()) + 
-                                  ", 延迟生成队列大小: " + tankRespawnTimes.size());
+        // 使用副本进行迭代，避免并发修改异常
+        List<Tank> tanksToRemove = new ArrayList<>();
+        List<Tank> enemyTanksCopy = new ArrayList<>(enemyTanks);
+        
+        for (Tank enemyTank : enemyTanksCopy) {
+            // 检查坦克是否已经被摧毁
+            if (enemyTank.isDestroyed()) {
+                tanksToRemove.add(enemyTank);
                 continue;
             }
             
             // 执行坦克AI逻辑
             if (playerTank != null) {
-                Bullet firedBullet = tank.updateAI(grid, playerTank, this);
+                Bullet firedBullet = enemyTank.updateAI(grid, playerTank, this);
                 if (firedBullet != null) {
                     addBullet(firedBullet);
                 }
             }
+        }
+        
+        // 迭代结束后统一删除坦克
+        if (!tanksToRemove.isEmpty()) {
+            enemyTanks.removeAll(tanksToRemove);
         }
         
         // 检查延迟生成队列
@@ -494,13 +537,16 @@ public class GameController {
             }
         }
         
-        // 每100帧打印一次调试信息，以免刷屏
-        if (Math.random() < 0.01) {
-            System.out.println("敌方坦克状态 - 场上数量: " + currentEnemyCount + 
-                              ", 已生成: " + enemyTanksGenerated + 
-                              ", 已摧毁: " + enemyTanksDestroyed + 
-                              ", 总目标: " + totalEnemyTanksToGenerate + 
-                              ", 最大同时存在: " + maxConcurrentEnemies);
+        // 添加主动检测：如果当前敌方坦克数量少于最大数量，并且重生队列为空，则安排生成新坦克
+        if (currentEnemyCount < maxConcurrentEnemies && 
+            enemyTanksGenerated < totalEnemyTanksToGenerate && 
+            tankRespawnTimes.isEmpty()) {
+            
+            System.out.println("当前敌方坦克数量(" + currentEnemyCount + ")低于上限(" + maxConcurrentEnemies + 
+                              ")，安排生成新坦克");
+            
+            // 立即安排生成一个新坦克
+            tankRespawnTimes.add(currentTime + 1000); // 1秒后生成
         }
         
         // 游戏开始时需要生成初始坦克
@@ -775,6 +821,9 @@ public class GameController {
         for (Tank tank : tanksToDestroy) {
             // 如果使用了坦克池，可以考虑将坦克返回到池中而不是直接删除
             enemyTanks.remove(tank);
+            
+            // 尝试生成增益效果 - 添加这行代码
+            trySpawnPowerUpOnTankDestroyed(tank.getX(), tank.getY());
         }
         
         return collisionDetected;
@@ -1132,6 +1181,15 @@ public class GameController {
                     System.out.println("敌方坦克被摧毁，类型：" + tank.getTypeString() + 
                                     "，已摧毁： " + enemyTanksDestroyed + 
                                     "，目标： " + totalEnemyTanksToGenerate);
+                    
+                    // 修改这部分逻辑：只要当前生成的敌方坦克数小于总目标数量，就安排新坦克生成
+                    if (enemyTanksGenerated < totalEnemyTanksToGenerate) {
+                        tankRespawnTimes.add(System.currentTimeMillis() + 2000); // 改为2秒后生成
+                        System.out.println("敌方坦克被摧毁！已安排2秒后生成新坦克");
+                    }
+                    
+                    // 尝试生成增益效果
+                    trySpawnPowerUpOnTankDestroyed(tank.getX(), tank.getY());
                 }
                 
                 return true; // 子弹命中，返回true以移除子弹
@@ -1310,12 +1368,12 @@ public class GameController {
             enemyTanks.add(enemyTank);
             
             // 增加已生成的坦克计数
-            enemyTanksGenerated++;
+                enemyTanksGenerated++;
             
             System.out.println("成功生成敌方坦克 #" + enemyTanksGenerated + ", 类型: " + enemyType.getName() +
                               ", 位置: (" + alignedX + "," + alignedY + ")" +
                               ", 当前场上数量: " + enemyTanks.size());
-        } else {
+            } else {
             System.out.println("无法找到有效的敌方坦克生成位置");
             // 稍后再次尝试生成
             tankRespawnTimes.add(System.currentTimeMillis() + 500);
@@ -1359,5 +1417,337 @@ public class GameController {
                 eventListener.onPlayerDestroyed();
             }
         }
+    }
+
+    // 优化增益效果图片加载
+    private void loadPowerUpImages() {
+        System.out.println("开始加载增益效果图片...");
+        String[] powerUpTypes = {"attack", "bomb", "health", "invincibility", "shield", "speed"};
+        
+        for (String type : powerUpTypes) {
+            try {
+                String path = "/images/powerups/" + type + ".png";
+                System.out.println("尝试加载增益效果图片: " + path);
+                
+                InputStream is = getClass().getResourceAsStream(path);
+                if (is != null) {
+                    Image image = new Image(is);
+                    powerUpImages.put(type, image);
+                    System.out.println("成功加载增益效果图片: " + type + ", 尺寸: " + image.getWidth() + "x" + image.getHeight());
+                } else {
+                    System.err.println("无法找到增益效果图片资源: " + path);
+                    // 尝试加载默认图片
+                    Image defaultImage = new Image(getClass().getResourceAsStream("/images/default_icon.png"));
+                    if (defaultImage != null) {
+                        powerUpImages.put(type, defaultImage);
+                        System.out.println("使用默认图片替代: " + type);
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("加载增益效果图片失败: " + type + ", 错误: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        
+        // 额外加载放置的炸弹图片
+        try {
+            String bombPlacedPath = "/images/powerups/bomb_placed.png";
+            InputStream is = getClass().getResourceAsStream(bombPlacedPath);
+            if (is != null) {
+                Image image = new Image(is);
+                powerUpImages.put("bomb_placed", image);
+                System.out.println("成功加载放置炸弹图片");
+            }
+        } catch (Exception e) {
+            System.err.println("加载放置炸弹图片失败: " + e.getMessage());
+        }
+        
+        System.out.println("增益效果图片加载完成，共加载: " + powerUpImages.size() + " 个图片");
+    }
+
+    // 更新并渲染增益效果
+    public void updatePowerUps(double deltaTime) {
+        // 定期生成增益效果
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastPowerUpSpawnTime > 8000) { // 改为8秒间隔
+            spawnRandomPowerUp();
+            lastPowerUpSpawnTime = currentTime;
+        }
+        
+        // 更新增益效果状态
+        Iterator<PowerUp> iterator = powerUps.iterator();
+        while (iterator.hasNext()) {
+            PowerUp powerUp = iterator.next();
+            
+            // 检查是否应该移除
+            if (powerUp.shouldRemove()) {
+                iterator.remove();
+                continue;
+            }
+            
+            // 增强碰撞检测逻辑，确保正确检测到碰撞
+            if (playerTank != null && !playerTank.isDestroyed()) {
+                boolean collides = checkPlayerPowerUpCollision(playerTank, powerUp);
+                if (collides) {
+                    collectPowerUp(powerUp);
+                    iterator.remove();
+                    continue;
+                }
+            }
+        }
+        
+        // 更新炸弹状态
+        if (activeBomb != null) {
+            updateBomb(currentTime);
+        }
+    }
+
+    // 使用更精确的碰撞检测
+    private boolean checkPlayerPowerUpCollision(Tank tank, PowerUp powerUp) {
+        // 扩大一点碰撞范围，确保更容易拾取
+        int tankX = tank.getX();
+        int tankY = tank.getY();
+        int tankWidth = tank.getWidth();
+        int tankHeight = tank.getHeight();
+        
+        int powerUpX = powerUp.getX();
+        int powerUpY = powerUp.getY();
+        int powerUpWidth = powerUp.getWidth();
+        int powerUpHeight = powerUp.getHeight();
+        
+        // 使用扩展的碰撞检测
+        return tankX < powerUpX + powerUpWidth + 5 &&
+               tankX + tankWidth + 5 > powerUpX &&
+               tankY < powerUpY + powerUpHeight + 5 &&
+               tankY + tankHeight + 5 > powerUpY;
+    }
+
+    // 修改现有的collectPowerUp方法，而不是创建新方法
+    private void collectPowerUp(PowerUp powerUp) {
+        powerUp.collect();
+        
+        // 应用增益效果
+        Tank.PowerUpType type = powerUp.getType();
+        
+        // 确保所有效果都调用applyPowerUp
+        playerTank.applyPowerUp(type);
+        
+        // 对于每种特定效果，可以额外处理
+        switch (type) {
+            case HEALTH:
+                // 如果已调用applyPowerUp，这里可以不再重复设置健康值
+                System.out.println("玩家恢复1点生命值，当前: " + playerTank.getHealth() + "/" + 
+                                  playerTank.getMaxHealth());
+                break;
+            case BOMB:
+                System.out.println("获得炸弹道具，按E键使用");
+                // 确保炸弹被正确添加到活动效果中 (此行已包含在playerTank.applyPowerUp(type)中)
+                break;
+            case ATTACK:
+                System.out.println("获得攻击增强，伤害提升50%，持续" + type.getDuration() + "秒");
+                playerTank.applyPowerUp(type);
+                break;
+            case INVINCIBILITY:
+                System.out.println("获得无敌效果，持续" + type.getDuration() + "秒");
+                playerTank.applyPowerUp(type);
+                break;
+            case SHIELD:
+                System.out.println("获得护盾效果，可抵挡一次伤害");
+                playerTank.applyPowerUp(type);
+                break;
+            case SPEED:
+                System.out.println("获得速度提升，移动速度提升50%，持续" + type.getDuration() + "秒");
+                playerTank.applyPowerUp(type);
+                break;
+        }
+        
+        // 特意打印当前活动效果，用于调试
+        System.out.println("收集增益效果后活动效果数量: " + playerTank.getActiveEffects().size());
+    }
+
+    // 优化随机生成逻辑，减少卡顿
+    private void spawnRandomPowerUp() {
+        if (levelMap == null) return;
+        
+        // 修改为60%的概率
+        if (Math.random() > 0.7) {
+            return; // 40%概率不生成
+        }
+        
+        // 使用预计算的随机位置
+        // 提前找好位置，减少计算量
+        LevelMap.MapPosition pos = findValidPowerUpPosition();
+        if (pos != null) {
+            // 随机选择增益效果类型
+            Tank.PowerUpType[] types = Tank.PowerUpType.values();
+            Tank.PowerUpType randomType = types[(int)(Math.random() * types.length)];
+            
+            // 创建增益效果并添加到列表
+            PowerUp powerUp = new PowerUp(pos.getX(), pos.getY(), randomType);
+            powerUps.add(powerUp);
+            
+            System.out.println("生成增益效果: " + randomType.getDisplayName() + " 位置: (" + pos.getX() + "," + pos.getY() + ")");
+        }
+    }
+
+    // 查找有效的增益效果生成位置
+    private LevelMap.MapPosition findValidPowerUpPosition() {
+        if (levelMap == null) return null;
+        
+        int mapWidth = levelMap.getWidth();
+        int mapHeight = levelMap.getHeight();
+        int size = 30; // 增益效果大小
+        
+        // 最多尝试20次
+        for (int attempt = 0; attempt < 20; attempt++) {
+            // 生成随机位置，确保对齐到网格（40的倍数）
+            int x = ((int)(Math.random() * (mapWidth - size) / 40)) * 40;
+            int y = ((int)(Math.random() * (mapHeight - size) / 40)) * 40;
+            
+            // 检查位置是否有效
+            if (isPositionValid(x, y, size, size)) {
+                // 检查与其他增益效果的距离
+                boolean tooClose = false;
+                for (PowerUp existing : powerUps) {
+                    double distance = Math.sqrt(
+                        Math.pow(x - existing.getX(), 2) + 
+                        Math.pow(y - existing.getY(), 2)
+                    );
+                    if (distance < 80) { // 至少80像素距离
+                        tooClose = true;
+                        break;
+                    }
+                }
+                
+                if (!tooClose) {
+                    LevelMap.MapPosition position = new LevelMap.MapPosition();
+                    position.setX(x);
+                    position.setY(y);
+                    position.setWidth(size);
+                    position.setHeight(size);
+                    return position;
+                }
+            }
+        }
+        
+        return null; // 找不到有效位置
+    }
+
+    // 当坦克被摧毁时尝试生成增益效果 - 改为30%概率
+    public void trySpawnPowerUpOnTankDestroyed(int x, int y) {
+        // 30%概率生成增益效果
+        if (Math.random() < 0.3) {
+            // 随机选择增益效果类型
+            Tank.PowerUpType[] types = Tank.PowerUpType.values();
+            Tank.PowerUpType randomType = types[(int)(Math.random() * types.length)];
+            
+            // 调整位置，确保不会被障碍物遮挡
+            int alignedX = (x / 40) * 40 + 5; // 对齐到网格并轻微偏移
+            int alignedY = (y / 40) * 40 + 5;
+            
+            // 创建增益效果并添加到列表
+            PowerUp powerUp = new PowerUp(alignedX, alignedY, randomType);
+            powerUps.add(powerUp);
+            
+            System.out.println("敌方坦克摧毁，生成增益效果: " + randomType.getDisplayName());
+        }
+    }
+
+    // 玩家放置炸弹
+    public void placeBomb() {
+        // 检查玩家是否有炸弹道具
+        if (playerTank != null && playerTank.isEffectActive(Tank.PowerUpType.BOMB) && activeBomb == null) {
+            // 放置炸弹在玩家坦克位置
+            int bombX = playerTank.getX();
+            int bombY = playerTank.getY();
+            
+            activeBomb = new Bomb(bombX, bombY, System.currentTimeMillis());
+            System.out.println("玩家放置炸弹在位置: (" + bombX + "," + bombY + ")，5秒后爆炸");
+            
+            // 移除炸弹效果（已使用）
+            playerTank.removeEffect(Tank.PowerUpType.BOMB);
+        } else if (playerTank != null && !playerTank.isEffectActive(Tank.PowerUpType.BOMB)) {
+            System.out.println("没有炸弹道具可以使用");
+        } else if (activeBomb != null) {
+            System.out.println("已经放置了一个炸弹，等待爆炸后才能放置新的炸弹");
+        }
+    }
+
+    // 更新炸弹状态
+    private void updateBomb(long currentTime) {
+        if (activeBomb != null) {
+            // 检查炸弹是否应该爆炸
+            if (activeBomb.shouldExplode()) {
+                detonateBomb();
+            }
+        }
+    }
+
+    // 引爆炸弹
+    private void detonateBomb() {
+        if (activeBomb == null) return;
+        
+        // 爆炸范围
+        final int EXPLOSION_RANGE = 80;
+        int bombX = activeBomb.getX();
+        int bombY = activeBomb.getY();
+        
+        System.out.println("炸弹爆炸！位置: (" + bombX + "," + bombY + ")");
+        
+        // 检查范围内的敌方坦克
+        List<Tank> tanksInRange = new ArrayList<>();
+        for (Tank enemy : enemyTanks) {
+            if (enemy.isDestroyed()) continue;
+            
+            // 计算坦克中心点与炸弹中心点的距离
+            int enemyCenterX = enemy.getX() + enemy.getWidth() / 2;
+            int enemyCenterY = enemy.getY() + enemy.getHeight() / 2;
+            int bombCenterX = bombX + 15; // 炸弹大小为30x30，中心点偏移15
+            int bombCenterY = bombY + 15;
+            
+            double distance = Math.sqrt(
+                Math.pow(enemyCenterX - bombCenterX, 2) + 
+                Math.pow(enemyCenterY - bombCenterY, 2)
+            );
+            
+            // 如果在爆炸范围内，添加到受影响坦克列表
+            if (distance <= EXPLOSION_RANGE) {
+                tanksInRange.add(enemy);
+            }
+        }
+        
+        // 对范围内的坦克造成伤害
+        for (Tank enemy : tanksInRange) {
+            enemy.takeDamage(2); // 造成2点伤害
+            
+            // 如果坦克被摧毁
+            if (enemy.getHealth() <= 0) {
+                enemy.setDestroyed(true);
+                enemyTanksDestroyed++;
+                
+                // 尝试生成增益效果
+                trySpawnPowerUpOnTankDestroyed(enemy.getX(), enemy.getY());
+            }
+        }
+        
+        // 清除炸弹
+        activeBomb = null;
+        
+        // 这里可以添加爆炸动画或音效
+    }
+
+    // 获取当前增益效果列表
+    public List<PowerUp> getPowerUps() {
+        return powerUps;
+    }
+
+    // 获取增益效果图片
+    public Image getPowerUpImage(String name) {
+        return powerUpImages.get(name);
+    }
+
+    // 在Tank类中添加removeEffect方法
+    public void removeEffect(Tank.PowerUpType effect) {
+        playerTank.removeEffect(effect);
     }
 }
