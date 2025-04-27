@@ -1,9 +1,5 @@
 package com.nau_yyf.controller;
-import com.nau_yyf.model.Bullet;
-import com.nau_yyf.model.LevelMap;
-import com.nau_yyf.model.Tank;
-import com.nau_yyf.model.PowerUp;
-import com.nau_yyf.model.Bomb;
+import com.nau_yyf.model.*;
 import com.nau_yyf.util.MapLoader;
 import com.nau_yyf.view.GameView;
 import javafx.scene.image.Image;
@@ -17,6 +13,14 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import java.util.Collections;
 import java.io.InputStream;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class GameController {
     // 定义事件监听器接口
@@ -102,7 +106,6 @@ public class GameController {
             elementImages.put("water", new Image(getClass().getResourceAsStream("/images/map/water.png")));
             elementImages.put("base", new Image(getClass().getResourceAsStream("/images/map/base.png")));
         } catch (Exception e) {
-            System.err.println("加载地图元素图片失败: " + e.getMessage());
         }
     }
     
@@ -113,7 +116,6 @@ public class GameController {
                 Image[] dirImages = new Image[4];
                 for (int i = 0; i < 4; i++) {
                     String path = "/images/tanks/friendly/" + type + "/" + i + ".png";
-                    System.out.println("加载坦克图片: " + path);
                     dirImages[i] = new Image(getClass().getResourceAsStream(path));
                 }
                 tankImages.put("player_" + type, dirImages);
@@ -129,13 +131,10 @@ public class GameController {
                 String elitePath = "/images/tanks/enemy/elite/" + i + ".png";
                 String bossPath = "/images/tanks/enemy/boss/" + i + ".png";
                 
-                System.out.println("加载敌方坦克图片: " + basicPath);
                 basicTank[i] = new Image(getClass().getResourceAsStream(basicPath));
                 
-                System.out.println("加载敌方坦克图片: " + elitePath);
                 eliteTank[i] = new Image(getClass().getResourceAsStream(elitePath));
                 
-                System.out.println("加载敌方坦克图片: " + bossPath);
                 bossTank[i] = new Image(getClass().getResourceAsStream(bossPath));
             }
             
@@ -143,14 +142,7 @@ public class GameController {
             tankImages.put("enemy_elite", eliteTank);
             tankImages.put("enemy_boss", bossTank);
             
-            // 验证所有图像是否成功加载
-            System.out.println("坦克图像加载完成: " + tankImages.size() + " 种类型");
-            for (Map.Entry<String, Image[]> entry : tankImages.entrySet()) {
-                System.out.println("  类型: " + entry.getKey() + ", 方向数: " + entry.getValue().length);
-            }
-            
         } catch (Exception e) {
-            System.err.println("加载坦克图片失败: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -165,9 +157,7 @@ public class GameController {
             // 添加默认子弹作为后备
             bulletImages.put("default_bullet", new Image(getClass().getResourceAsStream("/images/bullets/player_bullet.png")));
             
-            System.out.println("子弹图像加载完成: " + bulletImages.size() + " 种类型");
         } catch (Exception e) {
-            System.err.println("加载子弹图片失败: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -175,7 +165,6 @@ public class GameController {
     public void loadLevel(int level) {
         this.currentLevel = level;
         this.levelMap = MapLoader.loadLevel(level);
-        System.out.println("加载关卡 " + level + ": " + (levelMap != null ? levelMap.getName() : "加载失败"));
         
         // 设置当前关卡敌方坦克参数
         configureEnemyTanksForLevel(level);
@@ -237,12 +226,10 @@ public class GameController {
             
             // 验证玩家出生点是否有效
             if (!isPositionValid(playerPos.getX(), playerPos.getY(), 40, 40)) {
-                System.out.println("警告：玩家出生点(" + playerPos.getX() + "," + playerPos.getY() + ")与障碍物重叠！");
                 
                 // 寻找有效的替代位置
                 LevelMap.MapPosition validPos = findValidPosition();
                 if (validPos != null) {
-                    System.out.println("找到有效替代位置: (" + validPos.getX() + "," + validPos.getY() + ")");
                     // 更新地图中的玩家出生点
                     levelMap.setPlayerSpawn(validPos);
                     playerPos = validPos;
@@ -258,12 +245,6 @@ public class GameController {
                 playerTank.setY(playerPos.getY());
             }
         }
-        
-        // 确保初始化阶段完成后，至少会生成设定数量的敌方坦克
-        System.out.println("关卡初始化完成，当前敌方坦克: " + enemyTanks.size() + 
-                         "，已生成: " + enemyTanksGenerated + 
-                         "，队列中待生成: " + enemyTypesToGenerate.size() + 
-                         "，总目标: " + totalEnemyTanksToGenerate);
         
         // 如果初始敌方坦克数量小于最大同时存在数，立即生成更多坦克
         while (enemyTanks.size() < maxConcurrentEnemies && enemyTanksGenerated < totalEnemyTanksToGenerate) {
@@ -572,6 +553,34 @@ public class GameController {
             int initialTanks = Math.min(5, totalEnemyTanksToGenerate);
             for (int i = 0; i < initialTanks; i++) {
                 spawnNewEnemyTank();
+            }
+        }
+        
+        for (Tank tank : enemyTanks) {
+            if (!tank.isFriendly() && !tank.isDestroyed()) {
+                // 检查坦克是否保持静止，如果是，重置其AI状态
+                if (tank.getCurrentSpeed() < 0.1) {
+                    // 记录当前位置
+                    int oldX = tank.getX();
+                    int oldY = tank.getY();
+                    
+                    // 重置AI并强制移动
+                    tank.resetAIState();
+                    tank.updateAI(grid, playerTank, this);
+                    
+                    // 如果仍未移动，尝试随机移动
+                    if (oldX == tank.getX() && oldY == tank.getY()) {
+                        // 随机设置方向并强制移动
+                        tank.setAccelerating(true);
+                        tank.move(this);
+                    }
+                }
+                
+                // 正常的AI更新
+                Bullet bullet = tank.updateAI(grid, playerTank, this);
+                if (bullet != null) {
+                    bullets.add(bullet);
+                }
             }
         }
     }
@@ -1708,5 +1717,216 @@ public class GameController {
     // 在GameController类中添加一个setter方法来设置gameView引用
     public void setGameView(GameView gameView) {
         this.gameView = gameView;
+    }
+
+    /**
+     * 保存游戏状态
+     * @param saveName 存档名称，如果为null，将使用时间戳生成名称
+     * @return 保存是否成功
+     */
+    public boolean saveGame(String saveName) {
+        try {
+            // 创建存档目录
+            File saveDir = new File("saves");
+            if (!saveDir.exists()) {
+                saveDir.mkdir();
+            }
+            
+            // 生成存档文件名
+            if (saveName == null || saveName.isEmpty()) {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+                saveName = "save_" + sdf.format(new Date());
+            }
+            
+            File saveFile = new File(saveDir, saveName + ".json");
+            
+            // 创建存档数据对象
+            GameSaveData saveData = new GameSaveData();
+            
+            // 填充基本信息
+            saveData.setCurrentLevel(currentLevel);
+            saveData.setPlayerTankType(playerTank.getTypeString());
+            saveData.setGameTime(gameView.getTotalGameTime());
+            saveData.setScore(gameView.getScore());
+            saveData.setPlayerLives(gameView.getPlayerLives());
+            saveData.setBulletCount(gameView.getBulletCount());
+            
+            // 保存玩家坦克信息
+            saveData.setPlayerTank(new GameSaveData.TankData(playerTank));
+            
+            // 保存敌方坦克信息
+            for (Tank enemyTank : enemyTanks) {
+                saveData.getEnemyTanks().add(new GameSaveData.TankData(enemyTank));
+            }
+            
+            // 保存子弹信息
+            for (Bullet bullet : bullets) {
+                saveData.getBullets().add(new GameSaveData.BulletData(bullet));
+            }
+            
+            // 保存增益效果信息
+            for (PowerUp powerUp : powerUps) {
+                saveData.getPowerUps().add(new GameSaveData.PowerUpData(powerUp));
+            }
+            
+            // 保存战斗统计
+            saveData.setEnemyTanksDestroyed(enemyTanksDestroyed);
+            saveData.setTotalEnemyTanksToGenerate(totalEnemyTanksToGenerate);
+            saveData.setEnemyTanksGenerated(enemyTanksGenerated);
+            
+            // 使用 Gson 将数据转换为 JSON 并写入文件
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            try (FileWriter writer = new FileWriter(saveFile)) {
+                gson.toJson(saveData, writer);
+            }
+            
+            System.out.println("游戏已保存到: " + saveFile.getAbsolutePath());
+            return true;
+            
+        } catch (Exception e) {
+            System.err.println("保存游戏失败: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    /**
+     * 加载游戏存档
+     * @param saveFile 存档文件
+     * @return 加载是否成功
+     */
+    public boolean loadGame(File saveFile) {
+        try {
+            // 读取存档文件
+            Gson gson = new Gson();
+            GameSaveData saveData;
+            
+            try (FileReader reader = new FileReader(saveFile)) {
+                saveData = gson.fromJson(reader, GameSaveData.class);
+            }
+            
+            // 清理当前游戏状态
+            enemyTanks.clear();
+            bullets.clear();
+            powerUps.clear();
+            
+            // 加载地图（确保当前关卡地图已经加载）
+            currentLevel = saveData.getCurrentLevel();
+            this.levelMap = MapLoader.loadLevel(currentLevel);
+            
+            // 重新配置敌方坦克参数
+            configureEnemyTanksForLevel(currentLevel);
+            
+            // 加载玩家坦克
+            GameSaveData.TankData playerTankData = saveData.getPlayerTank();
+            Tank.TankType playerType = Tank.TankType.fromString(playerTankData.getType());
+            playerTank = new Tank(playerType, playerTankData.getX(), playerTankData.getY());
+            playerTank.setDirection(Tank.Direction.fromValue(playerTankData.getDirection()));
+            playerTank.setHealth(playerTankData.getHealth());
+            
+            // 加载玩家坦克的激活效果
+            for (Map.Entry<String, Double> effect : playerTankData.getActiveEffects().entrySet()) {
+                for (Tank.PowerUpType powerUpType : Tank.PowerUpType.values()) {
+                    if (powerUpType.getName().equals(effect.getKey())) {
+                        // 以剩余时间设置效果
+                        playerTank.applyPowerUp(powerUpType, effect.getValue());
+                    }
+                }
+            }
+            
+            // 加载敌方坦克
+            for (GameSaveData.TankData tankData : saveData.getEnemyTanks()) {
+                Tank.TankType enemyType = Tank.TankType.fromString(tankData.getType());
+                Tank enemyTank = new Tank(enemyType, tankData.getX(), tankData.getY());
+                enemyTank.setDirection(Tank.Direction.fromValue(tankData.getDirection()));
+                enemyTank.setHealth(tankData.getHealth());
+                enemyTanks.add(enemyTank);
+            }
+            
+            // 加载子弹
+            for (GameSaveData.BulletData bulletData : saveData.getBullets()) {
+                Bullet bullet = new Bullet(
+                    bulletData.getX(),
+                    bulletData.getY(),
+                    Tank.Direction.fromValue(bulletData.getDirection()),
+                    bulletData.getBulletType(),
+                    bulletData.getSpeed(),
+                    bulletData.getDamage(),
+                    bulletData.isFromPlayer()
+                );
+                bullets.add(bullet);
+            }
+            
+            // 加载增益效果
+            for (GameSaveData.PowerUpData powerUpData : saveData.getPowerUps()) {
+                for (Tank.PowerUpType type : Tank.PowerUpType.values()) {
+                    if (type.getName().equals(powerUpData.getType())) {
+                        PowerUp powerUp = new PowerUp(
+                            powerUpData.getX(),
+                            powerUpData.getY(),
+                            type
+                        );
+                        // 设置创建时间以保持剩余生命周期一致
+                        powerUp.setCreationTime(powerUpData.getCreationTime());
+                        powerUps.add(powerUp);
+                        break;
+                    }
+                }
+            }
+            
+            // 加载战斗统计
+            enemyTanksDestroyed = saveData.getEnemyTanksDestroyed();
+            totalEnemyTanksToGenerate = saveData.getTotalEnemyTanksToGenerate();
+            enemyTanksGenerated = saveData.getEnemyTanksGenerated();
+            
+            // 更新GameView中的数据
+            gameView.setTotalGameTime(saveData.getGameTime());
+            gameView.setScore(saveData.getScore());
+            gameView.setPlayerLives(saveData.getPlayerLives());
+            gameView.setBulletCount(saveData.getBulletCount());
+            
+            // 重置游戏时间
+            gameView.resetGameStartTime();
+            
+            // 重新初始化网格数据 - 确保网格数据正确
+            initializeGrid();
+            
+            // 重置所有敌方坦克的AI状态
+            for (Tank enemyTank : enemyTanks) {
+                if (!enemyTank.isFriendly()) {
+                    // 重置AI状态
+                    enemyTank.resetAIState();
+                    
+                    // 确保坦克不在障碍物中
+                    String collision = checkCollision(enemyTank.getX(), enemyTank.getY(), 
+                                                     enemyTank.getWidth(), enemyTank.getHeight());
+                    if (collision != null && !collision.equals("water")) {
+                        // 如果坦克在障碍物中，移动到有效位置
+                        LevelMap.MapPosition validPos = findValidSpawnPosition();
+                        if (validPos != null) {
+                            enemyTank.setX(validPos.getX());
+                            enemyTank.setY(validPos.getY());
+                        }
+                    }
+                }
+            }
+            
+            // 强制更新一次敌方坦克，使其立即开始移动
+            for (Tank enemyTank : enemyTanks) {
+                if (!enemyTank.isFriendly() && !enemyTank.isDestroyed()) {
+                    // 确保状态正确
+                    enemyTank.setAccelerating(true);
+                    enemyTank.move(this); // 强制移动一次
+                }
+            }
+            
+            System.out.println("游戏已从存档加载: " + saveFile.getAbsolutePath());
+            return true;
+            
+        } catch (Exception e) {
+            System.err.println("加载游戏失败: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
     }
 }

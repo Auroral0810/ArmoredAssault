@@ -66,4 +66,9 @@ public class PowerUp extends GameObject {
     public boolean isVisible() {
         return !shouldBlink() || isBlinking;
     }
+    
+    // 创建时间的setter方法
+    public void setCreationTime(long creationTime) {
+        this.creationTime = creationTime;
+    }
 } 

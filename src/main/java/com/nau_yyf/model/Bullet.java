@@ -5,13 +5,13 @@ import com.nau_yyf.model.Tank.Direction;
 public class Bullet extends GameObject {
     private Direction direction;
     private String bulletType;
-    private int speed;
+    private double speed;
     private int damage;
     private boolean fromPlayer;
     private boolean isDestroyed = false;
     
     public Bullet(int x, int y, Direction direction, String bulletType, 
-                 int speed, int damage, boolean fromPlayer) {
+                 double speed, int damage, boolean fromPlayer) {
         super(x, y, 10, 10); // 子弹尺寸为10x10
         this.direction = direction;
         this.bulletType = bulletType;
@@ -21,8 +21,8 @@ public class Bullet extends GameObject {
     }
     
     public void move() {
-        setX(getX() + direction.getDx() * speed);
-        setY(getY() + direction.getDy() * speed);
+        setX(getX() + (int)Math.round(direction.getDx() * speed));
+        setY(getY() + (int)Math.round(direction.getDy() * speed));
     }
     
     public boolean isOutOfBounds(int mapWidth, int mapHeight) {
@@ -43,7 +43,7 @@ public class Bullet extends GameObject {
         return bulletType;
     }
     
-    public int getSpeed() {
+    public double getSpeed() {
         return speed;
     }
     

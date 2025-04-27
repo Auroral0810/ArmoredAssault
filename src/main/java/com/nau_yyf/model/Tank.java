@@ -124,7 +124,7 @@ public class Tank {
     // 坦克性能参数
     private int health;
     private int maxHealth;
-    private int speed;
+    private double speed;
     private int attackPower;
     private double fireRate; // 每秒攻击次数
     private double fireDelay; // 攻击冷却时间（毫秒）
@@ -132,7 +132,7 @@ public class Tank {
     
     // 子弹参数
     private String bulletType;
-    private int bulletSpeed;
+    private double bulletSpeed;
     
     // 状态效果
     private Map<PowerUpType, Double> activeEffects = new HashMap<>(); // 效果->剩余时间（秒）
@@ -157,11 +157,6 @@ public class Tank {
     private long stopDuration = 0; // 停止移动的持续时间
     private long lastStopTime = 0; // 上次停止移动的时间
     
-    // 在Tank类中添加以下变量用于跟踪坦克是否被卡住
-    private int lastX = -1;
-    private int lastY = -1;
-    private long lastMovementTime = 0;
-    private static final long STUCK_THRESHOLD = 2000; // 2秒卡住阈值
     
     // 添加新的成员变量来标记坦克是否刚刚生成
     private boolean initialSpawnDelay = false;
@@ -188,14 +183,14 @@ public class Tank {
     
     static {
         // 友方坦克参数: 生命值, 基础速度, 攻击力, 攻速(每秒), 子弹速度, 加速度, 最大速度, 减速度
-        DEFAULT_STATS.put(TankType.LIGHT, new double[]{3, 2.3, 1, 3, 3, 0.3, 4, 0.5});    
-        DEFAULT_STATS.put(TankType.STANDARD, new double[]{4, 1.8, 2, 2, 2, 0.2, 3, 0.4});  
-        DEFAULT_STATS.put(TankType.HEAVY, new double[]{5, 1.3, 3, 1, 2, 0.1, 2, 0.3});     
+        DEFAULT_STATS.put(TankType.LIGHT, new double[]{3, 2, 1, 3, 3, 0.3, 3.2, 0.5});    
+        DEFAULT_STATS.put(TankType.STANDARD, new double[]{4, 1.6, 2, 2, 2, 0.2, 2.8, 0.4});  
+        DEFAULT_STATS.put(TankType.HEAVY, new double[]{5, 1.3, 3, 1, 2, 0.1, 2.4, 0.3});     
         
-        // 敌方坦克参数: 生命值, 基础速度, 攻击力, 攻速(每秒), 子弹速度, 加速度, 最大速度, 减速度
-        DEFAULT_STATS.put(TankType.BASIC, new double[]{2, 1.5, 1, 1, 2, 0.1, 2.2, 0.2});
-        DEFAULT_STATS.put(TankType.ELITE, new double[]{4, 1.8, 2, 2, 3, 0.15, 2.8, 0.3});
-        DEFAULT_STATS.put(TankType.BOSS, new double[]{7, 2, 3, 2, 3, 0.1, 3.2, 0.25});
+        // 敌方坦克参数: 减小速度相关参数
+        DEFAULT_STATS.put(TankType.BASIC, new double[]{2, 0.7, 1, 1, 2, 0.05, 1.0, 0.2});
+        DEFAULT_STATS.put(TankType.ELITE, new double[]{4, 0.9, 2, 2, 3, 0.08, 1.2, 0.3});
+        DEFAULT_STATS.put(TankType.BOSS, new double[]{7, 1.1, 3, 2, 3, 0.1, 1.4, 0.25});
     }
     
     // 构造函数
@@ -209,15 +204,22 @@ public class Tank {
         double[] stats = DEFAULT_STATS.get(type);
         this.maxHealth = (int)stats[0];
         this.health = maxHealth;
-        this.speed = (int)stats[1];
+        this.speed = stats[1];
         this.attackPower = (int)stats[2];
         this.fireRate = stats[3];
         this.fireDelay = 1000.0 / fireRate;
-        this.bulletSpeed = (int)stats[4];
+        this.bulletSpeed = stats[4];
         this.acceleration = stats[5];
         this.maxSpeed = stats[6];
         this.deceleration = stats[7];
-        this.currentSpeed = 0; // 初始速度为0
+        
+        // 敌方坦克初始就有速度，友方坦克则需要玩家按键加速
+        if (!type.isFriendly()) {
+            this.currentSpeed = maxSpeed * 0.3; // 从50%减小到30%
+            this.isMoving = true; // 敌方坦克默认移动状态为true
+        } else {
+            this.currentSpeed = 0; // 玩家坦克初始速度为0
+        }
         
         // 设置子弹类型
         setBulletTypeBasedOnTankType();
@@ -251,7 +253,7 @@ public class Tank {
         // 重置上一帧水池状态
         inWaterLastFrame = false;
         
-        // 计算加速度和最大速度（考虑速度增益效果）
+        // 计算加速度和最大速度
         double effectiveMaxSpeed = isEffectActive(PowerUpType.SPEED) ? maxSpeed * 1.5 : maxSpeed;
         double effectiveAcceleration = isEffectActive(PowerUpType.SPEED) ? acceleration * 1.2 : acceleration;
         
@@ -376,9 +378,10 @@ public class Tank {
         // 如果坦克已经死亡，不允许移动
         if (isDead()) return;
         
-        int actualSpeed = isEffectActive(PowerUpType.SPEED) ? (int)(speed * 1.5) : speed;
-        x += direction.getDx() * actualSpeed;
-        y += direction.getDy() * actualSpeed;
+        double actualSpeed = isEffectActive(PowerUpType.SPEED) ? speed * 1.5 : speed;
+        // 使用Math.round转换为int以减少精度损失
+        setX(getX() + (int)Math.round(direction.getDx() * actualSpeed));
+        setY(getY() + (int)Math.round(direction.getDy() * actualSpeed));
     }
     
     // 转向方法
@@ -448,8 +451,8 @@ public class Tank {
             }
             
             // 子弹攻击力增益 - 增加50%伤害
-            int bulletDamage = isEffectActive(PowerUpType.ATTACK) ? 
-                    (int)(attackPower * 1.5) : attackPower;
+            int bulletDamage = isEffectActive(PowerUpType.ATTACK) ?
+                    attackPower *2 : attackPower;
             
             return new Bullet(bulletX, bulletY, direction, bulletType, 
                     bulletSpeed, bulletDamage, type.isFriendly());
@@ -503,6 +506,29 @@ public class Tank {
                 // 生命恢复1
                 health = Math.min(maxHealth, health + 1);
                 activeEffects.remove(PowerUpType.HEALTH);
+                break;
+            case SHIELD:
+                isShielded = true;
+                break;
+            case INVINCIBILITY:
+                isInvincible = true;
+                break;
+            case BOMB:
+                break;
+            // ATTACK和SPEED效果通过isEffectActive方法在相应功能中处理
+        }
+    }
+    
+    // 添加一个新的 applyPowerUp 方法重载，允许直接设置剩余时间
+    public void applyPowerUp(PowerUpType powerUpType, double remainingTime) {
+        // 设置指定的剩余时间
+        activeEffects.put(powerUpType, remainingTime);
+        
+        // 应用效果
+        switch (powerUpType) {
+            case HEALTH:
+                // 生命恢复1
+                health = Math.min(maxHealth, health + 1);
                 break;
             case SHIELD:
                 isShielded = true;
@@ -627,12 +653,12 @@ public class Tank {
         this.health = Math.min(health, maxHealth);
     }
     
-    public int getSpeed() {
-        return isEffectActive(PowerUpType.SPEED) ? (int)(speed * 1.5) : speed;
+    public double getSpeed() {
+        return isEffectActive(PowerUpType.SPEED) ? speed * 1.5 : speed;
     }
     
-    public int getAttackPower() {
-        return isEffectActive(PowerUpType.ATTACK) ? (int)(attackPower * 1.5) : attackPower;
+    public double getAttackPower() {
+        return isEffectActive(PowerUpType.ATTACK) ? attackPower * 1.5 : attackPower;
     }
     
     public double getFireRate() {
@@ -660,15 +686,34 @@ public class Tank {
     }
     
     // 新增方法，返回不含特效的基础速度
-    public int getBaseSpeed() {
+    public double getBaseSpeed() {
         return speed;
     }
     
-    // AI行为方法 - 添加出生保护检查
+    // AI行为方法
     public Bullet updateAI(boolean[][] grid, Tank playerTank, GameController gameController) {
         // 如果处于出生保护状态，不执行AI逻辑
         if (isInSpawnProtection()) {
             return null;
+        }
+        
+        // 添加空值检查
+        if (grid == null || playerTank == null || gameController == null) {
+            // 如果关键参数为空，执行简单的随机移动
+            setRandomDirection();
+            if (gameController != null) {
+                move(gameController);
+            }
+            return null;
+        }
+        
+        // 检查是否是首次更新（从存档加载后）
+        if (pathToTarget == null && lastPathfindingTime == 0) {
+            // 强制立即进行路径计算
+            lastPathfindingTime = 0;
+            // 确保坦克处于移动状态
+            isMoving = true;
+            setAccelerating(true);
         }
         
         Bullet firedBullet = null;
@@ -679,12 +724,11 @@ public class Tank {
             // 计算与玩家坦克的距离
             double distance = calculateDistance(playerTank);
             
-            // 在执行移动前，设置是否加速
-            if (isMoving) {
-                setAccelerating(true);
-            } else {
-                setAccelerating(false);
-            }
+            // 敌方坦克始终处于移动状态
+            isMoving = true;
+            
+            // 在执行移动前，设置加速状态
+            setAccelerating(true);
             
             // 如果玩家在探测范围内，使用A*寻路追踪玩家
             if (distance <= DETECTION_RANGE) {
@@ -765,7 +809,7 @@ public class Tank {
                         Math.pow(targetCenterY - tankCenterY, 2));
                     
                     // 判断是否已经达到当前路径点（使用更精确的距离判断）
-                    if (nodeDistance < speed) {
+                    if (nodeDistance < currentSpeed) {
                         // 已经足够接近这个路径点，移动到下一个
                         pathIndex++;
                         
@@ -826,6 +870,12 @@ public class Tank {
                 // 玩家不在探测范围内，执行随机移动
                 firedBullet = updateRandomMovementWithCollision(currentTime, grid, gameController);
             }
+        }
+        
+        // 添加自我修复机制：如果坦克移动不正常，重置AI状态
+        if (!isFriendly() && currentSpeed < 0.1 && isAccelerating) {
+            resetAIState();  // 重置AI状态
+            currentSpeed = maxSpeed * 0.4;  // 从70%减小到40%
         }
         
         return firedBullet;
@@ -909,21 +959,41 @@ public class Tank {
     
     // 添加带碰撞检测的随机移动方法
     private Bullet updateRandomMovementWithCollision(long currentTime, boolean[][] grid, GameController gameController) {
+        // 添加对grid的空值检查
+        if (grid == null) {
+            // 如果grid为空，执行简单的随机移动而不检查网格碰撞
+            setRandomDirection();
+            if (gameController != null) {
+                move(gameController);
+            } else {
+                move();
+            }
+            return null;
+        }
+        
+        // 确保敌方坦克保持加速
+        setAccelerating(true);
+        
         // 如果当前正在停止状态
         if (!isMoving) {
             // 如果停止时间已结束
             if (currentTime - lastStopTime > stopDuration) {
                 isMoving = true; // 开始移动
+                setAccelerating(true); // 确保设置加速状态
                 // 随机选择一个新方向
                 setRandomDirection();
                 // 设置新的移动持续时间（2-4秒）
                 randomMoveDuration = 2000 + (long)(Math.random() * 2000);
                 lastDirectionChangeTime = currentTime;
+            } else {
+                setAccelerating(false); // 停止状态下不加速
             }
             return null; // 如果仍在停止状态，直接返回null
         }
         
-        // 正在移动中
+        // 正在移动中，确保加速状态为true
+        setAccelerating(true);
+        
         // 检查是否需要改变方向或停止
         if (currentTime - lastDirectionChangeTime > randomMoveDuration) {
             // 有20%的几率停止移动
@@ -941,8 +1011,8 @@ public class Tank {
         }
         
         // 移动前检查是否会碰到障碍物
-        int nextX = x;
-        int nextY = y;
+        double nextX = x;
+        double nextY = y;
         
         // 根据当前方向计算下一个位置
         switch (direction) {
@@ -972,8 +1042,8 @@ public class Tank {
         }
         
         // 检查是否会碰到障碍物
-        int cellX = nextX / 40;
-        int cellY = nextY / 40;
+        int cellX = (int)Math.floor(nextX / 40);
+        int cellY = (int)Math.floor(nextY / 40);
         
         // 考虑坦克所占据的多个格子
         boolean willCollide = false;
@@ -1123,5 +1193,33 @@ public class Tank {
     // 获取当前速度
     public double getCurrentSpeed() {
         return currentSpeed;
+    }
+
+    // 在Tank类中添加一个重置AI状态的方法
+    public void resetAIState() {
+        // 重置路径寻找相关数据
+        pathToTarget = null;
+        pathIndex = 0;
+        
+        // 重置时间戳，确保立即重新计算路径
+        lastPathfindingTime = 0;
+        lastDirectionChangeTime = System.currentTimeMillis();
+        
+        // 重置移动状态
+        isMoving = true;
+        setAccelerating(true);
+        
+        // 敌方坦克设置更低的初始速度
+        if (!isFriendly()) {
+            currentSpeed = maxSpeed * 0.3; // 从70%减小到40%
+        }
+        
+        // 随机选择一个方向
+        setRandomDirection();
+        
+        // 重置随机移动的相关参数
+        randomMoveDuration = 2000 + (long)(Math.random() * 2000);
+        stopDuration = 0;
+        lastStopTime = 0;
     }
 }

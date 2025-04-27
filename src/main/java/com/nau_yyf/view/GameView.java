@@ -52,6 +52,9 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.effect.GaussianBlur;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.input.KeyCode;
+import javafx.stage.FileChooser;
+import javafx.scene.control.TextInputDialog;
+import java.io.File;
 
 public class GameView {
     private Stage stage;
@@ -282,7 +285,8 @@ public class GameView {
             
             // 创建按钮
             JFXButton newGameButton = createMenuButton("开始新游戏", e -> showTankSelection());
-            JFXButton loadGameButton = createMenuButton("加载存档", e -> showMessage("加载存档功能即将推出"));
+            // 修改这一行，将消息提示改为实际的加载存档功能
+            JFXButton loadGameButton = createMenuButton("加载存档", e -> loadGame());
             JFXButton backButton = createMenuButton("返回", e -> showMainMenu());
             
             // 将元素添加到布局容器
@@ -770,41 +774,40 @@ public class GameView {
         infoBox.getChildren().addAll(titleText, valueText);
         return infoBox;
     }
-    // 更健壮的键盘控制设置方法
+    // 键盘控制设置方法
     private void setupKeyboardControls() {
         System.out.println("重新设置键盘监听器...");
         
         // 重置按键状态
         up = down = left = right = shooting = false;
         
-        // 清除所有可能存在的键盘监听器
         // 1. 清除画布上的监听器
         if (gameCanvas != null) {
             gameCanvas.setOnKeyPressed(null);
             gameCanvas.setOnKeyReleased(null);
             
-            // 移除所有键盘事件处理器，确保彻底清除
+            // 移除所有键盘事件处理器
             gameCanvas.removeEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {});
             gameCanvas.removeEventHandler(javafx.scene.input.KeyEvent.KEY_RELEASED, event -> {});
         }
         
-        // 2. 清除场景上可能存在的监听器
+        // 2. 清除场景上存在的监听器
         if (scene != null) {
             scene.setOnKeyPressed(null);
             scene.setOnKeyReleased(null);
         }
         
-        // 3. 清除根布局上可能存在的监听器
+        // 3. 清除根布局上存在的监听器
         if (root != null) {
             root.setOnKeyPressed(null);
             root.setOnKeyReleased(null);
         }
         
-        // 仅在画布级别添加新的监听器，使用更清晰的命名
+        // 仅在画布级别添加新的监听器
         gameCanvas.setOnKeyPressed(e -> {
             String code = e.getCode().toString();
             
-            // 如果暂停菜单已打开，只处理ESC键
+            // 如果暂停菜单已打开
             if (isPauseMenuOpen) {
                 if (code.equals("ESCAPE")) {
                     closePauseMenu();
@@ -871,9 +874,9 @@ public class GameView {
 
         timeInfo.setText(String.format("%02d:%02d", minutes, seconds));
     }
-    // 修改startGameLoop方法，将AnimationTimer保存为成员变量
+    // 游戏循环
     private void startGameLoop() {
-        // 先停止旧的游戏循环（如果存在）
+        // 先停止旧的游戏循环
         if (gameLoop != null) {
             gameLoop.stop();
         }
@@ -1205,48 +1208,8 @@ public class GameView {
      * 显示游戏说明
      */
     private void showInstructions() {
-        Platform.runLater(() -> {
-            JFXDialogLayout content = new JFXDialogLayout();
-            content.setHeading(new Text("游戏说明"));
-            
-            VBox instructionsContent = new VBox(10);
-            
-            Text controlsTitle = new Text("控制方式：");
-            controlsTitle.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-            
-            Text controlsText = new Text(
-                    "W/↑ - 向上移动\n" +
-                    "S/↓ - 向下移动\n" +
-                    "A/← - 向左移动\n" +
-                    "D/→ - 向右移动\n" +
-                    "空格键 - 发射子弹\n");
-            
-            Text goalTitle = new Text("游戏目标：");
-            goalTitle.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-            
-            Text goalText = new Text(
-                    "1. 消灭所有敌方坦克\n" +
-                    "2. 保护己方基地不被摧毁\n" +
-                    "3. 收集道具提升能力\n\n炸弹使用：拾取炸弹道具后，按E键放置炸弹，5秒后爆炸");
-            
-            instructionsContent.getChildren().addAll(
-                    controlsTitle, controlsText, 
-                    new Region(), // 间隔
-                    goalTitle, goalText);
-            
-            content.setBody(instructionsContent);
-            
-            JFXButton closeButton = new JFXButton("关闭");
-            closeButton.setButtonType(JFXButton.ButtonType.RAISED);
-            closeButton.setStyle("-fx-background-color: " + toHexString(PRIMARY_COLOR) + ";");
-            content.setActions(closeButton);
-            
-            JFXDialog dialog = new JFXDialog(root, content, JFXDialog.DialogTransition.CENTER);
-            
-            closeButton.setOnAction(e -> dialog.close());
-            
-            dialog.show();
-        });
+        InstructionsView instructionsView = new InstructionsView(root);
+        instructionsView.show();
     }
     
     /**
@@ -1311,11 +1274,16 @@ public class GameView {
      * 显示暂停菜单
      */
     private void showPauseMenu() {
-        if (isPauseMenuOpen) return; // 防止重复打开
+        if (isPauseMenuOpen) return; 
         
         Platform.runLater(() -> {
             isPauseMenuOpen = true;
             gamePaused = true;
+            
+            // 停止游戏循环
+            if (gameLoop != null) {
+                gameLoop.stop();
+            }
             
             // 创建半透明背景
             Rectangle overlay = new Rectangle(
@@ -1374,18 +1342,23 @@ public class GameView {
      */
     private void closePauseMenu() {
         Platform.runLater(() -> {
-            // 移除最后添加的子节点（暂停菜单）
+            // 移除最后添加的子节点
             if (root.getChildren().size() > 1) {
                 root.getChildren().remove(root.getChildren().size() - 1);
             }
             
             isPauseMenuOpen = false;
             gamePaused = false;
+            
+            // 重新启动游戏循环
+            if (gameLoop != null) {
+                gameLoop.start();
+            }
         });
     }
     
     /**
-     * 重新开始当前关卡 - 加强版
+     * 重新开始当前关卡
      */
     private void restartGame() {
         Platform.runLater(() -> {
@@ -1439,10 +1412,22 @@ public class GameView {
      * 保存游戏进度
      */
     private void saveGame() {
-        Platform.runLater(() -> {
-            // 这里实现保存逻辑
-            showMessage("游戏进度已保存");
-            closePauseMenu();
+        // 请求用户输入存档名称
+        TextInputDialog dialog = new TextInputDialog("存档" + (System.currentTimeMillis() / 1000));
+        dialog.setTitle("保存游戏");
+        dialog.setHeaderText("请输入存档名称");
+        dialog.setContentText("名称:");
+        
+        dialog.showAndWait().ifPresent(saveName -> {
+            // 调用GameController的保存方法
+            boolean success = gameController.saveGame(saveName);
+            
+            // 显示结果
+            if (success) {
+                showMessage("游戏保存成功！");
+            } else {
+                showMessage("游戏保存失败！");
+            }
         });
     }
     
@@ -2177,8 +2162,9 @@ public class GameView {
         // 计算关卡分数
         int levelScore = level * 1000;
         
-        // 关卡奖励
-        addStatRow(statsGrid, 0, "关卡奖励", level + "关 × 1000", levelScore, null);
+        // 关卡奖励 - 带图标
+        ImageView jiangbeiIcon = createIcon("/images/ui/jiangbei_icon.png", "🏆");
+        addStatRow(statsGrid, 0, "关卡奖励", level + "关 × 1000", levelScore, jiangbeiIcon);
         
         // 击败敌人 - 带图标
         ImageView enemyIcon = createIcon("/images/ui/enemy_icon.png", "⚔");
@@ -2472,7 +2458,7 @@ public class GameView {
                 Image icon = gameController.getPowerUpImage(typeName);
                 if (icon != null) {
                     iconView.setImage(icon);
-                } else {
+            } else {
                     // 如果图标加载失败，显示一个占位符
                     Rectangle placeholder = new Rectangle(30, 30);
                     placeholder.setFill(Color.rgb(80, 200, 255, 0.7));
@@ -2568,6 +2554,99 @@ public class GameView {
                         progressBar.setStyle("-fx-accent: #00AAFF;");
                     }
                 }
+            }
+        }
+    }
+
+    // 添加获取/设置游戏数据的方法
+    public long getTotalGameTime() {
+        return totalGameTime;
+    }
+
+    public void setTotalGameTime(long time) {
+        this.totalGameTime = time;
+        updateTimeDisplay(totalGameTime);
+    }
+
+    public int getScore() {
+        return calculateScore(); // 或者维护一个score变量
+    }
+
+    public void setScore(int score) {
+        // 设置分数（可能需要添加score成员变量）
+    }
+
+    public int getPlayerLives() {
+        return playerLives;
+    }
+
+    public void setPlayerLives(int lives) {
+        this.playerLives = lives;
+        updateLivesDisplay();
+    }
+
+    public int getBulletCount() {
+        return bulletCount;
+    }
+
+    public void setBulletCount(int count) {
+        this.bulletCount = count;
+        updateBulletDisplay();
+    }
+
+    // 重置游戏开始时间，保持总游戏时间不变
+    public void resetGameStartTime() {
+        gameStartTime = System.currentTimeMillis() - totalGameTime;
+    }
+
+    // 添加加载游戏功能
+    private void loadGame() {
+        // 确保gameController不为空
+        if (gameController == null) {
+            // 实例化一个新的GameController
+            gameController = new GameController();
+            // 设置必要的监听器
+            gameController.setGameEventListener(new GameController.GameEventListener() {
+                @Override
+                public void onPlayerDestroyed() {
+                    handlePlayerDestroyed();
+                }
+            });
+            // 设置视图引用
+            gameController.setGameView(this);
+        }
+        
+        // 创建文件选择器
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("加载游戏存档");
+        
+        // 设置默认目录（如果存在）
+        File savesDir = new File("saves");
+        if (savesDir.exists() && savesDir.isDirectory()) {
+            fileChooser.setInitialDirectory(savesDir);
+        }
+        
+        // 设置文件过滤器
+        fileChooser.getExtensionFilters().add(
+            new FileChooser.ExtensionFilter("游戏存档文件", "*.json")
+        );
+        
+        // 显示对话框并获取选择的文件
+        File selectedFile = fileChooser.showOpenDialog(stage);
+        
+        if (selectedFile != null) {
+            // 尝试加载游戏
+            boolean success = gameController.loadGame(selectedFile);
+            if (success) {
+                // 加载成功，切换到游戏界面
+                showGameScreen();
+                // 重置游戏开始时间
+                resetGameStartTime();
+                // 启动游戏循环
+                startGameLoop();
+            } else {
+                // 加载失败，显示错误信息
+                showMessage("游戏存档加载失败！");
             }
         }
     }
