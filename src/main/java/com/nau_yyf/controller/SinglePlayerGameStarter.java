@@ -67,19 +67,11 @@ public class SinglePlayerGameStarter implements GameStarterController {
         // 显示游戏屏幕
         gameScreen.show(singleGameController);
 
-        // 设置生命值和子弹数
-        gameScreen.setPlayerLives(3);
-        gameScreen.setBulletCount(10);
-
-        // 立即更新所有显示元素
-        gameView.updateHealthDisplay();
-        gameScreen.updateLivesDisplay(gameScreen.getPlayerLives());
-        gameScreen.updateEnemiesDisplay(singleGameController);
-        gameScreen.updateBulletDisplay(gameScreen.getBulletCount());
+        // 设置初始游戏状态
+        setupInitialGameState();
 
         // 记录游戏开始时间
         gameView.resetGameStartTime();
-        gameScreen.setLastBulletRefillTime(System.currentTimeMillis());
 
         // 确保画布获取焦点
         if (gameScreen.getGameCanvas() != null) {
@@ -88,6 +80,20 @@ public class SinglePlayerGameStarter implements GameStarterController {
 
         // 启动游戏循环
         gameView.startGameLoop();
+    }
+
+    /**
+     * 设置初始游戏状态
+     */
+    private void setupInitialGameState() {
+        // 设置生命值和子弹数
+        gameScreen.setPlayerLives(3);
+        gameScreen.setBulletCount(10);
+        gameScreen.setLastBulletRefillTime(System.currentTimeMillis());
+        
+        // 确保UI更新
+        gameScreen.updateLivesDisplay(gameScreen.getPlayerLives());
+        gameScreen.updateBulletDisplay(gameScreen.getBulletCount());
     }
 
     /**
@@ -123,5 +129,14 @@ public class SinglePlayerGameStarter implements GameStarterController {
         if (controller instanceof SingleGameController) {
             this.singleGameController = (SingleGameController) controller;
         }
+    }
+
+    /**
+     * 实现GameStarterController接口的getController方法
+     * @return 游戏控制器
+     */
+    @Override
+    public GameController getController() {
+        return singleGameController;
     }
 }

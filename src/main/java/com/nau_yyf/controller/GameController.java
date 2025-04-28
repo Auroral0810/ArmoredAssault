@@ -44,4 +44,10 @@ public interface GameController {
      * @return 是否保存成功
      */
     boolean saveGame(String saveName);
+    
+    /**
+     * 获取游戏视图
+     * @return 游戏视图
+     */
+    GameView getGameView();
 } 

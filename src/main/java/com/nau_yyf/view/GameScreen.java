@@ -43,7 +43,14 @@ public interface GameScreen {
     void setGameLoop(AnimationTimer gameLoop);
     
     /**
-     * 设置时间信息文本
+     * 获取时间信息文本组件
+     * @return 时间信息文本组件
+     */
+    Text getTimeInfo();
+    
+    /**
+     * 设置时间信息文本组件
+     * @param timeInfo 时间信息文本组件
      */
     void setTimeInfo(Text timeInfo);
     
@@ -91,4 +98,40 @@ public interface GameScreen {
      * 清理游戏资源
      */
     void cleanupGameResources();
+    
+    /**
+     * 获取玩家生命值
+     * @return 玩家生命值
+     */
+    int getPlayerLives();
+    
+    /**
+     * 设置玩家生命值
+     * @param lives 生命值
+     */
+    void setPlayerLives(int lives);
+    
+    /**
+     * 获取子弹数量
+     * @return 子弹数量
+     */
+    int getBulletCount();
+    
+    /**
+     * 设置子弹数量
+     * @param count 子弹数量
+     */
+    void setBulletCount(int count);
+    
+    /**
+     * 获取上次子弹补充时间
+     * @return 上次子弹补充时间(毫秒)
+     */
+    long getLastBulletRefillTime();
+    
+    /**
+     * 设置上次子弹补充时间
+     * @param time 时间戳
+     */
+    void setLastBulletRefillTime(long time);
 } 

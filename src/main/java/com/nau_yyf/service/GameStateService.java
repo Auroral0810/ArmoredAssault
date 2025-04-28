@@ -60,4 +60,11 @@ public interface GameStateService {
      * @param controller 游戏控制器
      */
     void cleanupGameResources(GameController controller);
+    
+    /**
+     * 获取游戏得分
+     * @param controller 游戏控制器
+     * @return 游戏得分
+     */
+    int getScore(GameController controller);
 }

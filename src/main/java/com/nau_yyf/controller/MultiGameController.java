@@ -232,6 +232,11 @@ public class MultiGameController implements GameController {
         return false;
     }
 
+    @Override
+    public GameView getGameView() {
+        return null;
+    }
+
     /**
      * 获取玩家1坦克
      */

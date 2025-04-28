@@ -75,7 +75,7 @@ public class MultiPlayerServiceImpl implements PlayerService {
         //playerTank.move(multiController);
         
         // 处理射击
-        if (inputState.isShooting() && bulletCount > 0 && playerTank.canFire()) {
+        if (inputState.isFire() && bulletCount > 0 && playerTank.canFire()) {
             Bullet bullet = fireBullet(playerTank);
             if (bullet != null) {
                 bulletCount--;
@@ -126,7 +126,7 @@ public class MultiPlayerServiceImpl implements PlayerService {
         //player2Tank.move(controller);
         
         // 处理射击
-        if (inputState.isShooting() && bulletCount > 0 && player2Tank.canFire()) {
+        if (inputState.isFire() && bulletCount > 0 && player2Tank.canFire()) {
             Bullet bullet = fireBullet(player2Tank);
             if (bullet != null) {
                 bulletCount--;
@@ -326,6 +326,11 @@ public class MultiPlayerServiceImpl implements PlayerService {
         if (playerTank == null) return null;
         
         return playerTank.fire();
+    }
+
+    @Override
+    public void handlePlayerFiring(GameController controller) {
+
     }
 
     /**

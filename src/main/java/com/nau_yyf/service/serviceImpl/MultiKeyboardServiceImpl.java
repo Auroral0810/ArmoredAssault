@@ -119,7 +119,7 @@ public class MultiKeyboardServiceImpl implements KeyboardService {
                 player1InputState.setRight(true);
             }
             if (code.equals("SPACE")) {
-                player1InputState.setShooting(true);
+                player1InputState.setFire(true);
             }
             if (code.equals("E")) {
                 if (multiGameController != null) {
@@ -143,7 +143,7 @@ public class MultiKeyboardServiceImpl implements KeyboardService {
                 player2InputState.setRight(true);
             }
             if (code.equals("ENTER")) {
-                player2InputState.setShooting(true);
+                player2InputState.setFire(true);
             }
             if (code.equals("J")) {
                 if (multiGameController != null) {
@@ -185,7 +185,7 @@ public class MultiKeyboardServiceImpl implements KeyboardService {
             player1InputState.setRight(false);
         }
         if (code.equals("SPACE")) {
-            player1InputState.setShooting(false);
+            player1InputState.setFire(false);
         }
         
         // 玩家2控制 (方向键 + 回车)
@@ -202,7 +202,7 @@ public class MultiKeyboardServiceImpl implements KeyboardService {
             player2InputState.setRight(false);
         }
         if (code.equals("ENTER")) {
-            player2InputState.setShooting(false);
+            player2InputState.setFire(false);
         }
         
         return player1InputState; // 接口要求返回一个InputState，我们返回玩家1的状态
@@ -232,14 +232,14 @@ public class MultiKeyboardServiceImpl implements KeyboardService {
         player1InputState.setDown(false);
         player1InputState.setLeft(false);
         player1InputState.setRight(false);
-        player1InputState.setShooting(false);
+        player1InputState.setFire(false);
         
         // 重置玩家2输入状态
         player2InputState.setUp(false);
         player2InputState.setDown(false);
         player2InputState.setLeft(false);
         player2InputState.setRight(false);
-        player2InputState.setShooting(false);
+        player2InputState.setFire(false);
     }
     
     /**

@@ -4,6 +4,7 @@ import com.nau_yyf.controller.GameController;
 import com.nau_yyf.controller.SingleGameController;
 import com.nau_yyf.service.GameStateService;
 import com.nau_yyf.view.GameView;
+import com.nau_yyf.view.GameScreen;
 import com.nau_yyf.view.singleGame.SinglePlayerGameScreen;
 import javafx.application.Platform;
 import javafx.scene.canvas.Canvas;
@@ -78,9 +79,11 @@ public class SingleGameStateServiceImpl implements GameStateService {
                 @Override
                 public void onPlayerDestroyed() {
                     String selectedTankType = "standard"; // 默认坦克类型
-                    // 直接获取SinglePlayerGameScreen
-                    SinglePlayerGameScreen gameScreen = gameView.getSinglePlayerGameStarter().getGameScreen();
-                    gameScreen.handlePlayerDestroyed(singleController, selectedTankType, gameView.getPlayerLives());
+                    // 使用通用方法获取游戏屏幕
+                    GameScreen gameScreen = gameView.getGameScreen();
+                    if (gameScreen instanceof SinglePlayerGameScreen) {
+                        ((SinglePlayerGameScreen) gameScreen).handlePlayerDestroyed(singleController, selectedTankType, gameView.getPlayerLives());
+                    }
                 }
             });
 

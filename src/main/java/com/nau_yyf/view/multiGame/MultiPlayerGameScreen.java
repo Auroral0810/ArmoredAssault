@@ -51,6 +51,7 @@ public class MultiPlayerGameScreen implements GameScreen {
     private int player1Lives = 3;
     private int player2Lives = 3;
     private long lastUpdateTime = 0;
+    private long pauseTime = 0;
 
     /**
      * 构造函数
@@ -477,7 +478,7 @@ public class MultiPlayerGameScreen implements GameScreen {
                 Text healthText = (Text) player1Panel.getChildren().get(3);
                 int health = player1Tank.getHealth();
                 healthText.setText("血量: " + health);
-                
+
                 // 根据血量设置颜色
                 if (health <= 1) {
                     healthText.setFill(Color.RED);
@@ -714,13 +715,14 @@ public class MultiPlayerGameScreen implements GameScreen {
      */
     @Override
     public void setTotalGameTime(long time) {
-        // 设置时间并更新显示
-        if (timeInfo != null) {
-            long seconds = time / 1000;
-            long minutes = seconds / 60;
-            seconds = seconds % 60;
-            timeInfo.setText(String.format("%02d:%02d", minutes, seconds));
-        }
+        Platform.runLater(() -> {
+            if (timeInfo != null) {
+                long seconds = time / 1000;
+                long minutes = seconds / 60;
+                seconds = seconds % 60;
+                timeInfo.setText(String.format("%02d:%02d", minutes, seconds));
+            }
+        });
     }
 
     /**
@@ -741,12 +743,39 @@ public class MultiPlayerGameScreen implements GameScreen {
 
     @Override
     public boolean isGamePaused() {
-        return false;
+        return gamePaused;
     }
 
+    /**
+     * 设置游戏暂停状态
+     * @param paused 是否暂停
+     */
     @Override
     public void setGamePaused(boolean paused) {
-
+        // 如果状态没有变化，不执行任何操作
+        if (this.gamePaused == paused) return;
+        
+        this.gamePaused = paused;
+        
+        if (gameLoop != null) {
+            if (paused) {
+                // 暂停时停止游戏循环并记录暂停时间
+                gameLoop.stop();
+                this.pauseTime = System.currentTimeMillis();
+            } else {
+                // 恢复时完全重置最后更新时间为当前时间
+                // 这确保不计算暂停期间的时间
+                this.lastUpdateTime = System.currentTimeMillis();
+                
+                // 启动游戏循环
+                gameLoop.start();
+                
+                // 确保画布重新获得焦点
+                if (gameCanvas != null) {
+                    gameCanvas.requestFocus();
+                }
+            }
+        }
     }
 
     @Override
@@ -769,7 +798,12 @@ public class MultiPlayerGameScreen implements GameScreen {
 
     @Override
     public void setGameLoop(AnimationTimer gameLoop) {
+        this.gameLoop = gameLoop;
+    }
 
+    @Override
+    public Text getTimeInfo() {
+        return null;
     }
 
     /**
@@ -870,5 +904,39 @@ public class MultiPlayerGameScreen implements GameScreen {
      */
     public long getLastBulletRefillTime() {
         return lastBulletRefillTime;
+    }
+
+    @Override
+    public int getPlayerLives() {
+        // 多人模式下，可以返回两个玩家生命值的平均值，或者第一个玩家的生命值
+        return player1Lives;
+    }
+
+    @Override
+    public int getBulletCount() {
+        // 多人模式下，可以返回两个玩家子弹数量的平均值，或者第一个玩家的子弹数量
+        return player1BulletCount;
+    }
+
+    /**
+     * 实现GameScreen接口的setBulletCount方法
+     * 在多人游戏中，这个方法会设置玩家1的子弹数量
+     */
+    @Override
+    public void setBulletCount(int count) {
+        // 在多人游戏中，我们将这个通用方法映射到玩家1的子弹数量
+        this.player1BulletCount = count;
+        updateBulletDisplay(player1BulletCount, player2BulletCount);
+    }
+
+    /**
+     * 实现GameScreen接口的setPlayerLives方法
+     * 在多人游戏中，这个方法会设置玩家1的生命值
+     */
+    @Override
+    public void setPlayerLives(int lives) {
+        // 在多人游戏中，我们将这个通用方法映射到玩家1的生命值
+        this.player1Lives = lives;
+        updateLivesDisplay(player1Lives, player2Lives);
     }
 }

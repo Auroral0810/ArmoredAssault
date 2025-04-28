@@ -202,7 +202,7 @@ public class MultiKeyboardTest extends Application {
      * 格式化输入状态为字符串
      */
     private String formatInputState(InputState state) {
-        if (!state.isUp() && !state.isDown() && !state.isLeft() && !state.isRight() && !state.isShooting()) {
+        if (!state.isUp() && !state.isDown() && !state.isLeft() && !state.isRight() && !state.isFire()) {
             return "未检测到输入";
         }
 
@@ -211,7 +211,7 @@ public class MultiKeyboardTest extends Application {
         if (state.isDown()) sb.append("下 ");
         if (state.isLeft()) sb.append("左 ");
         if (state.isRight()) sb.append("右 ");
-        if (state.isShooting()) sb.append("射击 ");
+        if (state.isFire()) sb.append("射击 ");
 
         return sb.toString().trim();
     }

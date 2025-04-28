@@ -172,6 +172,14 @@ public class PauseMenuView {
                     
                     // 重置状态
                     gameView.setIsPauseMenuOpen(false);
+                    
+                    // 重要: 先重置最后更新时间，再恢复游戏
+                    long currentTime = System.currentTimeMillis();
+                    if (gameView.getGameScreen() != null) {
+                        gameView.getGameScreen().setLastUpdateTime(currentTime);
+                    }
+                    
+                    // 恢复游戏状态
                     gameView.setGamePaused(false);
                     pauseRoot = null;
                     
@@ -183,6 +191,12 @@ public class PauseMenuView {
                 // 没有动画时直接处理
                 if (root.getChildren().size() > 1) {
                     root.getChildren().remove(root.getChildren().size() - 1);
+                }
+                
+                // 重要: 先重置最后更新时间，再恢复游戏
+                long currentTime = System.currentTimeMillis();
+                if (gameView.getGameScreen() != null) {
+                    gameView.getGameScreen().setLastUpdateTime(currentTime);
                 }
                 
                 gameView.setIsPauseMenuOpen(false);

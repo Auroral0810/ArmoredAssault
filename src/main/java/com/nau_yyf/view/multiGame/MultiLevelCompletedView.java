@@ -193,16 +193,34 @@ public class MultiLevelCompletedView implements LevelCompletedView {
             // 创建按钮
             JFXButton menuButton = createActionButton("返回主菜单", false);
             menuButton.setOnAction(e -> {
+                // 先移除当前界面
+                root.getChildren().remove(containerPane);
+                
+                // 然后清理游戏资源
                 gameView.cleanupGameResources();
-                gameView.showMainMenu();
+                
+                // 最后显示主菜单
+                Platform.runLater(() -> {
+                    gameView.showMainMenu();
+                });
             });
             
             if (currentLevel < totalLevels) {
                 JFXButton nextButton = createActionButton("下一关", true);
                 nextButton.setOnAction(e -> {
-                    gameView.setGamePaused(false);
+                    // 确保移除当前界面
                     root.getChildren().remove(containerPane);
-                    gameView.startMultiPlayerGame(currentLevel + 1);
+                    
+                    // 重要：在启动新游戏前重置游戏状态
+                    gameView.cleanupGameResources();
+                    
+                    // 设置游戏为非暂停状态
+                    gameView.setGamePaused(false);
+                    
+                    // 启动下一关
+                    Platform.runLater(() -> {
+                        gameView.startMultiPlayerGame(currentLevel + 1);
+                    });
                 });
                 buttonContainer.getChildren().addAll(menuButton, nextButton);
             } else {

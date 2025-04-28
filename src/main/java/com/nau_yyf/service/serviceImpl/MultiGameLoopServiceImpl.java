@@ -7,6 +7,7 @@ import com.nau_yyf.service.EffectService;
 import com.nau_yyf.service.GameLoopService;
 import com.nau_yyf.service.PlayerService;
 import com.nau_yyf.view.GameView;
+import com.nau_yyf.view.GameScreen;
 import com.nau_yyf.view.multiGame.MultiPlayerGameScreen;
 import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
@@ -149,16 +150,14 @@ public class MultiGameLoopServiceImpl implements GameLoopService {
         // 当玩家生命值变化时更新UI
         
         // TODO: 更新子弹补给
-        updateBulletRefill(multiController, deltaTime);
+        updateBulletRefill(multiController, gameView.getGameScreen());
         
-        // TODO: 更新敌人显示
-        // 获取多人游戏屏幕并更新敌人显示
-        /*
-        if (gameView.getMultiPlayerGameStarter() != null) {
-            MultiPlayerGameScreen gameScreen = gameView.getMultiPlayerGameStarter().getGameScreen();
-            gameScreen.updateEnemiesDisplay(multiController);
+        // 获取多人游戏屏幕的部分需修改为:
+        GameScreen gameScreen = gameView.getGameScreen();
+        if (gameScreen instanceof MultiPlayerGameScreen) {
+            MultiPlayerGameScreen multiScreen = (MultiPlayerGameScreen) gameScreen;
+            // TODO: 使用 multiScreen 进行相应操作
         }
-        */
         
         // 更新增益效果
         // multiController.updatePowerUps(deltaTime);
@@ -181,23 +180,36 @@ public class MultiGameLoopServiceImpl implements GameLoopService {
     }
 
     /**
-     * 根据坦克类型恢复子弹
+     * 更新子弹补充
      */
-    private void updateBulletRefill(MultiGameController multiController, double deltaTime) {
-        if (multiController == null) return;
+    private void updateBulletRefill(MultiGameController controller, GameScreen gameScreen) {
+        long currentTime = System.currentTimeMillis();
+        long lastRefillTime = gameScreen.getLastBulletRefillTime();
         
-        // 玩家1子弹补充
-        Tank player1Tank = multiController.getPlayer1Tank();
-        if (player1Tank != null) {
-            // TODO: 管理玩家1的子弹数量和刷新时间
-            // 需要在MultiPlayerGameScreen中保存这些信息
-        }
-        
-        // 玩家2子弹补充
-        Tank player2Tank = multiController.getPlayer2Tank();
-        if (player2Tank != null) {
-            // TODO: 管理玩家2的子弹数量和刷新时间
-            // 需要在MultiPlayerGameScreen中保存这些信息
+        // 每3秒补充一颗子弹，最多10颗
+        if (currentTime - lastRefillTime >= 3000) {
+            boolean updated = false;
+            
+            if (gameScreen instanceof MultiPlayerGameScreen) {
+                MultiPlayerGameScreen multiScreen = (MultiPlayerGameScreen)gameScreen;
+                
+                // 更新玩家1子弹
+                if (multiScreen.getPlayer1BulletCount() < 10) {
+                    multiScreen.setPlayer1BulletCount(multiScreen.getPlayer1BulletCount() + 1);
+                    updated = true;
+                }
+                
+                // 更新玩家2子弹
+                if (multiScreen.getPlayer2BulletCount() < 10) {
+                    multiScreen.setPlayer2BulletCount(multiScreen.getPlayer2BulletCount() + 1);
+                    updated = true;
+                }
+                
+                // 只有当至少一个玩家的子弹更新了，才重置计时器
+                if (updated) {
+                    multiScreen.setLastBulletRefillTime(currentTime);
+                }
+            }
         }
     }
 
@@ -225,7 +237,6 @@ public class MultiGameLoopServiceImpl implements GameLoopService {
                 if (gameCanvas != null) {
                     gameCanvas.requestFocus();
                 }
-                
             });
         }
     }

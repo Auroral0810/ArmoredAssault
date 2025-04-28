@@ -124,7 +124,7 @@ public class SingleKeyboardServiceImpl implements KeyboardService {
                 inputState.setRight(true);
             }
             if (code.equals("SPACE")) {
-                inputState.setShooting(true);
+                inputState.setFire(true);
             }
             if (code.equals("ESCAPE")) {
                 if (pauseCallback != null) {
@@ -162,7 +162,7 @@ public class SingleKeyboardServiceImpl implements KeyboardService {
             inputState.setRight(false);
         }
         if (code.equals("SPACE")) {
-            inputState.setShooting(false);
+            inputState.setFire(false);
         }
         
         return inputState;
@@ -191,7 +191,7 @@ public class SingleKeyboardServiceImpl implements KeyboardService {
         inputState.setDown(false);
         inputState.setLeft(false);
         inputState.setRight(false);
-        inputState.setShooting(false);
+        inputState.setFire(false);
     }
     
     /**

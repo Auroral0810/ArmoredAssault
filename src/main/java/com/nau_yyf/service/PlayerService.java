@@ -68,6 +68,12 @@ public interface PlayerService {
     Bullet fireBullet(Tank playerTank);
     
     /**
+     * 处理玩家射击
+     * @param controller 游戏控制器
+     */
+    void handlePlayerFiring(GameController controller);
+    
+    /**
      * 输入状态数据类
      */
     class InputState {
@@ -75,7 +81,7 @@ public interface PlayerService {
         private boolean down;
         private boolean left;
         private boolean right;
-        private boolean shooting;
+        private boolean fire;
         
         // Getter和Setter方法
         public boolean isUp() { return up; }
@@ -90,7 +96,7 @@ public interface PlayerService {
         public boolean isRight() { return right; }
         public void setRight(boolean right) { this.right = right; }
         
-        public boolean isShooting() { return shooting; }
-        public void setShooting(boolean shooting) { this.shooting = shooting; }
+        public boolean isFire() { return fire; }
+        public void setFire(boolean fire) { this.fire = fire; }
     }
 }

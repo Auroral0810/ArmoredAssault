@@ -44,7 +44,12 @@ public class OnlineGameController implements GameController {
         // TODO: 实现联机游戏存档逻辑
         return false;
     }
-    
+
+    @Override
+    public GameView getGameView() {
+        return null;
+    }
+
     /**
      * 获取玩家坦克
      */

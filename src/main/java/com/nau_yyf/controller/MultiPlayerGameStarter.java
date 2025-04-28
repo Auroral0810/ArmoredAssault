@@ -195,4 +195,20 @@ public class MultiPlayerGameStarter implements GameStarterController {
             this.multiGameController = (MultiGameController) controller;
         }
     }
+
+    @Override
+    public void startGame(String tankType, int level) {
+        // 在多人模式下，这个方法可能不完全适用，但需要提供实现
+        // 可以使用默认逻辑或抛出异常
+        throw new UnsupportedOperationException("多人游戏启动需要两种坦克类型。请使用 startGame(String p1TankType, String p2TankType, int level) 方法");
+    }
+
+    /**
+     * 实现GameStarterController接口的getController方法
+     * @return 游戏控制器
+     */
+    @Override
+    public GameController getController() {
+        return multiGameController;
+    }
 }

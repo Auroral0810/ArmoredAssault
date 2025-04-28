@@ -28,6 +28,8 @@ import javafx.scene.text.Text;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.control.ProgressBar;
 import javafx.animation.AnimationTimer;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
 
 import static com.nau_yyf.util.TankUtil.getTankDisplayName;
 
@@ -54,6 +56,7 @@ public class SinglePlayerGameScreen implements GameScreen {
     private long lastBulletRefillTime = 0; // 上次子弹补充时间
     private AnimationTimer gameLoop;
     private int playerLives = 3; // 初始生命数为3
+    private long pauseTime = 0;
 
     /**
      * 构造函数
@@ -105,8 +108,20 @@ public class SinglePlayerGameScreen implements GameScreen {
         // 设置键盘控制（放在添加到场景之后）
         gameView.setupKeyboardControls();
 
-        // 确保画布获取焦点
-        Platform.runLater(() -> gameCanvas.requestFocus());
+        // 在添加到场景之后立即更新一次时间显示
+        Platform.runLater(() -> {
+            // 强制更新一次
+            if (timeInfo != null) {
+                updateTimeDisplay(getTotalGameTime());
+                System.out.println("初始化时间显示: " + timeInfo.getText());
+                
+                // 同时也确保子弹显示更新
+                updateBulletDisplay(bulletCount);
+            } else {
+                System.err.println("严重错误: 初始化后timeInfo仍为空!");
+            }
+            gameCanvas.requestFocus();
+        });
     }
 
     /**
@@ -124,9 +139,12 @@ public class SinglePlayerGameScreen implements GameScreen {
         levelInfo.setFill(gameView.getPrimaryColor());
 
         // 游戏时间
-        Text timeInfo = new Text("00:00");
+        timeInfo = new Text("00:00");
         timeInfo.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         timeInfo.setFill(gameView.getTextColor());
+        // 确保设置timeInfo引用
+        this.timeInfo = timeInfo;
+        // 同时也通知GameView
         gameView.setTimeInfo(timeInfo);
 
         // 添加设置按钮
@@ -423,33 +441,50 @@ public class SinglePlayerGameScreen implements GameScreen {
         if (singleGameController == null || gameDataPanel == null)
             return;
 
-        // 找到敌人信息框
-        VBox enemiesInfo = (VBox) gameDataPanel.lookup("#enemiesInfo");
-        if (enemiesInfo != null) {
-            // 找到值文本
-            Text enemiesValue = (Text) enemiesInfo.getChildren().get(1);
-            if (enemiesValue != null) {
-                // 获取已摧毁的敌人数量和总目标数量
-                int defeated = singleGameController.getDefeatedEnemiesCount();
-                int total = singleGameController.getTotalEnemyTarget();
+        Platform.runLater(() -> {
+            // 找到敌人信息框
+            VBox enemiesInfo = (VBox) gameDataPanel.lookup("#enemiesInfo");
+            if (enemiesInfo != null) {
+                // 找到值文本
+                Text enemiesValue = (Text) enemiesInfo.getChildren().get(1);
+                if (enemiesValue != null) {
+                    // 获取已摧毁的敌人数量和总目标数量
+                    int defeated = singleGameController.getDefeatedEnemiesCount();
+                    int total = singleGameController.getTotalEnemyTarget();
 
-                // 更新显示格式：已消灭/总数
-                enemiesValue.setText(defeated + "/" + total);
+                    String newValue = defeated + "/" + total;
+                    
+                    // 避免不必要的更新
+                    if (!enemiesValue.getText().equals(newValue)) {
+                        String oldValue = enemiesValue.getText();
+                        enemiesValue.setText(newValue);
+                        System.out.println("敌人目标显示更新: " + oldValue + " -> " + newValue);
 
-                // 如果接近完成，显示绿色
-                if (defeated >= total * 0.8) {
-                    enemiesValue.setFill(Color.GREEN);
-                } else {
-                    enemiesValue.setFill(gameView.getTextColor());
-                }
+                        // 强制敌人值颜色变化以引起注意
+                        Color originalColor = gameView.getTextColor();
+                        
+                        // 如果接近完成，显示绿色
+                        if (defeated >= total * 0.8) {
+                            originalColor = Color.GREEN;
+                        }
+                        
+                        enemiesValue.setFill(Color.YELLOW);
+                        
+                        // 添加淡出效果，0.5秒后恢复正常颜色
+                        final Color finalColor = originalColor;
+                        PauseTransition pause = new PauseTransition(Duration.seconds(0.5));
+                        pause.setOnFinished(e -> enemiesValue.setFill(finalColor));
+                        pause.play();
 
-                // 检查是否完成关卡
-                GameStateService gameStateService = gameView.getGameStateService();
-                if (gameStateService.isLevelCompleted(singleGameController)) {
-                    showLevelCompletedMessage(singleGameController);
+                        // 检查是否完成关卡
+                        GameStateService gameStateService = gameView.getGameStateService();
+                        if (gameStateService.isLevelCompleted(singleGameController)) {
+                            showLevelCompletedMessage(singleGameController);
+                        }
+                    }
                 }
             }
-        }
+        });
     }
 
     /**
@@ -576,21 +611,63 @@ public class SinglePlayerGameScreen implements GameScreen {
      * 更新子弹显示
      */
     public void updateBulletDisplay(int bulletCount) {
+        System.out.println("更新子弹显示UI: " + bulletCount);
+        
+        if (gameDataPanel == null) {
+            System.err.println("错误: gameDataPanel为null，无法更新子弹显示");
+            return;
+        }
+        
+        // 使用Platform.runLater确保UI更新在JavaFX线程上执行
         Platform.runLater(() -> {
-            // 找到子弹信息框并更新
-            for (Node node : gameDataPanel.getChildren()) {
+            boolean updated = false;
+            
+            // 使用索引遍历，避免ConcurrentModificationException
+            int childCount = gameDataPanel.getChildren().size();
+            for (int i = 0; i < childCount; i++) {
+                Node node = gameDataPanel.getChildren().get(i);
                 if (node instanceof VBox) {
                     VBox box = (VBox) node;
                     if (box.getChildren().size() > 1 && box.getChildren().get(0) instanceof Text) {
                         Text title = (Text) box.getChildren().get(0);
                         if (title.getText().equals("子弹")) {
                             Text value = (Text) box.getChildren().get(1);
+                            String oldValue = value.getText();
                             value.setText(Integer.toString(bulletCount));
+                            System.out.println("子弹显示更新: " + oldValue + " -> " + bulletCount);
+                            
+                            // 强制子弹值颜色变化以引起注意
+                            value.setFill(Color.YELLOW);
+                            
+                            // 添加淡出效果，0.5秒后恢复正常颜色
+                            PauseTransition pause = new PauseTransition(Duration.seconds(0.5));
+                            pause.setOnFinished(e -> value.setFill(gameView.getTextColor()));
+                            pause.play();
+                            
+                            updated = true;
                             break;
                         }
                     }
                 }
             }
+            
+            if (!updated) {
+                System.err.println("警告: 未找到子弹显示组件，无法更新");
+                
+                // 尝试使用ID查询
+                VBox bulletInfo = (VBox) gameDataPanel.lookup("#bulletInfo");
+                if (bulletInfo != null && bulletInfo.getChildren().size() > 1) {
+                    Text value = (Text) bulletInfo.getChildren().get(1);
+                    value.setText(Integer.toString(bulletCount));
+                    System.out.println("通过ID更新子弹显示: " + bulletCount);
+                } else {
+                    System.err.println("通过ID查找也失败，需要重建子弹显示组件");
+                    // 这里可以添加重建组件的逻辑
+                }
+            }
+            
+            // 强制刷新布局
+            gameDataPanel.layout();
         });
     }
 
@@ -681,24 +758,40 @@ public class SinglePlayerGameScreen implements GameScreen {
      * 设置游戏总时间
      * @param time 游戏总时间(毫秒)
      */
+    @Override
     public void setTotalGameTime(long time) {
+        System.out.println("设置游戏总时间: " + time + "毫秒");
         this.totalGameTime = time;
-        updateTimeDisplay(totalGameTime);
-    }
-
-    /**
-     * 更新时间显示
-     * 
-     * @param totalTimeMillis 总游戏时间(毫秒)
-     */
-    private void updateTimeDisplay(long totalTimeMillis) {
-        if (timeInfo == null) return;
         
-        long seconds = totalTimeMillis / 1000;
-        long minutes = seconds / 60;
-        seconds = seconds % 60;
-
-        timeInfo.setText(String.format("%02d:%02d", minutes, seconds));
+        // 使用Platform.runLater确保在JavaFX线程中更新UI
+        Platform.runLater(() -> {
+            if (timeInfo != null) {
+                long seconds = time / 1000;
+                long minutes = seconds / 60;
+                seconds = seconds % 60;
+                
+                String formattedTime = String.format("%02d:%02d", minutes, seconds);
+                
+                // 直接设置文本
+                timeInfo.setText(formattedTime);
+                System.out.println("时间显示更新为: " + formattedTime);
+                
+                // 强制时间值颜色变化以引起注意
+                timeInfo.setFill(Color.YELLOW);
+                
+                // 添加淡出效果，0.5秒后恢复正常颜色
+                PauseTransition pause = new PauseTransition(Duration.seconds(0.5));
+                pause.setOnFinished(e -> timeInfo.setFill(gameView.getTextColor()));
+                pause.play();
+                
+                // 确保布局更新
+                if (timeInfo.getParent() != null) {
+                    timeInfo.getParent().layout();
+                }
+            } else {
+                System.err.println("警告: timeInfo为空，无法更新时间显示");
+            }
+        });
     }
 
     /**
@@ -721,6 +814,7 @@ public class SinglePlayerGameScreen implements GameScreen {
      * 获取游戏是否暂停
      * @return 是否暂停
      */
+    @Override
     public boolean isGamePaused() {
         return gamePaused;
     }
@@ -729,14 +823,39 @@ public class SinglePlayerGameScreen implements GameScreen {
      * 设置游戏暂停状态
      * @param paused 是否暂停
      */
+    @Override
     public void setGamePaused(boolean paused) {
+        // 如果状态没有变化，不执行任何操作
+        if (this.gamePaused == paused) return;
+        
         this.gamePaused = paused;
+        
+        if (gameLoop != null) {
+            if (paused) {
+                // 暂停时停止游戏循环并记录暂停时间
+                gameLoop.stop();
+                this.pauseTime = System.currentTimeMillis();
+            } else {
+                // 恢复时更新最后更新时间为当前时间
+                // 这确保不计算暂停期间的时间
+                this.lastUpdateTime = System.currentTimeMillis();
+                
+                // 启动游戏循环
+                gameLoop.start();
+                
+                // 确保画布重新获得焦点
+                if (gameCanvas != null) {
+                    gameCanvas.requestFocus();
+                }
+            }
+        }
     }
 
     /**
      * 获取暂停菜单是否打开
      * @return 是否打开
      */
+    @Override
     public boolean isPauseMenuOpen() {
         return isPauseMenuOpen;
     }
@@ -745,6 +864,7 @@ public class SinglePlayerGameScreen implements GameScreen {
      * 设置暂停菜单打开状态
      * @param open 是否打开
      */
+    @Override
     public void setIsPauseMenuOpen(boolean open) {
         this.isPauseMenuOpen = open;
     }
@@ -766,12 +886,26 @@ public class SinglePlayerGameScreen implements GameScreen {
     }
 
     /**
-     * 设置子弹数量
+     * 设置子弹数量并更新UI显示
      * @param count 子弹数量
      */
+    @Override
     public void setBulletCount(int count) {
+        // 确保子弹数量不会为负
+        if (count < 0) count = 0;
+        if (count > 10) count = 10;
+        
+        // 如果子弹数量没有变化，不更新UI
+        if (this.bulletCount == count) return;
+        
+        System.out.println("设置子弹数量: " + count + "（之前: " + this.bulletCount + "）");
         this.bulletCount = count;
-        updateBulletDisplay(count);
+        
+        // 使用Platform.runLater确保在JavaFX线程中更新UI
+        int finalCount = count;
+        Platform.runLater(() -> {
+            updateBulletDisplay(finalCount);
+        });
     }
 
     /**
@@ -815,6 +949,15 @@ public class SinglePlayerGameScreen implements GameScreen {
     }
 
     /**
+     * 获取时间信息文本组件
+     * @return 时间信息文本组件
+     */
+    @Override
+    public Text getTimeInfo() {
+        return this.timeInfo; // 修改返回实际的timeInfo对象而不是null
+    }
+
+    /**
      * 获取玩家生命值
      * @return 玩家生命值
      */
@@ -852,6 +995,22 @@ public class SinglePlayerGameScreen implements GameScreen {
         
         // 其他资源清理
         timeInfo = null;
+    }
+
+    // 添加辅助方法确保时间显示更新
+    private void updateTimeDisplay(long time) {
+        if (timeInfo == null) {
+            System.err.println("updateTimeDisplay: timeInfo为空!");
+            return;
+        }
+        
+        long seconds = time / 1000;
+        long minutes = seconds / 60;
+        seconds = seconds % 60;
+        
+        String formattedTime = String.format("%02d:%02d", minutes, seconds);
+        timeInfo.setText(formattedTime);
+        System.out.println("直接更新时间显示: " + formattedTime);
     }
 
 }

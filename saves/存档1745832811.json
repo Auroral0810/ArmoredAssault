@@ -1,0 +1,72 @@
+{
+  "currentLevel": 1,
+  "playerTankType": "standard",
+  "gameTime": 16214,
+  "score": 3000,
+  "playerLives": 3,
+  "bulletCount": 2,
+  "playerTank": {
+    "type": "standard",
+    "x": 91,
+    "y": 400,
+    "direction": 0,
+    "health": 2,
+    "activeEffects": {
+      "invincibility": 0.9666666666666808
+    }
+  },
+  "enemyTanks": [
+    {
+      "type": "basic",
+      "x": 594,
+      "y": 240,
+      "direction": 3,
+      "health": 2,
+      "activeEffects": {}
+    },
+    {
+      "type": "basic",
+      "x": 421,
+      "y": 400,
+      "direction": 2,
+      "health": 2,
+      "activeEffects": {}
+    },
+    {
+      "type": "basic",
+      "x": 281,
+      "y": 240,
+      "direction": 1,
+      "health": 2,
+      "activeEffects": {}
+    },
+    {
+      "type": "basic",
+      "x": 560,
+      "y": 204,
+      "direction": 0,
+      "health": 2,
+      "activeEffects": {}
+    },
+    {
+      "type": "basic",
+      "x": 421,
+      "y": 400,
+      "direction": 0,
+      "health": 2,
+      "activeEffects": {}
+    }
+  ],
+  "bullets": [],
+  "powerUps": [
+    {
+      "type": "invincibility",
+      "x": 80,
+      "y": 120,
+      "creationTime": 1745832807232
+    }
+  ],
+  "enemyTanksDestroyed": 9,
+  "totalEnemyTanksToGenerate": 15,
+  "enemyTanksGenerated": 14
+}

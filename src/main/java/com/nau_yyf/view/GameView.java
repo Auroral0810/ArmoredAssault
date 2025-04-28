@@ -4,10 +4,7 @@ import com.nau_yyf.controller.*;
 import com.nau_yyf.model.Tank;
 import com.nau_yyf.view.multiGame.MultiGameOverScreen;
 import com.nau_yyf.view.multiGame.MultiLevelCompletedView;
-import com.nau_yyf.view.singleGame.SingleGameOverScreen;
-import com.nau_yyf.view.singleGame.SingleLevelCompletedView;
-import com.nau_yyf.view.singleGame.SinglePlayerOptionsView;
-import com.nau_yyf.view.singleGame.SingleTankSelectionView;
+import com.nau_yyf.view.singleGame.*;
 import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -45,10 +42,8 @@ import com.nau_yyf.util.TankUtil;
 
 /**
  * 游戏视图类，负责管理游戏界面和用户交互
- * <p>
  * 该类采用MVC架构中的View角色，协调各种服务组件与UI元素，
  * 处理游戏菜单、画面渲染及用户输入等功能，但不直接包含游戏逻辑
- * </p>
  */
 public class GameView {
     /** 游戏窗口和场景 */
@@ -125,6 +120,9 @@ public class GameView {
     /** 修改字段声明，使用接口类型 */
     private Map<Integer, GameOverScreen> gameOverScreens = new HashMap<>();
     private Map<Integer, LevelCompletedView> levelCompletedViews = new HashMap<>();
+
+    /** 游戏启动器映射 */
+    private Map<Integer, GameStarterController> gameStarters = new HashMap<>();
 
     /**
      * 构造函数，初始化游戏视图
@@ -209,6 +207,11 @@ public class GameView {
         this.levelCompletedViews.put(GAME_MODE_MULTI, new MultiLevelCompletedView(this, root, scene));
         // this.levelCompletedViews.put(GAME_MODE_ONLINE, new OnlineLevelCompletedView(this, root, scene)); // 未来可添加
         
+        // 初始化游戏启动器
+        this.gameStarters.put(GAME_MODE_SINGLE, new SinglePlayerGameStarter(this));
+        this.gameStarters.put(GAME_MODE_MULTI, new MultiPlayerGameStarter(this));
+        // this.gameStarters.put(GAME_MODE_ONLINE, new OnlineGameStarter(this)); // 未来可添加
+
         // 使用Platform.runLater处理后续的UI更新
         Platform.runLater(() -> {
             // 显示主菜单
@@ -221,13 +224,6 @@ public class GameView {
      */
     public void showMainMenu() {
         mainMenuView.show();
-    }
-
-    /**
-     * 显示单人游戏选项界面
-     */
-    public void showSinglePlayerOptions() {
-        showGameOptions(GAME_MODE_SINGLE);
     }
 
     /**
@@ -262,7 +258,7 @@ public class GameView {
         // 根据游戏模式显示不同选项界面
         switch (gameMode) {
             case GAME_MODE_SINGLE:
-                singlePlayerOptionsView.show();
+        singlePlayerOptionsView.show();
                 break;
             case GAME_MODE_MULTI:
                 multiPlayerOptionsView.show();
@@ -273,6 +269,35 @@ public class GameView {
                 showMessage("联机游戏选项界面尚未实现");
                 break;
         }
+    }
+
+    /**
+     * 获取当前游戏模式的游戏启动器
+     * @return 当前游戏模式的游戏启动器
+     */
+    public GameStarterController getGameStarter() {
+        return gameStarters.get(currentGameMode);
+    }
+
+    /**
+     * 获取指定游戏模式的游戏启动器
+     * @param gameMode 游戏模式
+     * @return 指定游戏模式的游戏启动器
+     */
+    public GameStarterController getGameStarter(int gameMode) {
+        return gameStarters.get(gameMode);
+    }
+
+    /**
+     * 获取当前游戏模式的游戏屏幕
+     * @return 当前游戏模式的游戏屏幕
+     */
+    public GameScreen getGameScreen() {
+        GameStarterController starter = getGameStarter();
+        if (starter != null) {
+            return starter.getGameScreen();
+        }
+        return null;
     }
 
     /**
@@ -288,7 +313,7 @@ public class GameView {
         switch (currentGameMode) {
             case GAME_MODE_SINGLE:
                 // 单人游戏关卡选择
-                levelSelectionDialog.show(selectedTankType);
+        levelSelectionDialog.show(selectedTankType);
                 break;
             case GAME_MODE_MULTI:
                 // 双人游戏通常需要两个玩家的坦克类型
@@ -314,25 +339,17 @@ public class GameView {
      * @param level 选择的关卡
      */
     public void startGameWithLevel(String selectedTankType, int level) {
-        // 根据当前游戏模式启动不同的游戏
-        switch (currentGameMode) {
-            case GAME_MODE_SINGLE:
-                // 使用SinglePlayerGameStarter启动单人游戏
-                singlePlayerGameStarter.startGame(selectedTankType, level);
-                break;
-            case GAME_MODE_MULTI:
-                // 多人游戏通常需要两个玩家的坦克类型
-                showMessage("双人游戏启动失败：缺少第二个玩家的坦克类型");
-                break;
-            case GAME_MODE_ONLINE:
-                // TODO: 启动联机游戏
+        GameStarterController starter = getGameStarter();
+        if (starter != null) {
+            if (currentGameMode == GAME_MODE_SINGLE) {
+                starter.startGame(selectedTankType, level);
+            } else if (currentGameMode == GAME_MODE_MULTI && starter instanceof MultiPlayerGameStarter) {
+                showMessage("双人游戏启动失败：请使用正确的方法启动双人游戏");
+            } else if (currentGameMode == GAME_MODE_ONLINE) {
                 showMessage("联机游戏启动功能尚未实现");
-                break;
-            default:
-                // 如果游戏模式未设置，默认使用单人游戏
-                setGameMode(GAME_MODE_SINGLE);
-                singlePlayerGameStarter.startGame(selectedTankType, level);
-                break;
+            }
+        } else {
+            showMessage("无法启动游戏：游戏启动器未找到");
         }
     }
 
@@ -344,16 +361,16 @@ public class GameView {
         switch (currentGameMode) {
             case GAME_MODE_SINGLE:
                 // 使用键盘服务设置单人游戏控制
-                keyboardService.setupKeyboardControls(
-                        singleGameController,
-                        gameCanvas,
-                        this::showPauseMenu, // 暂停回调
-                        this::closePauseMenu // 恢复回调
-                );
-                
-                // 获取初始输入状态
-                if (keyboardService instanceof SingleKeyboardServiceImpl) {
-                    inputState = ((SingleKeyboardServiceImpl) keyboardService).getInputState();
+        keyboardService.setupKeyboardControls(
+                singleGameController,
+                gameCanvas,
+                this::showPauseMenu, // 暂停回调
+                this::closePauseMenu // 恢复回调
+        );
+
+        // 获取初始输入状态
+        if (keyboardService instanceof SingleKeyboardServiceImpl) {
+            inputState = ((SingleKeyboardServiceImpl) keyboardService).getInputState();
                 }
                 break;
             case GAME_MODE_MULTI:
@@ -377,20 +394,22 @@ public class GameView {
      * @param totalTimeMillis 总游戏时间(毫秒)
      */
     private void updateTimeDisplay(long totalTimeMillis) {
-        switch (currentGameMode) {
-            case GAME_MODE_SINGLE:
-        if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
-            singlePlayerGameStarter.getGameScreen().setTotalGameTime(totalTimeMillis);
-        }
-                break;
-            case GAME_MODE_MULTI:
-                // 处理双人游戏模式
-                // TODO: 实现双人游戏时间显示更新
-                break;
-            case GAME_MODE_ONLINE:
-                // 处理联机游戏模式
-                // TODO: 实现联机游戏时间显示更新
-                break;
+        // 获取当前活跃的游戏屏幕
+        GameScreen screen = getGameScreen();
+        if (screen != null) {
+            // 确保时间值已更新
+            screen.setTotalGameTime(totalTimeMillis);
+            
+            // 手动触发时间显示更新
+            Platform.runLater(() -> {
+                Text timeInfo = screen.getTimeInfo();
+                if (timeInfo != null) {
+        long seconds = totalTimeMillis / 1000;
+        long minutes = seconds / 60;
+        seconds = seconds % 60;
+        timeInfo.setText(String.format("%02d:%02d", minutes, seconds));
+                }
+            });
         }
     }
 
@@ -407,11 +426,11 @@ public class GameView {
         // 创建并启动新的游戏循环
         switch (currentGameMode) {
             case GAME_MODE_SINGLE:
-                gameLoop = gameLoopService.createGameLoop(
-                        singleGameController,
-                        this::renderGame, // 渲染回调
-                        this::updateTimeDisplay // 时间更新回调
-                );
+        gameLoop = gameLoopService.createGameLoop(
+                singleGameController,
+                this::renderGame, // 渲染回调
+                this::updateTimeDisplay // 时间更新回调
+        );
                 
                 // 保存到SinglePlayerGameScreen
                 if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
@@ -437,12 +456,12 @@ public class GameView {
         if (gc != null && gameCanvas != null) {
             switch (currentGameMode) {
                 case GAME_MODE_SINGLE:
-                    renderService.renderGame(
-                            singleGameController,
-                            gc,
-                            gameCanvas.getWidth(),
-                            gameCanvas.getHeight()
-                    );
+            renderService.renderGame(
+                    singleGameController,
+                gc,
+                gameCanvas.getWidth(),
+                gameCanvas.getHeight()
+            );
                     break;
                 case GAME_MODE_MULTI:
                     // 使用双人游戏控制器进行渲染
@@ -495,28 +514,14 @@ public class GameView {
      * 显示暂停菜单
      */
     public void showPauseMenu() {
-        boolean isPauseMenuOpen = false;
-        
-        switch (currentGameMode) {
-            case GAME_MODE_SINGLE:
-                if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
-                    isPauseMenuOpen = singlePlayerGameStarter.getGameScreen().isPauseMenuOpen();
-                }
-                break;
-            case GAME_MODE_MULTI:
-                // 检查双人游戏暂停菜单状态
-                // TODO: 实现双人游戏暂停菜单状态检查
-                break;
-            case GAME_MODE_ONLINE:
-                // 检查联机游戏暂停菜单状态
-                // TODO: 实现联机游戏暂停菜单状态检查
-                break;
-        }
-        
-        if (isPauseMenuOpen) return;
+        if (getIsPauseMenuOpen()) return;
 
-        // 暂停游戏循环
-        gameLoopService.pauseGameLoop(getGameLoop());
+        // 暂停游戏前记录最后更新时间
+        long pauseTime = System.currentTimeMillis();
+        
+        // 暂停游戏
+        setGamePaused(true);
+        setIsPauseMenuOpen(true);
 
         pauseMenuView.show();
     }
@@ -525,6 +530,13 @@ public class GameView {
      * 关闭暂停菜单
      */
     public void closePauseMenu() {
+        // 恢复游戏
+        setGamePaused(false);
+        setIsPauseMenuOpen(false);
+        
+        // 设置新的最后更新时间，从现在开始计时
+        setLastUpdateTime(System.currentTimeMillis());
+        
         pauseMenuView.close();
     }
 
@@ -562,13 +574,13 @@ public class GameView {
 
             switch (currentGameMode) {
                 case GAME_MODE_SINGLE:
-                    if (singleGameController != null) {
-                        // 获取当前关卡和坦克类型
-                        int currentLevel = singleGameController.getCurrentLevel();
-                        String tankType = singleGameController.getPlayerTank().getTypeString();
-                        
-                        // 使用游戏状态服务重启游戏
-                        gameStateService.restartGame(singleGameController, tankType, currentLevel);
+            if (singleGameController != null) {
+                // 获取当前关卡和坦克类型
+                int currentLevel = singleGameController.getCurrentLevel();
+                String tankType = singleGameController.getPlayerTank().getTypeString();
+
+                // 使用游戏状态服务重启游戏
+                gameStateService.restartGame(singleGameController, tankType, currentLevel);
                     }
                     break;
                 case GAME_MODE_MULTI:
@@ -711,7 +723,7 @@ public class GameView {
     public void setPlayerLives(int lives) {
         switch (currentGameMode) {
             case GAME_MODE_SINGLE:
-                if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
+        if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
                     singlePlayerGameStarter.getGameScreen().setPlayerLives(lives);
                 }
                 break;
@@ -733,7 +745,7 @@ public class GameView {
     public void setBulletCount(int count) {
         switch (currentGameMode) {
             case GAME_MODE_SINGLE:
-                if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
+        if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
                     singlePlayerGameStarter.getGameScreen().setBulletCount(count);
                 }
                 break;
@@ -780,8 +792,34 @@ public class GameView {
         if (success) {
             // 加载成功，切换到游戏界面
             showGameScreen();
-            // 重置游戏开始时间
-            resetGameStartTime();
+            
+            // 获取当前游戏屏幕
+            GameScreen screen = getGameScreen();
+            if (screen != null) {
+                // 获取从存档加载的时间
+                long loadedTime = screen.getTotalGameTime();
+                
+                // 重要：确保游戏循环中使用的最后更新时间是基于当前时间的
+                long currentTime = System.currentTimeMillis();
+                screen.setLastUpdateTime(currentTime);
+            }
+            
+            // 启动游戏循环前强制更新一次UI
+            Platform.runLater(() -> {
+                // 更新子弹显示
+                updateBulletDisplay();
+                
+                // 更新时间显示
+                updateTimeDisplay();
+                
+                // 更新生命显示
+                if (screen != null) {
+                    if (screen instanceof SinglePlayerGameScreen) {
+                        ((SinglePlayerGameScreen)screen).updateLivesDisplay(screen.getPlayerLives());
+                    }
+                }
+            });
+            
             // 启动游戏循环
             startGameLoop();
         } else {
@@ -891,20 +929,9 @@ public class GameView {
      * 获取游戏循环
      */
     private AnimationTimer getGameLoop() {
-        switch (currentGameMode) {
-            case GAME_MODE_SINGLE:
-                if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
-                    return singlePlayerGameStarter.getGameScreen().getGameLoop();
-                }
-                break;
-            case GAME_MODE_MULTI:
-                // 获取双人游戏循环
-                // TODO: 实现双人游戏循环获取
-                break;
-            case GAME_MODE_ONLINE:
-                // 获取联机游戏循环
-                // TODO: 实现联机游戏循环获取
-                break;
+        GameScreen screen = getGameScreen();
+        if (screen != null) {
+            return screen.getGameLoop();
         }
         return null;
     }
@@ -914,20 +941,9 @@ public class GameView {
      * @param paused 是否暂停
      */
     public void setGamePaused(boolean paused) {
-        switch (currentGameMode) {
-            case GAME_MODE_SINGLE:
-                if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
-                    singlePlayerGameStarter.getGameScreen().setGamePaused(paused);
-                }
-                break;
-            case GAME_MODE_MULTI:
-                // 设置双人游戏暂停状态
-                // TODO: 实现双人游戏暂停状态设置
-                break;
-            case GAME_MODE_ONLINE:
-                // 设置联机游戏暂停状态
-                // TODO: 实现联机游戏暂停状态设置
-                break;
+        GameScreen screen = getGameScreen();
+        if (screen != null) {
+            screen.setGamePaused(paused);
         }
     }
 
@@ -936,20 +952,9 @@ public class GameView {
      * @param open 是否打开
      */
     public void setIsPauseMenuOpen(boolean open) {
-        switch (currentGameMode) {
-            case GAME_MODE_SINGLE:
-                if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
-                    singlePlayerGameStarter.getGameScreen().setIsPauseMenuOpen(open);
-                }
-                break;
-            case GAME_MODE_MULTI:
-                // 设置双人游戏暂停菜单状态
-                // TODO: 实现双人游戏暂停菜单状态设置
-                break;
-            case GAME_MODE_ONLINE:
-                // 设置联机游戏暂停菜单状态
-                // TODO: 实现联机游戏暂停菜单状态设置
-                break;
+        GameScreen screen = getGameScreen();
+        if (screen != null) {
+            screen.setIsPauseMenuOpen(open);
         }
     }
 
@@ -958,20 +963,9 @@ public class GameView {
      * @return 游戏总时间(毫秒)
      */
     public long getTotalGameTime() {
-        switch (currentGameMode) {
-            case GAME_MODE_SINGLE:
-                if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
-                    return singlePlayerGameStarter.getGameScreen().getTotalGameTime();
-                }
-                break;
-            case GAME_MODE_MULTI:
-                // 获取双人游戏总时间
-                // TODO: 实现双人游戏总时间获取
-                break;
-            case GAME_MODE_ONLINE:
-                // 获取联机游戏总时间
-                // TODO: 实现联机游戏总时间获取
-                break;
+        GameScreen screen = getGameScreen();
+        if (screen != null) {
+            return screen.getTotalGameTime();
         }
         return 0;
     }
@@ -981,20 +975,9 @@ public class GameView {
      * @param time 游戏总时间(毫秒)
      */
     public void setTotalGameTime(long time) {
-        switch (currentGameMode) {
-            case GAME_MODE_SINGLE:
-                if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
-                    singlePlayerGameStarter.getGameScreen().setTotalGameTime(time);
-                }
-                break;
-            case GAME_MODE_MULTI:
-                // 设置双人游戏总时间
-                // TODO: 实现双人游戏总时间设置
-                break;
-            case GAME_MODE_ONLINE:
-                // 设置联机游戏总时间
-                // TODO: 实现联机游戏总时间设置
-                break;
+        GameScreen screen = getGameScreen();
+        if (screen != null) {
+            screen.setTotalGameTime(time);
         }
     }
 
@@ -1003,20 +986,9 @@ public class GameView {
      * @return 上次子弹补充时间(毫秒)
      */
     public long getLastBulletRefillTime() {
-        switch (currentGameMode) {
-            case GAME_MODE_SINGLE:
-                if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
-                    return singlePlayerGameStarter.getGameScreen().getLastBulletRefillTime();
-                }
-                break;
-            case GAME_MODE_MULTI:
-                // 获取双人游戏子弹补充时间
-                // TODO: 实现双人游戏子弹补充时间获取
-                break;
-            case GAME_MODE_ONLINE:
-                // 获取联机游戏子弹补充时间
-                // TODO: 实现联机游戏子弹补充时间获取
-                break;
+        GameScreen screen = getGameScreen();
+        if (screen != null) {
+            return screen.getLastBulletRefillTime();
         }
         return 0;
     }
@@ -1026,20 +998,9 @@ public class GameView {
      * @param time 时间戳
      */
     public void setLastBulletRefillTime(long time) {
-        switch (currentGameMode) {
-            case GAME_MODE_SINGLE:
-                if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
-                    singlePlayerGameStarter.getGameScreen().setLastBulletRefillTime(time);
-                }
-                break;
-            case GAME_MODE_MULTI:
-                // 设置双人游戏子弹补充时间
-                // TODO: 实现双人游戏子弹补充时间设置
-                break;
-            case GAME_MODE_ONLINE:
-                // 设置联机游戏子弹补充时间
-                // TODO: 实现联机游戏子弹补充时间设置
-                break;
+        GameScreen screen = getGameScreen();
+        if (screen != null) {
+            screen.setLastBulletRefillTime(time);
         }
     }
 
@@ -1048,20 +1009,9 @@ public class GameView {
      * @return 玩家生命值
      */
     public int getPlayerLives() {
-        switch (currentGameMode) {
-            case GAME_MODE_SINGLE:
-                if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
-                    return singlePlayerGameStarter.getGameScreen().getPlayerLives();
-                }
-                break;
-            case GAME_MODE_MULTI:
-                // 获取双人游戏生命值
-                // TODO: 实现双人游戏生命值获取
-                break;
-            case GAME_MODE_ONLINE:
-                // 获取联机游戏生命值
-                // TODO: 实现联机游戏生命值获取
-                break;
+        GameScreen screen = getGameScreen();
+        if (screen != null) {
+            return screen.getPlayerLives();
         }
         return 3; // 默认生命值
     }
@@ -1071,130 +1021,11 @@ public class GameView {
      * @return 子弹数量
      */
     public int getBulletCount() {
-        switch (currentGameMode) {
-            case GAME_MODE_SINGLE:
-                if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
-                    return singlePlayerGameStarter.getGameScreen().getBulletCount();
-                }
-                break;
-            case GAME_MODE_MULTI:
-                // 获取双人游戏子弹数量
-                // TODO: 实现双人游戏子弹数量获取
-                break;
-            case GAME_MODE_ONLINE:
-                // 获取联机游戏子弹数量
-                // TODO: 实现联机游戏子弹数量获取
-                break;
+        GameScreen screen = getGameScreen();
+        if (screen != null) {
+            return screen.getBulletCount();
         }
         return 10; // 默认子弹数
-    }
-
-    /* ------ getter/setter方法 ------ */
-    
-    /**
-     * 获取根布局容器
-     * @return 根StackPane
-     */
-    public StackPane getRoot() {
-        return root;
-    }
-
-    /**
-     * 获取主题色
-     * @return 主题颜色
-     */
-    public Color getPrimaryColor() {
-        return PRIMARY_COLOR;
-    }
-
-    /**
-     * 获取文本颜色
-     * @return 文本颜色
-     */
-    public Color getTextColor() {
-        return TEXT_COLOR;
-    }
-
-    /**
-     * 获取游戏画布
-     * @return 游戏画布
-     */
-    public Canvas getGameCanvas() {
-        return gameCanvas;
-    }
-
-    /**
-     * 获取玩家服务
-     * @return 玩家服务
-     */
-    public PlayerService getPlayerService() {
-        return playerService;
-    }
-
-    /**
-     * 获取游戏状态服务
-     * @return 游戏状态服务
-     */
-    public GameStateService getGameStateService() {
-        return gameStateService;
-    }
-
-    /**
-     * 获取当前游戏模式的游戏结束屏幕
-     * @return 当前游戏模式的游戏结束屏幕
-     */
-    public GameOverScreen getGameOverScreen() {
-        GameOverScreen screen = gameOverScreens.get(currentGameMode);
-        if (screen == null) {
-            // 如果没有找到对应模式的屏幕，使用单人游戏屏幕作为默认值
-            screen = gameOverScreens.get(GAME_MODE_SINGLE);
-        }
-        return screen;
-    }
-
-    /**
-     * 获取当前游戏模式的关卡完成视图
-     * @return 当前游戏模式的关卡完成视图
-     */
-    public LevelCompletedView getLevelCompletedView() {
-        LevelCompletedView view = levelCompletedViews.get(currentGameMode);
-        if (view == null) {
-            // 如果没有找到对应模式的视图，使用单人游戏视图作为默认值
-            view = levelCompletedViews.get(GAME_MODE_SINGLE);
-        }
-        return view;
-    }
-
-    /**
-     * 获取单人游戏启动器
-     * @return 单人游戏启动器
-     */
-    public SinglePlayerGameStarter getSinglePlayerGameStarter() {
-        return singlePlayerGameStarter;
-    }
-
-    /**
-     * 获取能力增强效果进度条映射
-     * @return 进度条映射
-     */
-    public Map<String, ProgressBar> getPowerUpProgressBars() {
-        return powerUpProgressBars;
-    }
-
-    /**
-     * 获取游戏控制器
-     * @return 游戏控制器
-     */
-    public SingleGameController getGameController() {
-        return singleGameController;
-    }
-
-    /**
-     * 获取效果服务
-     * @return 效果服务
-     */
-    public EffectService getEffectService() {
-        return effectService;
     }
 
     /**
@@ -1203,7 +1034,11 @@ public class GameView {
      */
     public int getScore() {
         // 使用游戏状态服务计算得分
-        return ((SingleGameStateServiceImpl) gameStateService).getScore(singleGameController);
+        GameController controller = getActiveController();
+        if (controller != null) {
+            return gameStateService.getScore(controller);
+        }
+        return 0;
     }
 
     /**
@@ -1297,30 +1132,6 @@ public class GameView {
     }
 
     /**
-     * 获取单人游戏控制器
-     * @return 单人游戏控制器
-     */
-    public SingleGameController getSingleGameController() {
-        return singleGameController;
-    }
-
-    /**
-     * 获取双人游戏控制器
-     * @return 双人游戏控制器
-     */
-    public MultiGameController getMultiGameController() {
-        return multiGameController;
-    }
-
-    /**
-     * 获取联机游戏控制器
-     * @return 联机游戏控制器
-     */
-    public OnlineGameController getOnlineGameController() {
-        return onlineGameController;
-    }
-
-    /**
      * 设置最后更新时间
      * @param time 时间
      */
@@ -1400,5 +1211,138 @@ public class GameView {
             multiLevelCompletedView = new MultiLevelCompletedView(this, root, scene);
         }
         return multiLevelCompletedView;
+    }
+
+    /**
+     * 获取游戏画布
+     * @return 游戏画布
+     */
+    public Canvas getGameCanvas() {
+        return gameCanvas;
+    }
+
+    /**
+     * 获取主题色
+     * @return 主题颜色
+     */
+    public Color getPrimaryColor() {
+        return PRIMARY_COLOR;
+    }
+
+    /**
+     * 获取文本颜色
+     * @return 文本颜色
+     */
+    public Color getTextColor() {
+        return TEXT_COLOR;
+    }
+
+    /**
+     * 获取游戏状态服务
+     * @return 游戏状态服务
+     */
+    public GameStateService getGameStateService() {
+        return gameStateService;
+    }
+
+    /**
+     * 获取玩家服务
+     * @return 玩家服务
+     */
+    public PlayerService getPlayerService() {
+        return playerService;
+    }
+
+    /**
+     * 获取效果服务
+     * @return 效果服务
+     */
+    public EffectService getEffectService() {
+        return effectService;
+    }
+
+    /**
+     * 获取能力增强效果进度条映射
+     * @return 进度条映射
+     */
+    public Map<String, ProgressBar> getPowerUpProgressBars() {
+        return powerUpProgressBars;
+    }
+
+    /**
+     * 获取根布局容器
+     * @return 根StackPane
+     */
+    public StackPane getRoot() {
+        return root;
+    }
+
+    /**
+     * 获取当前游戏模式对应的关卡完成视图
+     * @return 关卡完成视图
+     */
+    public LevelCompletedView getLevelCompletedView() {
+        if (getCurrentGameMode() == GAME_MODE_SINGLE) {
+            return singleLevelCompletedView;
+        } else if (getCurrentGameMode() == GAME_MODE_MULTI) {
+            return multiLevelCompletedView;
+        }
+        return null;
+    }
+
+    /**
+     * 获取当前游戏模式对应的游戏结束屏幕
+     * @return 游戏结束屏幕
+     */
+    public GameOverScreen getGameOverScreen() {
+        if (getCurrentGameMode() == GAME_MODE_SINGLE) {
+            return singleGameOverScreen;
+        } else if (getCurrentGameMode() == GAME_MODE_MULTI) {
+            return multiGameOverScreen;
+        }
+        return null;
+    }
+
+    /**
+     * 更新游戏时间显示
+     */
+    public void updateTimeDisplay() {
+        GameScreen screen = getGameScreen();
+        if (screen != null) {
+            try {
+                long totalTime = screen.getTotalGameTime();
+                long seconds = totalTime / 1000;
+                long minutes = seconds / 60;
+                seconds = seconds % 60;
+
+                long finalSeconds = seconds;
+                Platform.runLater(() -> {
+                    try {
+                        // 尝试获取时间文本组件并更新
+                        java.lang.reflect.Method getTimeInfoMethod = screen.getClass().getMethod("getTimeInfo");
+                        javafx.scene.text.Text timeInfo = (javafx.scene.text.Text)getTimeInfoMethod.invoke(screen);
+                        if (timeInfo != null) {
+                            timeInfo.setText(String.format("%02d:%02d", minutes, finalSeconds));
+                        }
+                    } catch (Exception e) {
+                        // 如果方法不存在，打印错误但不中断游戏
+                        System.err.println("无法更新时间显示: " + e.getMessage());
+                    }
+                });
+            } catch (Exception e) {
+                System.err.println("更新游戏时间时发生错误: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * 更新游戏时间的方法
+     * @param totalTime 游戏总时间
+     */
+    public void updateGameTime(long totalTime) {
+        GameScreen screen = getGameScreen();
+        if (screen != null) {
+            screen.setTotalGameTime(totalTime);
+        }
     }
 }

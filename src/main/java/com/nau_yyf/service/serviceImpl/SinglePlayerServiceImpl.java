@@ -8,6 +8,7 @@ import com.nau_yyf.model.Tank;
 import com.nau_yyf.service.EffectService;
 import com.nau_yyf.service.PlayerService;
 import com.nau_yyf.view.GameView;
+import com.nau_yyf.view.GameScreen;
 import com.nau_yyf.view.singleGame.SinglePlayerGameScreen;
 
 /**
@@ -18,6 +19,8 @@ public class SinglePlayerServiceImpl implements PlayerService {
 
     private GameView gameView;
     private EffectService effectService;
+    private long lastFireTime = 0;
+    private long lastHandleFiringTime = 0;
 
     public SinglePlayerServiceImpl(GameView gameView, EffectService effectService) {
         this.gameView = gameView;
@@ -25,30 +28,26 @@ public class SinglePlayerServiceImpl implements PlayerService {
     }
 
     /**
-     * 处理玩家输入
+     * 处理玩家输入，包括移动和射击
      */
     @Override
-    public int handlePlayerInput(GameController controller, InputState inputState, int bulletCount) {
-        if (controller == null) return bulletCount;
-        
-        // 只处理单人游戏控制器
-        if (!(controller instanceof SingleGameController)) {
-            return bulletCount;
+    public int handlePlayerInput(GameController controller, InputState inputState, int currentBulletCount) {
+        // 先检查控制器有效性
+        if (controller == null || !(controller instanceof SingleGameController)) {
+            return currentBulletCount;
         }
         
         SingleGameController singleController = (SingleGameController) controller;
-        
-        // 获取玩家坦克
         Tank playerTank = singleController.getPlayerTank();
         
-        // 如果坦克不存在或已经死亡，不处理任何输入
+        // 如果没有坦克或坦克已死亡，不处理输入
         if (playerTank == null || playerTank.isDead()) {
-            return bulletCount;
+            return currentBulletCount;
         }
         
         boolean anyKeyPressed = false;
         
-        // 根据输入状态设置方向
+        // 处理方向键
         if (inputState.isUp()) {
             playerTank.setDirection(Tank.Direction.UP);
             anyKeyPressed = true;
@@ -74,13 +73,43 @@ public class SinglePlayerServiceImpl implements PlayerService {
             gameView.updateHealthDisplay();
         }
         
-        // 处理射击
-        if (inputState.isShooting() && bulletCount > 0 && playerTank.canFire()) {
-            Bullet bullet = fireBullet(playerTank);
-            if (bullet != null) {
-                bulletCount--;
-                singleController.addBullet(bullet);
+        // ===== 开火逻辑的完全重写 =====
+        int bulletCount = currentBulletCount;
+        try {
+            // 如果按下开火键且有子弹
+            if (inputState.isFire() && bulletCount > 0) {
+                // 添加防抖动：限制开火频率
+                long currentTime = System.currentTimeMillis();
+                if (currentTime - lastFireTime > 300) { // 300ms冷却时间
+                    // 尝试发射子弹
+                    boolean fired = false;
+                    try {
+                        fired = singleController.playerFireBullet();
+                    } catch (Exception e) {
+                        System.err.println("发射子弹时出错: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                    
+                    // 如果成功发射，减少子弹数量
+                    if (fired) {
+                        bulletCount--;
+                        lastFireTime = currentTime;
+                        
+                        // 直接在这里更新UI，避免延迟更新
+                        try {
+                            GameScreen screen = gameView.getGameScreen();
+                            if (screen != null) {
+                                screen.setBulletCount(bulletCount);
+                            }
+                        } catch (Exception e) {
+                            System.err.println("更新子弹显示时出错: " + e.getMessage());
+                        }
+                    }
+                }
             }
+        } catch (Exception e) {
+            System.err.println("处理开火输入时出错: " + e.getMessage());
+            e.printStackTrace();
         }
         
         return bulletCount;
@@ -230,9 +259,50 @@ public class SinglePlayerServiceImpl implements PlayerService {
      * 更新子弹显示
      */
     public void updateBulletDisplay() {
-        if (gameView.getSinglePlayerGameStarter() != null) {
-            SinglePlayerGameScreen gameScreen = gameView.getSinglePlayerGameStarter().getGameScreen();
-            gameScreen.updateBulletDisplay(gameView.getBulletCount());
+        GameScreen gameScreen = gameView.getGameScreen();
+        if (gameScreen != null && gameScreen instanceof SinglePlayerGameScreen) {
+            ((SinglePlayerGameScreen) gameScreen).updateBulletDisplay(gameView.getBulletCount());
+        }
+    }
+
+    /**
+     * 处理玩家射击
+     */
+    @Override
+    public void handlePlayerFiring(GameController controller) {
+        // 添加同步锁，防止并发调用
+        synchronized(this) {
+            if (controller instanceof SingleGameController) {
+                SingleGameController singleController = (SingleGameController) controller;
+                
+                // 使用gameView直接获取GameScreen
+                GameScreen gameScreen = gameView.getGameScreen();
+                if (gameScreen == null) return;
+                
+                // 防抖动：限制开火频率
+                long currentTime = System.currentTimeMillis();
+                if (currentTime - lastHandleFiringTime < 300) { // 300ms冷却
+                    return;
+                }
+                
+                // 检查玩家是否有足够的子弹
+                if (gameScreen.getBulletCount() > 0) {
+                    try {
+                        // 发射子弹
+                        boolean bulletFired = singleController.playerFireBullet();
+                        
+                        // 如果成功发射，减少子弹计数
+                        if (bulletFired) {
+                            int newBulletCount = gameScreen.getBulletCount() - 1;
+                            gameScreen.setBulletCount(newBulletCount);
+                            lastHandleFiringTime = currentTime;
+                        }
+                    } catch (Exception e) {
+                        System.err.println("处理开火时出错: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                }
+            }
         }
     }
 }

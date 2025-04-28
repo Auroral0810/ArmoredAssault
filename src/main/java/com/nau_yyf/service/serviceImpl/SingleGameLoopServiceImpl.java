@@ -2,27 +2,25 @@ package com.nau_yyf.service.serviceImpl;
 
 import com.nau_yyf.controller.GameController;
 import com.nau_yyf.controller.SingleGameController;
+import com.nau_yyf.view.GameScreen;
 import com.nau_yyf.model.Tank;
+import com.nau_yyf.view.singleGame.SinglePlayerGameScreen;
 import com.nau_yyf.service.EffectService;
 import com.nau_yyf.service.GameLoopService;
 import com.nau_yyf.service.PlayerService;
 import com.nau_yyf.view.GameView;
-import com.nau_yyf.view.singleGame.SinglePlayerGameScreen;
 import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.text.Text;
 
-/**
- * 单人游戏循环服务实现类
- * 负责单人游戏模式下的游戏循环管理
- */
 public class SingleGameLoopServiceImpl implements GameLoopService {
-
-    private GameView gameView;
+    private final GameView gameView;
+    private final EffectService effectService;
+    private final PlayerService playerService;
     private long gameStartTime;
     private long lastUpdateTime;
-    private EffectService effectService;
-    private PlayerService playerService;
+    private boolean wasGamePaused = false;
 
     public SingleGameLoopServiceImpl(GameView gameView, EffectService effectService, PlayerService playerService) {
         this.gameView = gameView;
@@ -56,9 +54,54 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
             
             @Override
             public void handle(long now) {
-                // 检查gameController是否为null
-                if (singleController == null) {
-                    return; // 如果控制器为null，不执行更新
+                // 立即检查是否暂停，如果暂停则直接返回
+                GameScreen gameScreen = gameView.getGameScreen();
+                if (controller == null || gameScreen == null || gameScreen.isGamePaused()) {
+                    return;
+                }
+                
+                // 获取当前时间
+                long currentTime = System.currentTimeMillis();
+                
+                // 获取上次更新时间，确保不为0
+                long lastTime = gameScreen.getLastUpdateTime();
+                if (lastTime == 0) {
+                    lastTime = currentTime;
+                    gameScreen.setLastUpdateTime(currentTime);
+                }
+                
+                // 计算时间差，设置合理的最大值防止异常
+                long deltaTime = currentTime - lastTime;
+                if (deltaTime > 1000) { // 如果时间差大于1秒，可能是暂停后恢复或其他异常情况
+                    deltaTime = 16; // 使用一个标准帧时间(约60FPS)
+                }
+                
+                // 更新游戏总时间
+                long totalGameTime = gameScreen.getTotalGameTime() + deltaTime;
+                gameScreen.setTotalGameTime(totalGameTime);
+                
+                // 使用Platform.runLater确保UI更新在JavaFX线程中进行
+                Platform.runLater(() -> {
+                    // 更新时间显示
+                    long seconds = totalGameTime / 1000;
+                    long minutes = seconds / 60;
+                    seconds = seconds % 60;
+                    
+                    Text timeInfo = gameScreen.getTimeInfo();
+                    if (timeInfo != null) {
+                        timeInfo.setText(String.format("%02d:%02d", minutes, seconds));
+                    }
+                });
+                
+                // 更新子弹补充逻辑
+                updateBulletRefill(controller, gameScreen);
+                
+                // 更新最后更新时间
+                gameScreen.setLastUpdateTime(currentTime);
+                
+                // 如果有时间更新回调，则调用
+                if (timeUpdateCallback != null) {
+                    timeUpdateCallback.update(totalGameTime);
                 }
                 
                 if (lastFrameTime == 0) {
@@ -67,15 +110,15 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
                 }
                 
                 // 计算自上一帧以来经过的时间(秒)
-                double deltaTime = (now - lastFrameTime) / 1_000_000_000.0;
+                double frameDeltaTime = (now - lastFrameTime) / 1_000_000_000.0;
                 lastFrameTime = now;
                 
                 // 防止过大的时间步长
-                if (deltaTime > 0.25)
-                    deltaTime = 0.25;
+                if (frameDeltaTime > 0.25)
+                    frameDeltaTime = 0.25;
                 
                 // 积累时间用于固定时间步长
-                accumulator += deltaTime;
+                accumulator += frameDeltaTime;
                 
                 // 执行固定时间步长的逻辑更新
                 while (accumulator >= TIME_STEP) {
@@ -88,15 +131,6 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
                     renderCallback.run();
                 }
                 
-                // 更新游戏时间显示和焦点检查
-                long currentTime = System.currentTimeMillis();
-                long totalGameTime = gameView.getTotalGameTime() + (currentTime - lastUpdateTime);
-                gameView.setTotalGameTime(totalGameTime);
-                
-                if (timeUpdateCallback != null) {
-                    timeUpdateCallback.update(totalGameTime);
-                }
-                
                 // 定期检查焦点
                 Canvas gameCanvas = gameView.getGameCanvas();
                 if (gameCanvas != null && now - focusCheckTime > 3_000_000_000L) {
@@ -105,8 +139,6 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
                         gameCanvas.requestFocus();
                     }
                 }
-                
-                lastUpdateTime = currentTime;
                 
                 // 添加对玩家坦克状态的检查
                 singleController.updatePlayerTank();
@@ -159,29 +191,35 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
         
         // 检查玩家血量是否改变，如果改变则更新显示
         if (playerTank != null && playerTank.getHealth() != oldHealth) {
-            SinglePlayerGameScreen gameScreen = gameView.getSinglePlayerGameStarter().getGameScreen();
-            gameScreen.updateHealthDisplay(singleController);
-            
-            // 使用SinglePlayerGameScreen更新生命显示
-            gameScreen.updateLivesDisplay(gameView.getPlayerLives());
+            GameScreen gameScreen = gameView.getGameScreen();
+            if (gameScreen instanceof SinglePlayerGameScreen) {
+                SinglePlayerGameScreen singleScreen = (SinglePlayerGameScreen) gameScreen;
+                singleScreen.updateHealthDisplay(singleController);
+                singleScreen.updateLivesDisplay(gameView.getPlayerLives());
+            }
         }
         
         // 检查敌方坦克与玩家坦克碰撞
         if (singleController.checkEnemyPlayerCollisions()) {
             // 更新生命显示
-            SinglePlayerGameScreen gameScreen = gameView.getSinglePlayerGameStarter().getGameScreen();
-            gameScreen.updateHealthDisplay(singleController);
-            
-            // 使用SinglePlayerGameScreen更新生命显示
-            gameScreen.updateLivesDisplay(gameView.getPlayerLives());
+            GameScreen gameScreen = gameView.getGameScreen();
+            if (gameScreen instanceof SinglePlayerGameScreen) {
+                SinglePlayerGameScreen singleScreen = (SinglePlayerGameScreen) gameScreen;
+                singleScreen.updateHealthDisplay(singleController);
+                singleScreen.updateLivesDisplay(gameView.getPlayerLives());
+            }
         }
         
         // 刷新子弹补给
-        updateBulletRefill(singleController, deltaTime);
+        updateBulletRefill(singleController, gameView.getGameScreen());
         
         // 更新敌人显示 - 每帧更新确保数量显示正确
-        SinglePlayerGameScreen gameScreen = gameView.getSinglePlayerGameStarter().getGameScreen();
-        gameScreen.updateEnemiesDisplay(singleController);
+        GameScreen gameScreen = gameView.getGameScreen();
+        if (gameScreen instanceof SinglePlayerGameScreen) {
+            SinglePlayerGameScreen singleScreen = (SinglePlayerGameScreen) gameScreen;
+            singleScreen.updateEnemiesDisplay(singleController);
+            singleScreen.updatePowerUpUIDisplay(singleController, effectService);
+        }
         
         // 更新增益效果
         singleController.updatePowerUps(deltaTime);
@@ -193,30 +231,66 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
         
         // 使用效果服务更新闪烁效果
         effectService.updatePowerUpBlinking(singleController.getPowerUps());
-        
-        // 更新UI显示
-        gameScreen.updatePowerUpUIDisplay(singleController, effectService);
     }
 
     /**
-     * 根据坦克类型恢复子弹
+     * 更新子弹补充逻辑
      */
-    private void updateBulletRefill(SingleGameController singleController, double deltaTime) {
-        if (singleController == null) return;
+    private void updateBulletRefill(GameController controller, GameScreen gameScreen) {
+        if (controller == null || gameScreen == null) {
+            return;
+        }
         
-        Tank playerTank = singleController.getPlayerTank();
-        if (playerTank != null) {
-            // 获取当前子弹数量和上次刷新时间
-            int bulletCount = gameView.getBulletCount();
-            long lastRefillTime = gameView.getLastBulletRefillTime();
+        // 获取玩家坦克 - 使用安全类型转换
+        Tank playerTank = null;
+        if (controller instanceof SingleGameController) {
+            playerTank = ((SingleGameController) controller).getPlayerTank();
+        } else {
+            return; // 不是单人游戏控制器，直接返回
+        }
+        
+        if (playerTank == null) return;
+        
+        // 获取当前子弹数量
+        int currentBulletCount = gameScreen.getBulletCount();
+        
+        // 如果子弹已满，不需要补充
+        if (currentBulletCount >= 10) {
+            return;
+        }
+        
+        long currentTime = System.currentTimeMillis();
+        long lastRefillTime = gameScreen.getLastBulletRefillTime();
+        
+        // 确保lastRefillTime已初始化
+        if (lastRefillTime == 0) {
+            gameScreen.setLastBulletRefillTime(currentTime);
+            return;
+        }
+        
+        // 计算补充延迟
+        int refillDelay = 3000; // 默认3秒补充一颗
+        
+        // 检查是否到达补充时间
+        if (currentTime - lastRefillTime > refillDelay) {
+            // 补充一颗子弹
+            int newBulletCount = currentBulletCount + 1;
             
-            // 使用playerService更新子弹
-            int newBulletCount = playerService.updateBulletRefill(playerTank, bulletCount, lastRefillTime);
+            // 更新子弹数量
+            gameScreen.setBulletCount(newBulletCount);
             
-            // 如果子弹数量变化，更新GameView
-            if (newBulletCount != bulletCount) {
-                gameView.setBulletCount(newBulletCount);
-            }
+            // 更新补充时间
+            gameScreen.setLastBulletRefillTime(currentTime);
+            
+            // 调试输出
+            System.out.println("补充子弹! 新数量: " + newBulletCount);
+            
+            // 确保UI更新 - 使用安全类型转换
+            Platform.runLater(() -> {
+                if (gameScreen instanceof SinglePlayerGameScreen) {
+                    ((SinglePlayerGameScreen) gameScreen).updateBulletDisplay(newBulletCount);
+                }
+            });
         }
     }
 
@@ -227,6 +301,7 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
     public void pauseGameLoop(AnimationTimer gameLoop) {
         if (gameLoop != null) {
             gameLoop.stop();
+            wasGamePaused = true; // 标记游戏已暂停
         }
     }
 
@@ -237,14 +312,15 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
     public void resumeGameLoop(AnimationTimer gameLoop) {
         if (gameLoop != null) {
             Platform.runLater(() -> {
+                // 恢复时重置lastUpdateTime为当前时间
+                lastUpdateTime = System.currentTimeMillis();
                 gameLoop.start();
                 
-                // 确保游戏画布获取焦点以恢复键盘控制
+                // 确保画布获取焦点以恢复键盘控制
                 Canvas gameCanvas = gameView.getGameCanvas();
                 if (gameCanvas != null) {
                     gameCanvas.requestFocus();
                 }
-                
             });
         }
     }

@@ -4,11 +4,14 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.nau_yyf.model.*;
 import com.nau_yyf.util.MapLoader;
+import com.nau_yyf.view.GameScreen;
 import com.nau_yyf.view.GameView;
+import javafx.application.Platform;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Text;
 
 import java.io.File;
 import java.io.FileReader;
@@ -79,6 +82,8 @@ public class SingleGameController implements GameController {
 
     private GameView gameView; // 你需要有这个引用，或者用事件回调
 
+    // 添加类级别成员变量来控制开火频率
+    private long lastPlayerFireTime = 0;
 
     public SingleGameController() {
         // 预加载地图元素图片
@@ -359,7 +364,7 @@ public class SingleGameController implements GameController {
 
                     // 只在1%的概率下打印日志，避免过多输出
                     if (Math.random() < 0.01) {
-                        
+
                     }
                 }
 
@@ -903,7 +908,7 @@ public class SingleGameController implements GameController {
             }
         }
 
-        
+
         return null; // 无法找到有效位置
     }
 
@@ -925,7 +930,7 @@ public class SingleGameController implements GameController {
         // 设置复活无敌状态
         playerTank.setRespawnInvincible(true);
 
-        
+
     }
 
     /**
@@ -1165,7 +1170,7 @@ public class SingleGameController implements GameController {
                     // 修改这部分逻辑：只要当前生成的敌方坦克数小于总目标数量，就安排新坦克生成
                     if (enemyTanksGenerated < totalEnemyTanksToGenerate) {
                         tankRespawnTimes.add(System.currentTimeMillis() + 2000); // 改为2秒后生成
-                        
+
                     }
 
                     // 尝试生成增益效果
@@ -1220,37 +1225,37 @@ public class SingleGameController implements GameController {
             case 1:
                 // 第一关：15个坦克，全部是基础坦克
                 totalEnemyTanksToGenerate = 15;
-                
+
                 break;
 
             case 2:
                 // 第二关：20个坦克，90%基础坦克，10%精英坦克
                 totalEnemyTanksToGenerate = 20;
-                
+
                 break;
 
             case 3:
                 // 第三关：30个坦克，57%基础坦克，40%精英坦克，3%Boss坦克
                 totalEnemyTanksToGenerate = 30;
-                
+
                 break;
 
             case 4:
                 // 第四关：45个坦克，20%基础坦克，60%精英坦克，20%Boss坦克
                 totalEnemyTanksToGenerate = 45;
-                
+
                 break;
 
             case 5:
                 // 第五关：60个坦克，15%基础坦克，50%精英坦克，35%Boss坦克
                 totalEnemyTanksToGenerate = 60;
-                
+
                 break;
 
             default:
                 // 默认配置，避免出错
                 totalEnemyTanksToGenerate = 15;
-                
+
                 break;
         }
 
@@ -1264,7 +1269,7 @@ public class SingleGameController implements GameController {
     private void spawnNewEnemyTank() {
         // 如果已经生成了足够的坦克，不再生成
         if (enemyTanksGenerated >= totalEnemyTanksToGenerate) {
-            
+
             return;
         }
 
@@ -1423,13 +1428,13 @@ public class SingleGameController implements GameController {
             if (is != null) {
                 Image image = new Image(is);
                 powerUpImages.put("bomb_placed", image);
-                
+
             }
         } catch (Exception e) {
             System.err.println("加载放置炸弹图片失败: " + e.getMessage());
         }
 
-        
+
     }
 
     // 更新并渲染增益效果
@@ -1505,19 +1510,19 @@ public class SingleGameController implements GameController {
                 gameView.updateHealthDisplay();
                 break;
             case BOMB:
-                
+
                 break;
             case ATTACK:
-                
+
                 break;
             case INVINCIBILITY:
-                
+
                 break;
             case SHIELD:
-                
+
                 break;
             case SPEED:
-                
+
                 break;
         }
 
@@ -1613,14 +1618,14 @@ public class SingleGameController implements GameController {
             int bombY = playerTank.getY();
 
             activeBomb = new Bomb(bombX, bombY, System.currentTimeMillis());
-            
+
 
             // 移除炸弹效果（已使用）
             playerTank.removeEffect(Tank.PowerUpType.BOMB);
         } else if (playerTank != null && !playerTank.isEffectActive(Tank.PowerUpType.BOMB)) {
-            
+
         } else if (activeBomb != null) {
-            
+
         }
     }
 
@@ -1643,7 +1648,7 @@ public class SingleGameController implements GameController {
         int bombX = activeBomb.getX();
         int bombY = activeBomb.getY();
 
-        
+
 
         // 检查范围内的敌方坦克
         List<Tank> tanksInRange = new ArrayList<>();
@@ -1717,68 +1722,75 @@ public class SingleGameController implements GameController {
      */
     public boolean saveGame(String saveName) {
         try {
-            // 创建存档目录
-            File saveDir = new File("saves");
-            if (!saveDir.exists()) {
-                saveDir.mkdir();
-            }
-
-            // 生成存档文件名
-            if (saveName == null || saveName.isEmpty()) {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
-                saveName = "save_" + sdf.format(new Date());
-            }
-
-            File saveFile = new File(saveDir, saveName + ".json");
-
-            // 创建存档数据对象
             GameSaveData saveData = new GameSaveData();
-
-            // 填充基本信息
+            
+            // 设置基本游戏信息
             saveData.setCurrentLevel(currentLevel);
             saveData.setPlayerTankType(playerTank.getTypeString());
-            saveData.setGameTime(gameView.getTotalGameTime());
+            
+            // 重要：保存游戏时长而不是时间戳
+            long gameTimeInMillis = gameView.getTotalGameTime();
+            System.out.println("保存游戏时长: " + gameTimeInMillis + "毫秒");
+            saveData.setGameTime(gameTimeInMillis);
+            
             saveData.setScore(gameView.getScore());
             saveData.setPlayerLives(gameView.getPlayerLives());
             saveData.setBulletCount(gameView.getBulletCount());
-
-            // 保存玩家坦克信息
+            
+            // 保存玩家坦克状态
             saveData.setPlayerTank(new GameSaveData.TankData(playerTank));
-
+            
             // 保存敌方坦克信息
             for (Tank enemyTank : enemyTanks) {
                 saveData.getEnemyTanks().add(new GameSaveData.TankData(enemyTank));
             }
-
+            
             // 保存子弹信息
             for (Bullet bullet : bullets) {
                 saveData.getBullets().add(new GameSaveData.BulletData(bullet));
             }
-
+            
             // 保存增益效果信息
             for (PowerUp powerUp : powerUps) {
                 saveData.getPowerUps().add(new GameSaveData.PowerUpData(powerUp));
             }
-
+            
             // 保存战斗统计
             saveData.setEnemyTanksDestroyed(enemyTanksDestroyed);
             saveData.setTotalEnemyTanksToGenerate(totalEnemyTanksToGenerate);
             saveData.setEnemyTanksGenerated(enemyTanksGenerated);
-
-            // 使用 Gson 将数据转换为 JSON 并写入文件
+            
+            // 使用Gson序列化为JSON
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            try (FileWriter writer = new FileWriter(saveFile)) {
-                gson.toJson(saveData, writer);
+            String json = gson.toJson(saveData);
+            
+            // 使用日期戳作为存档文件名，避免重名
+            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+            String fileName = "save_" + saveName + "_" + timestamp + ".json";
+            
+            // 确保存档目录存在
+            File saveDir = new File("saves");
+            if (!saveDir.exists()) {
+                saveDir.mkdirs();
             }
-
+            
+            // 写入文件
+            File saveFile = new File(saveDir, fileName);
+            try (FileWriter writer = new FileWriter(saveFile)) {
+                writer.write(json);
+            }
             
             return true;
-
         } catch (Exception e) {
             System.err.println("保存游戏失败: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
+    }
+
+    @Override
+    public GameView getGameView() {
+        return null;
     }
 
     /**
@@ -1871,14 +1883,60 @@ public class SingleGameController implements GameController {
             totalEnemyTanksToGenerate = saveData.getTotalEnemyTanksToGenerate();
             enemyTanksGenerated = saveData.getEnemyTanksGenerated();
 
-            // 更新GameView中的数据
-            gameView.setTotalGameTime(saveData.getGameTime());
-            gameView.setScore(saveData.getScore());
-            gameView.setPlayerLives(saveData.getPlayerLives());
-            gameView.setBulletCount(saveData.getBulletCount());
-
-            // 重置游戏时间
-            gameView.resetGameStartTime();
+            // 保存加载的子弹数量，用于后续更新
+            final int loadedBulletCount = saveData.getBulletCount();
+            
+            // 获取当前游戏屏幕
+            GameScreen gameScreen = gameView.getGameScreen();
+            
+            // 使用Platform.runLater确保在UI线程上进行更新
+            Platform.runLater(() -> {
+                // 更新GameView中的数据 - 顺序很重要
+                
+                // 1. 先设置生命值和分数
+                gameView.setPlayerLives(saveData.getPlayerLives());
+                gameView.setScore(saveData.getScore());
+                
+                // 2. 设置游戏时间 - 注意这里读取的时间可能是时间戳而不是持续时间
+                long gameTime = saveData.getGameTime();
+                
+                // 确保游戏时间是相对持续时间而不是时间戳
+                if (gameTime > System.currentTimeMillis() - 86400000) { // 如果时间大于当前时间减去一天
+                    // 可能是时间戳格式，需要转换为相对持续时间
+                    gameTime = 0; // 或者设置为其他合理的默认值
+                }
+                
+                // 设置游戏总时间到游戏屏幕
+                if (gameScreen != null) {
+                    gameScreen.setTotalGameTime(gameTime);
+                    
+                    // 立即更新时间显示
+                    long seconds = gameTime / 1000;
+                    long minutes = seconds / 60;
+                    seconds = seconds % 60;
+                    
+                    Text timeInfo = gameScreen.getTimeInfo();
+                    if (timeInfo != null) {
+                        timeInfo.setText(String.format("%02d:%02d", minutes, seconds));
+                    }
+                    
+                    // 设置时间的最后更新时间为当前时间
+                    gameScreen.setLastUpdateTime(System.currentTimeMillis());
+                }
+                
+                // 3. 设置子弹数量并立即更新UI
+                gameView.setBulletCount(loadedBulletCount);
+                
+                // 4. 强制更新子弹显示
+                if (gameScreen != null) {
+                    gameScreen.setBulletCount(loadedBulletCount);
+                }
+                
+                // 5. 更新所有其他UI组件
+                gameView.updateHealthDisplay();
+                gameView.updateBulletDisplay();
+                gameView.updatePowerUpUIDisplay();
+            });
 
             // 重新初始化网格数据 - 确保网格数据正确
             initializeGrid();
@@ -1912,11 +1970,46 @@ public class SingleGameController implements GameController {
                 }
             }
 
-            
+
             return true;
 
         } catch (Exception e) {
             System.err.println("加载游戏失败: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * 玩家开火，发射子弹
+     * @return 是否成功发射子弹
+     */
+    public boolean playerFireBullet() {
+        try {
+            // 确保玩家坦克存在且未死亡
+            if (playerTank == null || playerTank.isDead()) {
+                return false;
+            }
+            
+            // 防抖动：限制开火频率
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastPlayerFireTime < 200) { // 200ms冷却时间
+                return false;
+            }
+            
+            // 尝试创建子弹
+            Bullet bullet = playerTank.fire();
+            
+            // 如果成功创建子弹，则添加到游戏中
+            if (bullet != null) {
+                bullets.add(bullet);
+                lastPlayerFireTime = currentTime;
+                return true;
+            }
+            
+            return false;
+        } catch (Exception e) {
+            System.err.println("玩家发射子弹时出错: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
