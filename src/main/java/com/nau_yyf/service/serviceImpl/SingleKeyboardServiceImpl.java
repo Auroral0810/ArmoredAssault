@@ -1,5 +1,6 @@
 package com.nau_yyf.service.serviceImpl;
 
+import com.nau_yyf.controller.GameController;
 import com.nau_yyf.controller.SingleGameController;
 import com.nau_yyf.service.KeyboardService;
 import com.nau_yyf.service.PlayerService;
@@ -23,15 +24,24 @@ public class SingleKeyboardServiceImpl implements KeyboardService {
     private Runnable pauseCallback;
     private Runnable resumeCallback;
 
+    /**
+     * 通用的设置键盘控制方法
+     */
     @Override
-    public void setupKeyboardControls(Object gameController, Canvas gameCanvas, Runnable pauseCallback, Runnable resumeCallback) {
-
+    public void setupKeyboardControls(GameController controller, 
+                                     Canvas gameCanvas, 
+                                     Runnable pauseCallback, 
+                                     Runnable resumeCallback) {
+        if (!(controller instanceof SingleGameController)) {
+            throw new IllegalArgumentException("SingleKeyboardServiceImpl需要SingleGameController类型的控制器");
+        }
+        
+        setupKeyboardControls((SingleGameController)controller, gameCanvas, pauseCallback, resumeCallback);
     }
 
     /**
-     * 设置键盘控制
+     * 设置键盘控制 (为兼容性保留)
      */
-    @Override
     public void setupKeyboardControls(SingleGameController singleGameController,
                                       Canvas gameCanvas,
                                       Runnable pauseCallback,
@@ -75,6 +85,9 @@ public class SingleKeyboardServiceImpl implements KeyboardService {
             handleKeyReleasedInternal(e);
             e.consume(); // 阻止事件继续传播
         });
+        
+        // 确保画布可以获取焦点
+        gameCanvas.setFocusTraversable(true);
     }
     
     /**

@@ -1,5 +1,6 @@
 package com.nau_yyf.service.serviceImpl;
 
+import com.nau_yyf.controller.GameController;
 import com.nau_yyf.controller.SingleGameController;
 import com.nau_yyf.model.LevelMap;
 import com.nau_yyf.model.Tank;
@@ -18,32 +19,39 @@ public class SingleRenderServiceImpl implements RenderService {
      * 渲染整个游戏画面
      */
     @Override
-    public void renderGame(SingleGameController singleGameController, GraphicsContext gc, double canvasWidth, double canvasHeight) {
+    public void renderGame(GameController controller, GraphicsContext gc, double canvasWidth, double canvasHeight) {
         // 添加空检查以防止崩溃
-        if (singleGameController == null) {
-            return; // 如果gameController为null，直接返回不渲染
+        if (controller == null) {
+            return; // 如果controller为null，直接返回不渲染
         }
+        
+        // 只处理单人游戏控制器
+        if (!(controller instanceof SingleGameController)) {
+            return;
+        }
+        
+        SingleGameController singleController = (SingleGameController) controller;
         
         // 清屏
         gc.setFill(Color.BLACK);
         gc.fillRect(0, 0, canvasWidth, canvasHeight);
         
         // 渲染地图元素
-        LevelMap map = singleGameController.getMap();
+        LevelMap map = singleController.getMap();
         for (LevelMap.MapElement element : map.getElements()) {
             // 根据元素类型获取对应图片并渲染
-            Image elementImage = singleGameController.getElementImage(element.getType());
+            Image elementImage = singleController.getElementImage(element.getType());
             gc.drawImage(elementImage, element.getX(), element.getY(), 
                         element.getWidth(), element.getHeight());
         }
         
         // 渲染其他游戏对象
-        singleGameController.renderMap(gc);
+        singleController.renderMap(gc);
         
         // 渲染玩家坦克
-        Tank playerTank = singleGameController.getPlayerTank();
+        Tank playerTank = singleController.getPlayerTank();
         if (playerTank != null && !playerTank.isDead()) {
-            renderPlayerTank(playerTank, singleGameController, gc);
+            renderPlayerTank(playerTank, singleController, gc);
         }
     }
 
@@ -51,9 +59,15 @@ public class SingleRenderServiceImpl implements RenderService {
      * 渲染玩家坦克
      */
     @Override
-    public void renderPlayerTank(Tank playerTank, SingleGameController singleGameController, GraphicsContext gc) {
-        if (playerTank == null || singleGameController == null) return;
+    public void renderPlayerTank(Tank playerTank, GameController controller, GraphicsContext gc) {
+        if (playerTank == null || controller == null) return;
         
+        // 只处理单人游戏控制器
+        if (!(controller instanceof SingleGameController)) {
+            return;
+        }
+        
+        SingleGameController singleController = (SingleGameController) controller;
         boolean shouldRender = true;
         
         // 检查是否处于复活无敌状态，并且需要闪烁
@@ -63,7 +77,7 @@ public class SingleRenderServiceImpl implements RenderService {
         
         if (shouldRender) {
             String imageKey = "player_" + playerTank.getType().name().toLowerCase();
-            Image[] tankImgs = singleGameController.getTankImages().get(imageKey);
+            Image[] tankImgs = singleController.getTankImages().get(imageKey);
             
             if (tankImgs != null && playerTank.getDirection().ordinal() < tankImgs.length) {
                 gc.drawImage(tankImgs[playerTank.getDirection().ordinal()], 

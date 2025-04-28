@@ -1,5 +1,6 @@
 package com.nau_yyf.service.serviceImpl;
 
+import com.nau_yyf.controller.GameController;
 import com.nau_yyf.controller.SingleGameController;
 import com.nau_yyf.service.GameStateService;
 import com.nau_yyf.view.GameView;
@@ -29,24 +30,34 @@ public class SingleGameStateServiceImpl implements GameStateService {
      * 保存游戏状态
      */
     @Override
-    public boolean saveGame(SingleGameController singleGameController, String saveName) {
-        if (singleGameController == null)
+    public boolean saveGame(GameController controller, String saveName) {
+        if (controller == null)
             return false;
 
-        // 调用GameController的保存方法
-        return singleGameController.saveGame(saveName);
+        // 检查控制器类型
+        if (controller instanceof SingleGameController) {
+            SingleGameController singleController = (SingleGameController) controller;
+            return singleController.saveGame(saveName);
+        }
+        
+        return false;
     }
 
     /**
      * 加载游戏状态
      */
     @Override
-    public boolean loadGame(SingleGameController singleGameController, File saveFile) {
-        if (singleGameController == null || saveFile == null)
+    public boolean loadGame(GameController controller, File saveFile) {
+        if (controller == null || saveFile == null)
             return false;
 
-        // 调用GameController的加载方法
-        return singleGameController.loadGame(saveFile);
+        // 检查控制器类型
+        if (controller instanceof SingleGameController) {
+            SingleGameController singleController = (SingleGameController) controller;
+            return singleController.loadGame(saveFile);
+        }
+        
+        return false;
     }
 
     /**
@@ -55,26 +66,30 @@ public class SingleGameStateServiceImpl implements GameStateService {
      *
      * @return 是否成功加载
      */
-    public boolean showLoadGameDialog(SingleGameController singleGameController) {
-        // 如果gameController为null，则创建一个新的
-        boolean needInitController = (singleGameController == null);
-        String selectedTankType = "standard"; // 默认坦克类型
-
+    public boolean showLoadGameDialog(GameController controller) {
+        // 如果controller为null，则创建一个新的单人游戏控制器
+        boolean needInitController = (controller == null);
+        SingleGameController singleController;
+        
         if (needInitController) {
-            singleGameController = new SingleGameController();
+            singleController = new SingleGameController();
             // 设置必要的监听器
-            SingleGameController finalSingleGameController = singleGameController;
-            singleGameController.setGameEventListener(new SingleGameController.GameEventListener() {
+            singleController.setGameEventListener(new SingleGameController.GameEventListener() {
                 @Override
                 public void onPlayerDestroyed() {
+                    String selectedTankType = "standard"; // 默认坦克类型
                     // 直接获取SinglePlayerGameScreen
                     SinglePlayerGameScreen gameScreen = gameView.getSinglePlayerGameStarter().getGameScreen();
-                    gameScreen.handlePlayerDestroyed(finalSingleGameController, selectedTankType, gameView.getPlayerLives());
+                    gameScreen.handlePlayerDestroyed(singleController, selectedTankType, gameView.getPlayerLives());
                 }
             });
 
             // 设置视图引用
-            singleGameController.setGameView(gameView);
+            singleController.setGameView(gameView);
+        } else if (controller instanceof SingleGameController) {
+            singleController = (SingleGameController) controller;
+        } else {
+            return false; // 不是单人游戏控制器
         }
 
         // 创建文件选择器
@@ -95,11 +110,11 @@ public class SingleGameStateServiceImpl implements GameStateService {
 
         if (selectedFile != null) {
             // 尝试加载游戏
-            boolean success = loadGame(singleGameController, selectedFile);
+            boolean success = loadGame(singleController, selectedFile);
 
             if (success && needInitController) {
                 // 如果是新创建的控制器并且加载成功，设置到GameView
-                gameView.setGameController(singleGameController);
+                gameView.setGameController(singleController);
             }
 
             return success;
@@ -112,24 +127,30 @@ public class SingleGameStateServiceImpl implements GameStateService {
      * 重新开始当前关卡
      */
     @Override
-    public void restartGame(SingleGameController singleGameController, String tankType, int level) {
-        if (singleGameController == null)
+    public void restartGame(GameController controller, String tankType, int level) {
+        if (controller == null)
             return;
 
-        Platform.runLater(() -> {
-            // 彻底清除所有事件监听器
-            Canvas gameCanvas = gameView.getGameCanvas();
-            if (gameCanvas != null) {
-                gameCanvas.setOnKeyPressed(null);
-                gameCanvas.setOnKeyReleased(null);
-            }
+        // 只处理单人游戏控制器
+        if (controller instanceof SingleGameController) {
+            Platform.runLater(() -> {
+                // 彻底清除所有事件监听器
+                Canvas gameCanvas = gameView.getGameCanvas();
+                if (gameCanvas != null) {
+                    gameCanvas.setOnKeyPressed(null);
+                    gameCanvas.setOnKeyReleased(null);
+                }
 
-            // 清理游戏资源
-            cleanupGameResources(singleGameController);
+                // 清理游戏资源
+                cleanupGameResources(controller);
 
-            // 使用GameView的方法启动游戏
-            gameView.startGameWithLevel(tankType, level);
-        });
+                // 设置游戏模式为单人游戏
+                gameView.setGameMode(GameView.GAME_MODE_SINGLE);
+
+                // 使用GameView的方法启动游戏
+                gameView.startGameWithLevel(tankType, level);
+            });
+        }
     }
 
     /**
@@ -169,17 +190,21 @@ public class SingleGameStateServiceImpl implements GameStateService {
      * 检查关卡是否完成
      */
     @Override
-    public boolean isLevelCompleted(SingleGameController singleGameController) {
-        return singleGameController != null && singleGameController.isLevelCompleted();
+    public boolean isLevelCompleted(GameController controller) {
+        if (controller instanceof SingleGameController) {
+            SingleGameController singleController = (SingleGameController) controller;
+            return singleController.isLevelCompleted();
+        }
+        return false;
     }
 
     /**
      * 清理游戏资源
      */
     @Override
-    public void cleanupGameResources(SingleGameController singleGameController) {
+    public void cleanupGameResources(GameController controller) {
         // 清理游戏控制器资源
-        if (singleGameController != null) {
+        if (controller != null) {
             // 在GameView中设置为null
             gameView.setGameController(null);
         }
@@ -191,24 +216,30 @@ public class SingleGameStateServiceImpl implements GameStateService {
     /**
      * 获取游戏得分
      */
-    public int getScore(SingleGameController singleGameController) {
-        if (singleGameController == null) return 0;
+    public int getScore(GameController controller) {
+        if (controller == null) return 0;
         
-        // 获取游戏数据
-        int level = singleGameController.getCurrentLevel();
-        int defeatedEnemies = singleGameController.getDefeatedEnemiesCount();
-        long totalGameTime = gameView.getTotalGameTime();
-        int playerLives = gameView.getPlayerLives();
-        
-        // 当玩家失败时，可能会传入错误的生命值
-        if (playerLives < 0) {
-            playerLives = 0;
+        if (controller instanceof SingleGameController) {
+            SingleGameController singleController = (SingleGameController) controller;
+            
+            // 获取游戏数据
+            int level = singleController.getCurrentLevel();
+            int defeatedEnemies = singleController.getDefeatedEnemiesCount();
+            long totalGameTime = gameView.getTotalGameTime();
+            int playerLives = gameView.getPlayerLives();
+            
+            // 当玩家失败时，可能会传入错误的生命值
+            if (playerLives < 0) {
+                playerLives = 0;
+            }
+            
+            // 计算得分
+            int score = calculateScore(level, defeatedEnemies, totalGameTime, playerLives);
+            
+            // 确保不会返回负分
+            return Math.max(0, score);
         }
         
-        // 计算得分
-        int score = calculateScore(level, defeatedEnemies, totalGameTime, playerLives);
-        
-        // 确保不会返回负分
-        return Math.max(0, score);
+        return 0;
     }
 }

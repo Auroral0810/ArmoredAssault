@@ -1,28 +1,24 @@
 package com.nau_yyf.service;
 
-import com.nau_yyf.controller.SingleGameController;
+import com.nau_yyf.controller.GameController;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.input.KeyEvent;
 
 /**
  * 键盘输入服务接口 - 负责键盘输入处理
+ * 通用于所有游戏模式
  */
 public interface KeyboardService {
 
-    void setupKeyboardControls(Object gameController,
-                               Canvas gameCanvas,
-                               Runnable pauseCallback,
-                               Runnable resumeCallback);
-
     /**
-     * 设置键盘控制
+     * 设置键盘控制（通用方法）
      * 
-     * @param singleGameController 游戏控制器
+     * @param controller 游戏控制器
      * @param gameCanvas 游戏画布
      * @param pauseCallback 暂停回调
      * @param resumeCallback 恢复回调
      */
-    void setupKeyboardControls(SingleGameController singleGameController,
+    void setupKeyboardControls(GameController controller,
                                Canvas gameCanvas,
                                Runnable pauseCallback,
                                Runnable resumeCallback);

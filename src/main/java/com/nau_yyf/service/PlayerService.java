@@ -1,44 +1,45 @@
 package com.nau_yyf.service;
 
-import com.nau_yyf.controller.SingleGameController;
+import com.nau_yyf.controller.GameController;
 import com.nau_yyf.model.Bullet;
 import com.nau_yyf.model.Tank;
 
 /**
  * 玩家服务接口 - 负责处理玩家输入、状态和交互
+ * 通用于所有游戏模式
  */
 public interface PlayerService {
     
     /**
      * 处理玩家输入
      * 
-     * @param singleGameController 游戏控制器
+     * @param controller 游戏控制器
      * @param inputState 当前输入状态
      * @param bulletCount 当前子弹数量
      * @return 处理输入后的子弹数量
      */
-    int handlePlayerInput(SingleGameController singleGameController, InputState inputState, int bulletCount);
+    int handlePlayerInput(GameController controller, InputState inputState, int bulletCount);
     
     /**
      * 处理玩家坦克被摧毁
      * 
-     * @param singleGameController 游戏控制器
-     * @param currentTankType 当前坦克类型
-     * @param playerLives 剩余生命数
+     * @param controller 游戏控制器
+     * @param tankType 当前坦克类型
+     * @param lives 剩余生命数
      * @return 玩家是否还有生命
      */
-    boolean handlePlayerDestroyed(SingleGameController singleGameController, String currentTankType, int playerLives);
+    boolean handlePlayerDestroyed(GameController controller, String tankType, int lives);
     
     /**
      * 复活玩家坦克
      * 
-     * @param singleGameController 游戏控制器
+     * @param controller 游戏控制器
      * @param tankType 坦克类型
      * @param spawnX 重生位置X坐标
      * @param spawnY 重生位置Y坐标
      * @return 重生后的坦克对象
      */
-    Tank respawnPlayer(SingleGameController singleGameController, String tankType, int spawnX, int spawnY);
+    Tank respawnPlayer(GameController controller, String tankType, int spawnX, int spawnY);
     
     /**
      * 根据坦克类型计算子弹恢复速率

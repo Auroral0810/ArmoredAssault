@@ -1,7 +1,7 @@
 package com.nau_yyf.service.serviceImpl;
 
+import com.nau_yyf.controller.GameController;
 import com.nau_yyf.controller.MultiGameController;
-import com.nau_yyf.controller.SingleGameController;
 import com.nau_yyf.service.KeyboardService;
 import com.nau_yyf.service.PlayerService;
 import javafx.scene.Scene;
@@ -29,82 +29,21 @@ public class MultiKeyboardServiceImpl implements KeyboardService {
     private Runnable resumeCallback;
     
     /**
-     * 设置键盘控制
+     * 设置键盘控制 (通用方法)
      */
     @Override
-    public void setupKeyboardControls(Object gameController,
+    public void setupKeyboardControls(GameController controller,
                                       Canvas gameCanvas,
                                       Runnable pauseCallback,
                                       Runnable resumeCallback) {
-        if (!(gameController instanceof MultiGameController)) {
-            throw new IllegalArgumentException("MultiKeyboardServiceImpl 需要 MultiGameController 实例");
+        if (!(controller instanceof MultiGameController)) {
+            throw new IllegalArgumentException("MultiKeyboardServiceImpl需要MultiGameController类型的控制器");
         }
+        
+        MultiGameController multiController = (MultiGameController) controller;
         
         // 保存引用
-        this.multiGameController = (MultiGameController) gameController;
-        this.pauseCallback = pauseCallback;
-        this.resumeCallback = resumeCallback;
-        
-        // 重置输入状态
-        resetInputStates();
-        
-        // 清除之前的监听器
-        clearKeyboardControls(gameCanvas);
-        
-        // 获取场景和根布局
-        Scene scene = gameCanvas.getScene();
-        StackPane root = (StackPane) gameCanvas.getParent();
-        
-        // 清除场景上存在的监听器
-        if (scene != null) {
-            scene.setOnKeyPressed(null);
-            scene.setOnKeyReleased(null);
-        }
-        
-        // 清除根布局上存在的监听器
-        if (root != null) {
-            root.setOnKeyPressed(null);
-            root.setOnKeyReleased(null);
-        }
-        
-        // 在画布级别添加新的监听器
-        gameCanvas.setOnKeyPressed(e -> {
-            handleKeyPressedInternal(e);
-            e.consume(); // 阻止事件继续传播
-        });
-        
-        gameCanvas.setOnKeyReleased(e -> {
-            handleKeyReleasedInternal(e);
-            e.consume(); // 阻止事件继续传播
-        });
-        
-        // 确保画布可以获取焦点
-        gameCanvas.setFocusTraversable(true);
-    }
-
-    /**
-     * 设置键盘控制 (实现接口的原始方法)
-     */
-    @Override
-    public void setupKeyboardControls(SingleGameController singleGameController,
-                                      Canvas gameCanvas,
-                                      Runnable pauseCallback,
-                                      Runnable resumeCallback) {
-        // 在多人游戏模式中，我们不会接收SingleGameController
-        // 但为了满足接口要求，需要保留此方法
-        throw new UnsupportedOperationException("多人游戏不支持SingleGameController，请使用带有MultiGameController参数的重载方法");
-    }
-
-    /**
-     * 设置键盘控制 (多人游戏专用)
-     * 这个方法不是接口要求的，但是我们的实现需要它
-     */
-    public void setupKeyboardControls(MultiGameController multiGameController,
-                                      Canvas gameCanvas,
-                                      Runnable pauseCallback,
-                                      Runnable resumeCallback) {
-        // 保存引用
-        this.multiGameController = multiGameController;
+        this.multiGameController = multiController;
         this.pauseCallback = pauseCallback;
         this.resumeCallback = resumeCallback;
         

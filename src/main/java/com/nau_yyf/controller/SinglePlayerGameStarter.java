@@ -8,7 +8,7 @@ import javafx.application.Platform;
  * 单人游戏启动器
  * 负责初始化和启动单人游戏
  */
-public class SinglePlayerGameStarter implements GameStarter {
+public class SinglePlayerGameStarter implements GameStarterController {
 
     private GameView gameView;
     private SingleGameController singleGameController;

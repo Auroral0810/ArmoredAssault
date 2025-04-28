@@ -1,5 +1,6 @@
 package com.nau_yyf.service.serviceImpl;
 
+import com.nau_yyf.controller.GameController;
 import com.nau_yyf.controller.SingleGameController;
 import com.nau_yyf.model.Bullet;
 import com.nau_yyf.model.LevelMap;
@@ -27,11 +28,18 @@ public class SinglePlayerServiceImpl implements PlayerService {
      * 处理玩家输入
      */
     @Override
-    public int handlePlayerInput(SingleGameController singleGameController, InputState inputState, int bulletCount) {
-        if (singleGameController == null) return bulletCount;
+    public int handlePlayerInput(GameController controller, InputState inputState, int bulletCount) {
+        if (controller == null) return bulletCount;
+        
+        // 只处理单人游戏控制器
+        if (!(controller instanceof SingleGameController)) {
+            return bulletCount;
+        }
+        
+        SingleGameController singleController = (SingleGameController) controller;
         
         // 获取玩家坦克
-        Tank playerTank = singleGameController.getPlayerTank();
+        Tank playerTank = singleController.getPlayerTank();
         
         // 如果坦克不存在或已经死亡，不处理任何输入
         if (playerTank == null || playerTank.isDead()) {
@@ -59,7 +67,7 @@ public class SinglePlayerServiceImpl implements PlayerService {
         playerTank.setAccelerating(anyKeyPressed);
         
         // 执行移动逻辑（无论是否按键都要调用，以处理减速）
-        playerTank.move(singleGameController);
+        playerTank.move(singleController);
         
         // 水池伤害处理
         if (playerTank.isInWaterLastFrame()) {
@@ -71,7 +79,7 @@ public class SinglePlayerServiceImpl implements PlayerService {
             Bullet bullet = fireBullet(playerTank);
             if (bullet != null) {
                 bulletCount--;
-                singleGameController.addBullet(bullet);
+                singleController.addBullet(bullet);
             }
         }
         
@@ -82,31 +90,38 @@ public class SinglePlayerServiceImpl implements PlayerService {
      * 处理玩家坦克被摧毁
      */
     @Override
-    public boolean handlePlayerDestroyed(SingleGameController singleGameController, String currentTankType, int playerLives) {
-        if (singleGameController == null) return false;
+    public boolean handlePlayerDestroyed(GameController controller, String tankType, int lives) {
+        if (controller == null) return false;
+        
+        // 只处理单人游戏控制器
+        if (!(controller instanceof SingleGameController)) {
+            return false;
+        }
+        
+        SingleGameController singleController = (SingleGameController) controller;
         
         // 避免多次调用此方法，检查玩家坦克是否已经处理
-        Tank playerTank = singleGameController.getPlayerTank();
+        Tank playerTank = singleController.getPlayerTank();
         if (playerTank == null || !playerTank.isDead()) {
             return false;
         }
         
         // 减少玩家生命值
-        playerLives--;
+        lives--;
         
         // 更新UI中的生命显示
-        gameView.setPlayerLives(playerLives);
+        gameView.setPlayerLives(lives);
         
         // 判断是否游戏结束
-        if (playerLives <= 0) {
+        if (lives <= 0) {
             return false; // 没有生命了，无法重生
         } else {
             // 还有生命，立即重生玩家
             // 寻找有效的重生位置
-            LevelMap.MapPosition spawnPos = singleGameController.findValidSpawnPosition();
+            LevelMap.MapPosition spawnPos = singleController.findValidSpawnPosition();
             if (spawnPos != null) {
                 // 使用当前选择的坦克类型重生
-                Tank respawnedTank = respawnPlayer(singleGameController, currentTankType, spawnPos.getX(), spawnPos.getY());
+                Tank respawnedTank = respawnPlayer(singleController, tankType, spawnPos.getX(), spawnPos.getY());
                 
                 // 添加重生效果
                 if (respawnedTank != null) {
@@ -116,7 +131,6 @@ public class SinglePlayerServiceImpl implements PlayerService {
                         spawnPos.getX(), 
                         spawnPos.getY()
                     );
-                    
                 }
                 return true; // 成功重生
             }
@@ -129,14 +143,21 @@ public class SinglePlayerServiceImpl implements PlayerService {
      * 复活玩家坦克
      */
     @Override
-    public Tank respawnPlayer(SingleGameController singleGameController, String tankType, int spawnX, int spawnY) {
-        if (singleGameController == null) return null;
+    public Tank respawnPlayer(GameController controller, String tankType, int spawnX, int spawnY) {
+        if (controller == null) return null;
+        
+        // 只处理单人游戏控制器
+        if (!(controller instanceof SingleGameController)) {
+            return null;
+        }
+        
+        SingleGameController singleController = (SingleGameController) controller;
         
         // 使用游戏控制器的方法重生玩家坦克
-        singleGameController.respawnPlayerTank(tankType, spawnX, spawnY);
+        singleController.respawnPlayerTank(tankType, spawnX, spawnY);
         
         // 返回重生后的坦克
-        return singleGameController.getPlayerTank();
+        return singleController.getPlayerTank();
     }
 
     /**
@@ -205,6 +226,9 @@ public class SinglePlayerServiceImpl implements PlayerService {
         return playerTank.fire();
     }
 
+    /**
+     * 更新子弹显示
+     */
     public void updateBulletDisplay() {
         if (gameView.getSinglePlayerGameStarter() != null) {
             SinglePlayerGameScreen gameScreen = gameView.getSinglePlayerGameStarter().getGameScreen();

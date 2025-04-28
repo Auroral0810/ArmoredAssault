@@ -6,7 +6,7 @@ import com.nau_yyf.view.GameScreen;
  * 游戏启动器通用接口
  * 负责初始化和启动游戏
  */
-public interface GameStarter {
+public interface GameStarterController {
     /**
      * 获取游戏屏幕
      */
