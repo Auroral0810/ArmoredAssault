@@ -32,17 +32,17 @@
           <vendor>NAU-YYF</vendor>
           <destination>target/dist</destination>
           <mainClass>com.nau_yyf.ArmoredAssaultApplication</mainClass>
-          <type>DMG</type>
-          <icon>src/main/resources/images/logo/tank_logo.icns</icon>
+          <type>${pkg.type}</type>
+          <icon>${icon.path}</icon>
           <javaOptions>
             <option>-Dfile.encoding=UTF-8</option>
             <option>--add-opens=java.base/java.lang=ALL-UNNAMED</option>
+            <option>--add-opens=java.desktop/java.awt.font=ALL-UNNAMED</option>
+            <option>${pkg.jvmArgs}</option>
           </javaOptions>
           <input>${project.build.directory}/dependency</input>
           <mainJar>${project.artifactId}-${project.version}.jar</mainJar>
-          <runtimeImage>/Library/Java/JavaVirtualMachines/liberica-jdk-17-full.jdk/Contents/Home</runtimeImage>
-          <macPackageIdentifier>com.nau_yyf.ArmoredAssault</macPackageIdentifier>
-          <macAppStore>false</macAppStore>
+          <runtimeImage>${java.home}</runtimeImage>
         </configuration>
       </plugin>
       <plugin>
@@ -150,6 +150,31 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>mac</id>
+      <properties>
+        <icon.path>src/main/resources/images/logo/tank_logo.icns</icon.path>
+        <pkg.jvmArgs>-Dglass.platform=mac</pkg.jvmArgs>
+        <pkg.type>dmg</pkg.type>
+      </properties>
+    </profile>
+    <profile>
+      <id>windows</id>
+      <properties>
+        <icon.path>src/main/resources/images/logo/tank_logo.ico</icon.path>
+        <pkg.type>msi</pkg.type>
+      </properties>
+    </profile>
+    <profile>
+      <id>linux</id>
+      <properties>
+        <icon.path>src/main/resources/images/logo/tank_logo.png</icon.path>
+        <pkg.jvmArgs>-Dglass.platform=gtk</pkg.jvmArgs>
+        <pkg.type>deb</pkg.type>
+      </properties>
+    </profile>
+  </profiles>
   <properties>
     <maven.compiler.target>21</maven.compiler.target>
     <maven.compiler.source>21</maven.compiler.source>

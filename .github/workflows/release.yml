@@ -4,23 +4,27 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
   build-mac:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Liberica JDK 17
+      
+      - name: Set up Liberica JDK 17 Full
         uses: actions/setup-java@v3
         with:
           distribution: 'liberica'
           java-version: '17'
           java-package: 'jdk+fx'
-      - name: Build with Maven
+          
+      - name: Build macOS App
         run: |
           mvn clean package
           mvn dependency:copy-dependencies
           mvn jpackage:jpackage -Dtype=dmg
+          
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v3
         with:
@@ -31,17 +35,20 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Liberica JDK 17
+      
+      - name: Set up Liberica JDK 17 Full
         uses: actions/setup-java@v3
         with:
           distribution: 'liberica'
           java-version: '17'
           java-package: 'jdk+fx'
-      - name: Build with Maven
+          
+      - name: Build Windows App
         run: |
           mvn clean package
           mvn dependency:copy-dependencies
           mvn jpackage:jpackage -Dtype=msi
+          
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v3
         with:
@@ -52,21 +59,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Liberica JDK 17
+      
+      - name: Set up Liberica JDK 17 Full
         uses: actions/setup-java@v3
         with:
           distribution: 'liberica'
           java-version: '17'
           java-package: 'jdk+fx'
-      - name: Install dependencies
+          
+      - name: Install Linux dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y fakeroot
-      - name: Build with Maven
+          sudo apt-get install -y fakeroot libgdk-pixbuf2.0-dev libgtk-3-dev
+          
+      - name: Build Linux App
         run: |
           mvn clean package
           mvn dependency:copy-dependencies
           mvn jpackage:jpackage -Dtype=deb
+          
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v3
         with:
@@ -79,17 +90,18 @@ jobs:
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v3
-        with:
-          path: artifacts
-      - name: List artifacts
-        run: ls -R artifacts
+        
+      - name: Display structure of downloaded files
+        run: ls -R
+        
       - name: Create Release
         uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            artifacts/macos-app/*.dmg
-            artifacts/windows-app/*.msi
-            artifacts/linux-app/*.deb
-          draft: false
-          prerelease: false
+            macos-app/*.dmg
+            windows-app/*.msi
+            linux-app/*.deb
           generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

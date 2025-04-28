@@ -1,0 +1,25 @@
+<plugin>
+    <groupId>org.panteleyev</groupId>
+    <artifactId>jpackage-maven-plugin</artifactId>
+    <version>1.4.0</version>
+    <configuration>
+        <name>ArmoredAssault</name>
+        <appVersion>1.0</appVersion>
+        <vendor>NAU-YYF</vendor>
+        <destination>target/dist</destination>
+        <mainClass>com.nau_yyf.ArmoredAssaultApplication</mainClass>
+        <type>msi</type>
+        <icon>src/main/resources/images/logo/tank_logo.ico</icon>
+        <javaOptions>
+            <option>-Dfile.encoding=UTF-8</option>
+            <option>--add-opens=java.base/java.lang=ALL-UNNAMED</option>
+            <option>--add-opens=java.desktop/java.awt.font=ALL-UNNAMED</option>
+        </javaOptions>
+        <input>${project.build.directory}/dependency</input>
+        <mainJar>${project.artifactId}-${project.version}.jar</mainJar>
+        <runtimeImage>${java.home}</runtimeImage>
+        <winMenu>true</winMenu>
+        <winMenuGroup>ArmoredAssault</winMenuGroup>
+        <winShortcut>true</winShortcut>
+    </configuration>
+</plugin>
