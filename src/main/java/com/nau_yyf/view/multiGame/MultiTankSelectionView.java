@@ -2,6 +2,7 @@ package com.nau_yyf.view.multiGame;
 
 import com.jfoenix.controls.JFXButton;
 import com.nau_yyf.util.TankUtil;
+import com.nau_yyf.view.BaseMenuView;
 import com.nau_yyf.view.GameView;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -26,18 +27,7 @@ import java.util.List;
 /**
  * 双人坦克选择界面视图组件
  */
-public class MultiTankSelectionView {
-    
-    private GameView gameView;
-    private StackPane root;
-    private Stage stage;
-    
-    // 使用与单人游戏相同的主色调
-    private final Color PRIMARY_COLOR = Color.rgb(37, 160, 218);    // 蓝色
-    private final Color SECONDARY_COLOR = Color.rgb(212, 57, 43);     // 红色 - 仅用于标识玩家2
-    private final Color TEXT_COLOR = Color.WHITE;
-    private final Color BACKGROUND_COLOR = Color.rgb(27, 40, 56);   // 深蓝灰色
-    private final Color DISABLED_COLOR = Color.rgb(100, 100, 100);  // 灰色 - 禁用状态
+public class MultiTankSelectionView extends BaseMenuView {
     
     // 坦克选择界面组件
     private BorderPane tankSelectionLayout;
@@ -48,6 +38,9 @@ public class MultiTankSelectionView {
     private int p1SelectedTankType = 0; // 默认选择light坦克
     private int p2SelectedTankType = 1; // 默认选择standard坦克
     
+    // 玩家2专用颜色
+    private final Color PLAYER2_COLOR = Color.rgb(212, 57, 43);  // 红色 - 仅用于标识玩家2
+    
     /**
      * 构造函数
      * @param gameView 游戏主视图的引用
@@ -55,21 +48,20 @@ public class MultiTankSelectionView {
      * @param stage 主舞台
      */
     public MultiTankSelectionView(GameView gameView, StackPane root, Stage stage) {
-        this.gameView = gameView;
-        this.root = root;
-        this.stage = stage;
+        super(gameView, root, stage);
     }
     
     /**
      * 显示坦克选择界面
      */
+    @Override
     public void show() {
         Platform.runLater(() -> {
             // 清除当前内容
             root.getChildren().clear();
             
-            // 设置根布局背景色
-            root.setStyle("-fx-background-color: " + toHexString(BACKGROUND_COLOR) + ";");
+            // 设置背景
+            setGameBackground(root);
 
             // 如果选择界面尚未初始化，创建它
             if (tankSelectionLayout == null) {
@@ -90,11 +82,10 @@ public class MultiTankSelectionView {
     private void initializeTankSelectionUI() {
         // 创建主布局
         tankSelectionLayout = new BorderPane();
+        tankSelectionLayout.setStyle("-fx-background-color: rgba(20, 30, 40, 0.85); -fx-background-radius: 15;");
         
         // 标题
-        Text titleText = new Text("选择你们的坦克");
-        titleText.setFont(Font.font("Arial", FontWeight.BOLD, 36));
-        titleText.setFill(PRIMARY_COLOR);
+        Text titleText = createTitle("选择你们的坦克");
         
         StackPane titlePane = new StackPane(titleText);
         titlePane.setPadding(new Insets(20, 0, 10, 0));
@@ -105,7 +96,7 @@ public class MultiTankSelectionView {
         playersContainer.setAlignment(Pos.CENTER);
         
         // 玩家1区域
-        VBox player1Area = createPlayerSelectionArea("玩家1 (蓝色)", PRIMARY_COLOR, p1TankOptionContainers, 
+        VBox player1Area = createPlayerSelectionArea("玩家1 (蓝色)", Color.rgb(37, 160, 218), p1TankOptionContainers, 
                                                      p1TankSelectButtons, p1SelectedTankType, 1);
         
         // 分隔线
@@ -113,7 +104,7 @@ public class MultiTankSelectionView {
         separator.setPrefWidth(600);
         
         // 玩家2区域
-        VBox player2Area = createPlayerSelectionArea("玩家2 (红色)", SECONDARY_COLOR, p2TankOptionContainers, 
+        VBox player2Area = createPlayerSelectionArea("玩家2 (红色)", PLAYER2_COLOR, p2TankOptionContainers, 
                                                      p2TankSelectButtons, p2SelectedTankType, 2);
         
         // 将玩家区域添加到容器
@@ -243,7 +234,7 @@ public class MultiTankSelectionView {
                 // 将占位符添加到布局中
                 tankOption.getChildren().add(placeholder);
                 
-                System.err.println("无法加载坦克图片: " + e.getMessage());
+                
                 continue;
             }
             
@@ -315,11 +306,11 @@ public class MultiTankSelectionView {
             
             if (i == p1SelectedTankType) {
                 // 选中样式
-                tankOption.setStyle("-fx-border-color: " + toHexString(PRIMARY_COLOR) + "; " +
+                tankOption.setStyle("-fx-border-color: " + toHexString(Color.rgb(37, 160, 218)) + "; " +
                         "-fx-border-width: 3; " +
                         "-fx-border-radius: 5; " +
                         "-fx-padding: 5;");
-                selectButton.setStyle("-fx-background-color: " + toHexString(PRIMARY_COLOR) + ";");
+                selectButton.setStyle("-fx-background-color: " + toHexString(Color.rgb(37, 160, 218)) + ";");
                 selectButton.setText("已选择");
             } else {
                 // 未选中样式
@@ -336,11 +327,11 @@ public class MultiTankSelectionView {
             
             if (i == p2SelectedTankType) {
                 // 选中样式
-                tankOption.setStyle("-fx-border-color: " + toHexString(SECONDARY_COLOR) + "; " +
+                tankOption.setStyle("-fx-border-color: " + toHexString(PLAYER2_COLOR) + "; " +
                         "-fx-border-width: 3; " +
                         "-fx-border-radius: 5; " +
                         "-fx-padding: 5;");
-                selectButton.setStyle("-fx-background-color: " + toHexString(SECONDARY_COLOR) + ";");
+                selectButton.setStyle("-fx-background-color: " + toHexString(PLAYER2_COLOR) + ";");
                 selectButton.setText("已选择");
             } else {
                 // 未选中样式
@@ -409,15 +400,15 @@ public class MultiTankSelectionView {
      * @param isPrimary 是否是主按钮
      * @return 配置好的JFXButton
      */
-    private JFXButton createMenuButton(String text, javafx.event.EventHandler<javafx.event.ActionEvent> action, boolean isPrimary) {
+    public JFXButton createMenuButton(String text, javafx.event.EventHandler<javafx.event.ActionEvent> action, boolean isPrimary) {
         JFXButton button = new JFXButton(text);
         button.setButtonType(JFXButton.ButtonType.RAISED);
         button.setTextFill(TEXT_COLOR);
         
         if (isPrimary) {
-            button.setStyle("-fx-background-color: " + toHexString(SECONDARY_COLOR) + "; -fx-font-size: 16px;");
+            button.setStyle("-fx-background-color: " + toHexString(PLAYER2_COLOR) + "; -fx-font-size: 16px;");
         } else {
-            button.setStyle("-fx-background-color: " + toHexString(PRIMARY_COLOR) + "; -fx-font-size: 16px;");
+            button.setStyle("-fx-background-color: " + toHexString(Color.rgb(37, 160, 218)) + "; -fx-font-size: 16px;");
         }
         
         button.setPrefWidth(200);
@@ -431,7 +422,7 @@ public class MultiTankSelectionView {
      * @param color 颜色
      * @return 十六进制表示
      */
-    private String toHexString(Color color) {
+    public String toHexString(Color color) {
         return String.format("#%02X%02X%02X",
                 (int) (color.getRed() * 255),
                 (int) (color.getGreen() * 255),

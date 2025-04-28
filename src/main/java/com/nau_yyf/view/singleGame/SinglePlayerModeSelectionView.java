@@ -1,6 +1,7 @@
 package com.nau_yyf.view.singleGame;
 
 import com.jfoenix.controls.JFXButton;
+import com.nau_yyf.view.BaseMenuView;
 import com.nau_yyf.view.GameView;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -10,25 +11,12 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
 /**
  * 单人游戏模式选择界面
  */
-public class SinglePlayerModeSelectionView {
-    
-    private GameView gameView;
-    private StackPane root;
-    private Stage stage;
-    
-    // 颜色常量
-    private final Color PRIMARY_COLOR = Color.rgb(37, 160, 218);    // 蓝色
-    private final Color TEXT_COLOR = Color.WHITE;
-    private final Color BACKGROUND_COLOR = Color.rgb(27, 40, 56);   // 深蓝灰色
+public class SinglePlayerModeSelectionView extends BaseMenuView {
     
     /**
      * 构造函数
@@ -37,37 +25,36 @@ public class SinglePlayerModeSelectionView {
      * @param stage 主舞台
      */
     public SinglePlayerModeSelectionView(GameView gameView, StackPane root, Stage stage) {
-        this.gameView = gameView;
-        this.root = root;
-        this.stage = stage;
+        super(gameView, root, stage);
     }
     
     /**
      * 显示单人游戏模式选择界面
      */
+    @Override
     public void show() {
         Platform.runLater(() -> {
             // 清除当前内容
             root.getChildren().clear();
             
-            // 创建垂直布局容器
-            VBox optionsContainer = new VBox(20);
+            // 设置游戏背景（使用基类方法）
+            setGameBackground(root);
+            
+            // 创建半透明内容面板（使用基类方法）
+            VBox optionsContainer = createContentPanel(20);
             optionsContainer.setAlignment(Pos.CENTER);
             optionsContainer.setPadding(new Insets(50, 0, 50, 0));
             optionsContainer.setMaxWidth(600);
             
-            // 界面标题
-            Text titleText = new Text("单人游戏模式");
-            titleText.setFont(Font.font("Arial", FontWeight.BOLD, 36));
-            titleText.setFill(PRIMARY_COLOR);
-            optionsContainer.getChildren().add(titleText);
+            // 界面标题（使用基类方法）
+            optionsContainer.getChildren().add(createTitle("单人游戏模式"));
             
             // 间隔
             Region spacer1 = new Region();
             VBox.setVgrow(spacer1, Priority.ALWAYS);
             optionsContainer.getChildren().add(spacer1);
             
-            // 创建不同模式的按钮
+            // 创建不同模式的按钮（使用基类方法）
             JFXButton campaignButton = createMenuButton("闯关模式", e -> 
                 gameView.showGameOptions(GameView.GAME_MODE_SINGLE_CAMPAIGN));
             
@@ -105,34 +92,5 @@ public class SinglePlayerModeSelectionView {
             // 显示舞台
             stage.show();
         });
-    }
-    
-    /**
-     * 创建菜单按钮
-     * @param text 按钮文本
-     * @param action 按钮动作
-     * @return 配置好的JFXButton
-     */
-    private JFXButton createMenuButton(String text, javafx.event.EventHandler<javafx.event.ActionEvent> action) {
-        JFXButton button = new JFXButton(text);
-        button.setButtonType(JFXButton.ButtonType.RAISED);
-        button.setTextFill(TEXT_COLOR);
-        button.setStyle("-fx-background-color: " + toHexString(PRIMARY_COLOR) + "; -fx-font-size: 16px;");
-        button.setPrefWidth(200);
-        button.setPrefHeight(40);
-        button.setOnAction(action);
-        return button;
-    }
-    
-    /**
-     * 将Color对象转换为十六进制字符串
-     * @param color 颜色
-     * @return 十六进制表示
-     */
-    private String toHexString(Color color) {
-        return String.format("#%02X%02X%02X",
-                (int) (color.getRed() * 255),
-                (int) (color.getGreen() * 255),
-                (int) (color.getBlue() * 255));
     }
 } 

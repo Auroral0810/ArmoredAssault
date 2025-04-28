@@ -179,6 +179,9 @@ public class GameView {
      */
     private long totalGameTime;
 
+    // 在类变量定义部分添加
+    private Image commonBackgroundImage;
+
     /**
      * 构造函数，初始化游戏视图
      *
@@ -194,7 +197,7 @@ public class GameView {
             Image appIcon = new Image(getClass().getResourceAsStream("/images/logo/tank_logo.png"));
             stage.getIcons().add(appIcon);
         } catch (Exception e) {
-            System.err.println("无法加载应用图标: " + e.getMessage());
+            
         }
 
         // 初始化根布局
@@ -212,7 +215,7 @@ public class GameView {
                     new BackgroundSize(100, 100, true, true, false, true));
             root.setBackground(new Background(background));
         } catch (Exception e) {
-            System.err.println("无法加载背景图: " + e.getMessage());
+            
             // 回退到纯色背景
             root.setBackground(new Background(new BackgroundFill(
                     BACKGROUND_COLOR, CornerRadii.EMPTY, Insets.EMPTY)));
@@ -227,7 +230,7 @@ public class GameView {
         try {
             scene.getStylesheets().add(getClass().getResource("/css/style.css").toExternalForm());
         } catch (Exception e) {
-            System.err.println("无法加载样式表: " + e.getMessage());
+            
         }
 
         // 初始化视图组件
@@ -471,7 +474,7 @@ public class GameView {
                 break;
 
             default:
-                System.err.println("警告：未知的游戏模式 " + currentGameMode + " 在cleanupGameResources中");
+                
                 break;
         }
 
@@ -575,7 +578,7 @@ public class GameView {
 
             default:
                 showMessage("无法识别的游戏模式：" + getGameModeName(currentSubMode));
-                System.err.println("警告：未知的游戏模式 " + currentSubMode + " 在loadGame中");
+                
                 return;
         }
 
@@ -696,7 +699,7 @@ public class GameView {
                 break;
 
             default:
-                System.err.println("警告：未知的游戏模式 " + currentGameMode + " 在updateUIAfterLoading中");
+                
                 break;
         }
     }
@@ -707,12 +710,12 @@ public class GameView {
     public void startGameLoop() {
         // 获取当前游戏子模式
         int currentSubMode = getCurrentGameMode();
-        System.out.println("启动游戏循环，当前子模式: " + getGameModeName(currentSubMode));
+        
         
         // 获取当前游戏控制器
         GameController controller = getActiveController();
         if (controller == null) {
-            System.err.println("错误：无法获取游戏控制器");
+            
             showMessage("错误：无法获取游戏控制器");
             return;
         }
@@ -720,7 +723,7 @@ public class GameView {
         // 获取当前游戏屏幕
         GameScreen screen = getGameScreen();
         if (screen == null) {
-            System.err.println("错误：无法获取游戏屏幕");
+            
             showMessage("错误：无法获取游戏屏幕");
             return;
         }
@@ -735,14 +738,14 @@ public class GameView {
 
         // 获取主游戏模式
         int mainMode = getCurrentMainGameMode();
-        System.out.println("获取游戏循环服务，主模式: " + getGameModeName(mainMode));
+        
         
         // 获取对应主模式的游戏循环服务
         GameLoopService currentLoopService = gameLoopServices.get(mainMode);
         
         // 确保循环服务存在
         if (currentLoopService == null) {
-            System.err.println("错误：无法获取游戏循环服务，模式: " + getGameModeName(mainMode));
+            
             showMessage("错误：无法获取游戏循环服务");
             return;
         }
@@ -750,7 +753,7 @@ public class GameView {
         // 创建游戏循环
         AnimationTimer loop = null;
         try {
-            System.out.println("正在创建游戏循环...");
+            
             
             // 使用当前的游戏循环服务创建循环
             loop = currentLoopService.createGameLoop(
@@ -759,7 +762,7 @@ public class GameView {
                     timeUpdateCallback);
 
             if (loop != null) {
-                System.out.println("游戏循环创建成功");
+                
                 screen.setGameLoop(loop);
                 
                 // 确保设置了最后更新时间
@@ -768,13 +771,13 @@ public class GameView {
                 }
                 
                 // 打印调试信息
-                System.out.println("游戏循环已设置到屏幕，控制器类型: " + controller.getClass().getSimpleName());
+                
             } else {
-                System.err.println("错误：游戏循环创建返回空值");
+                
                 showMessage("错误：无法创建游戏循环");
             }
         } catch (Exception e) {
-            System.err.println("创建游戏循环时出错: " + e.getMessage());
+            
             e.printStackTrace();
             showMessage("错误：创建游戏循环时出错 - " + e.getMessage());
         }
@@ -821,7 +824,7 @@ public class GameView {
         GameStarterController starter = gameStarters.get(mainMode);
 
         if (starter == null) {
-            System.err.println("警告：未找到游戏模式 " + getGameModeName(gameMode) + " 的启动器");
+            
         }
 
         return starter;
@@ -1169,7 +1172,7 @@ public class GameView {
                 break;
 
             default:
-                System.err.println("警告：未知的游戏模式 " + currentGameMode + " 在updateHealthDisplay中");
+                
                 break;
         }
     }
@@ -1405,7 +1408,7 @@ public class GameView {
                 break;
 
             default:
-                System.err.println("警告：未知的游戏模式 " + currentGameMode + " 在setPlayerLives中");
+                
                 break;
         }
     }
@@ -1468,7 +1471,7 @@ public class GameView {
                 break;
 
             default:
-                System.err.println("警告：未知的游戏模式 " + currentGameMode + " 在setBulletCount中");
+                
                 break;
         }
     }
@@ -1568,7 +1571,7 @@ public class GameView {
                 break;
 
             default:
-                System.err.println("警告：未知的游戏模式 " + currentGameMode + " 在updatePowerUpUIDisplay中");
+                
                 break;
         }
     }
@@ -1721,7 +1724,7 @@ public class GameView {
 
             default:
                 // 未知控制器类型报警并跳过
-                System.err.println("警告：未知的控制器类型");
+                
                 return;
         }
 
@@ -1735,7 +1738,7 @@ public class GameView {
     public void resetGameStartTime() {
         // 记录当前时间为游戏开始时间
         gameStartTime = System.currentTimeMillis();
-        // System.out.println("游戏开始时间已重置: " + gameStartTime);
+        // 
         
         // 同时重置总游戏时间
         totalGameTime = 0;
@@ -1808,7 +1811,7 @@ public class GameView {
                 return onlineStarter != null ? onlineStarter.getGameScreen() : null;
 
             default:
-                System.err.println("警告：未知的游戏模式 " + currentGameMode + " 在getActiveGameScreen中");
+                
                 return null;
         }
     }
@@ -1941,7 +1944,7 @@ public class GameView {
 
             default:
                 // 未知模式使用默认服务
-                System.err.println("警告：未知的游戏模式 " + mode + "，使用默认服务");
+                
                 break;
         }
     }
@@ -2027,7 +2030,7 @@ public class GameView {
 
             // 默认返回null，但记录错误
             default:
-                System.err.println("错误：未识别的游戏模式 " + currentGameMode + " 在getLevelCompletedView中");
+                
                 return null;
         }
     }
@@ -2084,7 +2087,7 @@ public class GameView {
                 return null;
             // 默认返回null，但记录错误
             default:
-                System.err.println("错误：未识别的游戏模式 " + currentGameMode + " 在getGameOverScreen中");
+                
                 return null;
         }
     }
@@ -2745,13 +2748,14 @@ public class GameView {
                         }
                     } catch (Exception e) {
                         // 如果方法不存在，打印错误但不中断游戏
-                        System.err.println("无法更新时间显示: " + e.getMessage());
+                        
                     }
                 });
             } catch (Exception e) {
-                System.err.println("更新游戏时间时发生错误: " + e.getMessage());
+                
             }
         }
     }
+
 
 }

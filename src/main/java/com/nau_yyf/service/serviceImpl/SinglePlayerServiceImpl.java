@@ -86,7 +86,7 @@ public class SinglePlayerServiceImpl implements PlayerService {
                     try {
                         fired = singleController.playerFireBullet();
                     } catch (Exception e) {
-                        System.err.println("发射子弹时出错: " + e.getMessage());
+                        
                         e.printStackTrace();
                     }
                     
@@ -102,13 +102,13 @@ public class SinglePlayerServiceImpl implements PlayerService {
                                 screen.setBulletCount(bulletCount);
                             }
                         } catch (Exception e) {
-                            System.err.println("更新子弹显示时出错: " + e.getMessage());
+                            
                         }
                     }
                 }
             }
         } catch (Exception e) {
-            System.err.println("处理开火输入时出错: " + e.getMessage());
+            
             e.printStackTrace();
         }
         
@@ -295,7 +295,7 @@ public class SinglePlayerServiceImpl implements PlayerService {
                             lastHandleFiringTime = currentTime;
                         }
                     } catch (Exception e) {
-                        System.err.println("处理开火时出错: " + e.getMessage());
+                        
                         e.printStackTrace();
                     }
                 }

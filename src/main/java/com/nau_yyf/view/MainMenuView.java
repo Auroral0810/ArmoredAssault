@@ -23,17 +23,10 @@ import javafx.stage.Stage;
 /**
  * 游戏主菜单视图组件
  */
-public class MainMenuView {
-
-    private GameView gameView;
-    private StackPane root;
-    private Stage stage;
+public class MainMenuView extends BaseMenuView {
 
     // 从GameView中提取的常量
     private final String GAME_TITLE = "ArmoredAssault";
-    private final Color PRIMARY_COLOR = Color.rgb(37, 160, 218);    // 蓝色
-    private final Color TEXT_COLOR = Color.WHITE;
-
     private ImageView logoImageView;
 
     /**
@@ -44,21 +37,23 @@ public class MainMenuView {
      * @param stage    主舞台
      */
     public MainMenuView(GameView gameView, StackPane root, Stage stage) {
-        this.gameView = gameView;
-        this.root = root;
-        this.stage = stage;
+        super(gameView, root, stage);
     }
 
     /**
      * 显示主菜单
      */
+    @Override
     public void show() {
         Platform.runLater(() -> {
             // 清除当前内容
             root.getChildren().clear();
+            
+            // 设置背景图片（使用基类方法）
+            setGameBackground(root);
 
-            // 创建垂直布局容器
-            VBox menuContainer = new VBox(20);
+            // 创建菜单容器（使用基类方法）
+            VBox menuContainer = createContentPanel(20);
             menuContainer.setAlignment(Pos.CENTER);
             menuContainer.setPadding(new Insets(50, 0, 50, 0));
             menuContainer.setMaxWidth(600);
@@ -71,7 +66,7 @@ public class MainMenuView {
                 logoImageView.setFitHeight(250);
                 logoImageView.setPreserveRatio(true);
             } catch (Exception e) {
-                System.err.println("无法加载Logo: " + e.getMessage());
+                
                 // 使用文字替代
                 logoImageView = null;
             }
@@ -106,7 +101,7 @@ public class MainMenuView {
             VBox.setVgrow(spacer, Priority.ALWAYS);
             menuContainer.getChildren().add(spacer);
 
-            // 创建按钮
+            // 创建按钮（使用基类方法）
             JFXButton singlePlayerButton = createMenuButton("单人游戏", e -> showSinglePlayerModeSelection());
             JFXButton multiPlayerButton = createMenuButton("双人游戏", e -> showMultiPlayerModeSelection());
             JFXButton onlineButton = createMenuButton("远程联机", e -> showOnlinePlayerModeSelection());
@@ -130,37 +125,6 @@ public class MainMenuView {
             // 显示舞台
             stage.show();
         });
-    }
-
-    /**
-     * 创建菜单按钮
-     *
-     * @param text   按钮文本
-     * @param action 按钮动作
-     * @return 配置好的JFXButton
-     */
-    private JFXButton createMenuButton(String text, javafx.event.EventHandler<javafx.event.ActionEvent> action) {
-        JFXButton button = new JFXButton(text);
-        button.setButtonType(JFXButton.ButtonType.RAISED);
-        button.setTextFill(TEXT_COLOR);
-        button.setStyle("-fx-background-color: " + toHexString(PRIMARY_COLOR) + "; -fx-font-size: 16px;");
-        button.setPrefWidth(200);
-        button.setPrefHeight(40);
-        button.setOnAction(action);
-        return button;
-    }
-
-    /**
-     * 将Color对象转换为十六进制字符串
-     *
-     * @param color 颜色
-     * @return 十六进制表示
-     */
-    private String toHexString(Color color) {
-        return String.format("#%02X%02X%02X",
-                (int) (color.getRed() * 255),
-                (int) (color.getGreen() * 255),
-                (int) (color.getBlue() * 255));
     }
 
     /**

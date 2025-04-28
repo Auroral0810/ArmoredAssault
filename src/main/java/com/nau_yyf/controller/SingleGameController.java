@@ -335,7 +335,7 @@ public class SingleGameController implements GameController {
 
                     // 仅打印一次错误，避免日志过多
                     if (Math.random() < 0.01) { // 1%概率打印日志
-                        System.err.println("未找到敌方坦克图片: " + imageKey + ", 方向: " + dirIndex);
+                        
                     }
                 }
             }
@@ -348,7 +348,7 @@ public class SingleGameController implements GameController {
             if (tankImgs != null && playerTank.getDirection().ordinal() < tankImgs.length) {
                 gc.drawImage(tankImgs[playerTank.getDirection().ordinal()], playerTank.getX(), playerTank.getY(), 40, 40);
             } else {
-                System.err.println("未找到玩家坦克图片: " + imageKey + ", 方向: " + playerTank.getDirection());
+                
                 gc.setFill(Color.GREEN);
                 gc.fillRect(playerTank.getX(), playerTank.getY(), 40, 40);
             }
@@ -750,7 +750,7 @@ public class SingleGameController implements GameController {
         }
 
         // 找不到有效位置
-        System.err.println("严重错误：无法找到有效的出生位置！");
+        
         return null;
     }
 
@@ -1445,7 +1445,7 @@ public class SingleGameController implements GameController {
 
             }
         } catch (Exception e) {
-            System.err.println("加载放置炸弹图片失败: " + e.getMessage());
+            
         }
 
 
@@ -1795,7 +1795,7 @@ public class SingleGameController implements GameController {
             
             return true;
         } catch (Exception e) {
-            System.err.println("保存游戏失败: " + e.getMessage());
+            
             e.printStackTrace();
             return false;
         }
@@ -2063,7 +2063,7 @@ public class SingleGameController implements GameController {
             return true; // 加载成功
 
         } catch (Exception e) {
-            System.err.println("加载游戏失败: " + e.getMessage());
+            
             e.printStackTrace();
             return false;
         }
@@ -2098,7 +2098,7 @@ public class SingleGameController implements GameController {
             
             return false;
         } catch (Exception e) {
-            System.err.println("玩家发射子弹时出错: " + e.getMessage());
+            
             e.printStackTrace();
             return false;
         }

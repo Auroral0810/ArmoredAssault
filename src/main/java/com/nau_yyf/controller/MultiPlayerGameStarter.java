@@ -82,7 +82,7 @@ public class MultiPlayerGameStarter implements GameStarterController {
             gameScreen.getGameCanvas().requestFocus();
         }
         
-        System.out.println("多人游戏初始化完成，准备启动游戏循环...");
+        
         
         // 启动游戏循环
         gameView.startGameLoop();

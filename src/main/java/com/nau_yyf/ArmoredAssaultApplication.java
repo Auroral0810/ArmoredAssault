@@ -29,7 +29,7 @@ public class ArmoredAssaultApplication extends Application {
             GameView gameView = new GameView(primaryStage);
             gameView.showMainMenu();
         } catch (Exception e) {
-            System.err.println("启动应用时发生错误: " + e.getMessage());
+            
             e.printStackTrace();
         }
     }

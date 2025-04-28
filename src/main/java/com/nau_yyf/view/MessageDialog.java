@@ -86,7 +86,7 @@ public class MessageDialog {
                 iconView.setFitWidth(24);
                 titleBox.getChildren().add(iconView);
             } catch (Exception e) {
-                System.err.println("无法加载消息图标: " + e.getMessage());
+                
             }
         } else {
             // 默认使用信息图标

@@ -24,7 +24,7 @@ public class SVGToPNGConverter {
                         try {
                             convertSVGToPNG(path);
                         } catch (Exception e) {
-                            System.err.println("转换失败: " + path + " - " + e.getMessage());
+                            
                             e.printStackTrace();
                         }
                     });

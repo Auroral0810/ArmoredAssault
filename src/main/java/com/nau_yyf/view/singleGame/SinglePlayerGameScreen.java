@@ -117,7 +117,7 @@ public class SinglePlayerGameScreen implements GameScreen {
                 // 同时也确保子弹显示更新
                 updateBulletDisplay(bulletCount);
             } else {
-                System.err.println("严重错误: 初始化后timeInfo仍为空!");
+                
             }
             gameCanvas.requestFocus();
         });
@@ -654,7 +654,7 @@ public class SinglePlayerGameScreen implements GameScreen {
                     Text value = (Text) bulletInfo.getChildren().get(1);
                     value.setText(Integer.toString(bulletCount));
                 } else {
-                    System.err.println("通过ID查找也失败，需要重建子弹显示组件");
+                    
                     // 这里可以添加重建组件的逻辑
                 }
             }
@@ -736,7 +736,7 @@ public class SinglePlayerGameScreen implements GameScreen {
         long gameTime = gameView.getTotalGameTime();
         
         // 打印调试信息以便确认时间正确
-        System.out.println("关卡完成，游戏时间: " + gameTime + "ms");
+        
 
         // 创建包含关卡数据的Map
         Map<String, Object> levelData = new HashMap<>();
@@ -792,7 +792,7 @@ public class SinglePlayerGameScreen implements GameScreen {
                     timeInfo.getParent().layout();
                 }
             } else {
-                System.err.println("警告: timeInfo为空，无法更新时间显示");
+                
             }
         });
     }
@@ -1002,7 +1002,7 @@ public class SinglePlayerGameScreen implements GameScreen {
     // 添加辅助方法确保时间显示更新
     private void updateTimeDisplay(long time) {
         if (timeInfo == null) {
-            System.err.println("updateTimeDisplay: timeInfo为空!");
+            
             return;
         }
         

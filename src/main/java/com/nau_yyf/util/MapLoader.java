@@ -18,7 +18,7 @@ public class MapLoader {
 
             return objectMapper.readValue(is, LevelMap.class);
         } catch (Exception e) {
-            System.err.println("加载地图失败: " + e.getMessage());
+            
             e.printStackTrace();
             return null;
         }

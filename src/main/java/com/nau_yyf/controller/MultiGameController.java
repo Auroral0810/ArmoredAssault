@@ -83,7 +83,7 @@ public class MultiGameController implements GameController {
                 Image img = new Image(getClass().getResourceAsStream(imagePath));
                 powerUpImages.put(type.getName(), img);
             } catch (Exception e) {
-                System.err.println("无法加载增益图片: " + type.getName());
+                
             }
         }
     }

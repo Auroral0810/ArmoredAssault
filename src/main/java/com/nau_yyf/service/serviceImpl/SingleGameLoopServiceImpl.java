@@ -81,7 +81,7 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
                 long deltaTime = currentTime - lastTime;
                 if (deltaTime > 100) { // 如果时间差大于100ms，可能是暂停后恢复或其他异常情况
                     deltaTime = 16; // 使用一个标准帧时间(约60FPS)
-                    System.out.println("警告: 检测到异常大的时间步长，已调整为16ms");
+                    
                 }
                 
                 // 更新游戏总时间

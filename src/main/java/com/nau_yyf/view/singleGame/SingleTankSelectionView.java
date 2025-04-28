@@ -2,6 +2,7 @@ package com.nau_yyf.view.singleGame;
 
 import com.jfoenix.controls.JFXButton;
 import com.nau_yyf.util.TankUtil;
+import com.nau_yyf.view.BaseMenuView;
 import com.nau_yyf.view.GameView;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -23,16 +24,7 @@ import java.util.List;
 /**
  * 坦克选择界面视图组件
  */
-public class SingleTankSelectionView {
-    
-    private GameView gameView;
-    private StackPane root;
-    private Stage stage;
-    
-    // 从GameView中提取的常量
-    private final Color PRIMARY_COLOR = Color.rgb(37, 160, 218);    // 蓝色
-    private final Color SECONDARY_COLOR = Color.rgb(76, 175, 80);   // 绿色
-    private final Color TEXT_COLOR = Color.WHITE;
+public class SingleTankSelectionView extends BaseMenuView {
     
     // 坦克选择界面组件
     private BorderPane tankSelectionLayout;
@@ -48,18 +40,20 @@ public class SingleTankSelectionView {
      * @param stage 主舞台
      */
     public SingleTankSelectionView(GameView gameView, StackPane root, Stage stage) {
-        this.gameView = gameView;
-        this.root = root;
-        this.stage = stage;
+        super(gameView, root, stage);
     }
     
     /**
      * 显示坦克选择界面
      */
+    @Override
     public void show() {
         Platform.runLater(() -> {
             // 清除当前内容
             root.getChildren().clear();
+            
+            // 设置背景
+            setGameBackground(root);
 
             // 如果选择界面尚未初始化，创建它
             if (tankSelectionLayout == null) {
@@ -80,11 +74,10 @@ public class SingleTankSelectionView {
     private void initializeTankSelectionUI() {
         // 创建主布局
         tankSelectionLayout = new BorderPane();
+        tankSelectionLayout.setStyle("-fx-background-color: rgba(20, 30, 40, 0.85); -fx-background-radius: 15;");
 
         // 标题
-        Text titleText = new Text("选择你的坦克");
-        titleText.setFont(Font.font("Arial", FontWeight.BOLD, 36));
-        titleText.setFill(PRIMARY_COLOR);
+        Text titleText = createTitle("选择你的坦克");
 
         StackPane titlePane = new StackPane(titleText);
         titlePane.setPadding(new Insets(30, 0, 30, 0));
@@ -158,7 +151,7 @@ public class SingleTankSelectionView {
                 // 将占位符添加到布局中
                 tankOption.getChildren().add(placeholder);
 
-                System.err.println("无法加载坦克图片: " + e.getMessage());
+                
                 continue;
             }
 
@@ -210,9 +203,8 @@ public class SingleTankSelectionView {
         bottomButtons.setAlignment(Pos.CENTER);
         bottomButtons.setPadding(new Insets(30));
 
-        JFXButton backButton = createMenuButton("返回", e -> gameView.showGameOptions(GameView.GAME_MODE_MULTI_CAMPAIGN));
-        JFXButton startButton = createMenuButton("开始游戏", e -> startGame());
-        startButton.setStyle("-fx-background-color: " + toHexString(SECONDARY_COLOR) + ";");
+        JFXButton backButton = createMenuButton("返回", e -> gameView.showGameOptions(GameView.GAME_MODE_SINGLE_CAMPAIGN));
+        JFXButton startButton = createMenuButton("开始游戏", e -> startGame(), true);
 
         bottomButtons.getChildren().addAll(backButton, startButton);
         tankSelectionLayout.setBottom(bottomButtons);
@@ -252,35 +244,6 @@ public class SingleTankSelectionView {
     private void startGame() {
         String selectedTankType = TankUtil.TANK_TYPES.get(this.selectedTankType);
         gameView.startGame(selectedTankType);
-    }
-    
-    /**
-     * 创建菜单按钮
-     * @param text 按钮文本
-     * @param action 按钮动作
-     * @return 配置好的JFXButton
-     */
-    private JFXButton createMenuButton(String text, javafx.event.EventHandler<javafx.event.ActionEvent> action) {
-        JFXButton button = new JFXButton(text);
-        button.setButtonType(JFXButton.ButtonType.RAISED);
-        button.setTextFill(TEXT_COLOR);
-        button.setStyle("-fx-background-color: " + toHexString(PRIMARY_COLOR) + "; -fx-font-size: 16px;");
-        button.setPrefWidth(200);
-        button.setPrefHeight(40);
-        button.setOnAction(action);
-        return button;
-    }
-    
-    /**
-     * 将Color对象转换为十六进制字符串
-     * @param color 颜色
-     * @return 十六进制表示
-     */
-    private String toHexString(Color color) {
-        return String.format("#%02X%02X%02X",
-                (int) (color.getRed() * 255),
-                (int) (color.getGreen() * 255),
-                (int) (color.getBlue() * 255));
     }
     
     /**

@@ -66,7 +66,7 @@ public class SingleEffectServiceImpl implements EffectService {
                 transition.play();
             }
         } catch (Exception e) {
-            System.err.println("无法创建重生特效: " + e.getMessage());
+            
         }
     }
     
