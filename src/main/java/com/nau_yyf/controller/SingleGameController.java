@@ -17,7 +17,8 @@ import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class SingleGameController {
+// 在类声明中添加实现接口
+public class SingleGameController implements GameController {
     // 定义事件监听器接口
     public interface GameEventListener {
         void onPlayerDestroyed();

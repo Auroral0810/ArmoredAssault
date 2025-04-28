@@ -8,7 +8,7 @@ import javafx.application.Platform;
  * 单人游戏启动器
  * 负责初始化和启动单人游戏
  */
-public class SinglePlayerGameStarter {
+public class SinglePlayerGameStarter implements GameStarter {
 
     private GameView gameView;
     private SingleGameController singleGameController;
@@ -31,6 +31,9 @@ public class SinglePlayerGameStarter {
      * @param level            关卡编号
      */
     public void startGame(String selectedTankType, int level) {
+        // 设置游戏模式为单人游戏
+        gameView.setGameMode(GameView.GAME_MODE_SINGLE);
+        
         // 创建游戏控制器并加载关卡
         singleGameController = new SingleGameController();
         singleGameController.loadLevel(level);
@@ -57,26 +60,26 @@ public class SinglePlayerGameStarter {
             }
         });
 
-        // 初始化游戏状态
-        gameView.setGamePaused(false);
-        gameView.setIsPauseMenuOpen(false);
+        // 初始化游戏状态 - 直接在SinglePlayerGameScreen设置
+        gameScreen.setGamePaused(false);
+        gameScreen.setIsPauseMenuOpen(false);
 
-        // 显示游戏屏幕 - 先显示界面再设置生命值和子弹数
+        // 显示游戏屏幕
         gameScreen.show(singleGameController);
 
-        // 现在gameDataPanel已初始化，可以安全设置这些值
-        gameView.setPlayerLives(3);
-        gameView.setBulletCount(10);
+        // 设置生命值和子弹数
+        gameScreen.setPlayerLives(3);
+        gameScreen.setBulletCount(10);
 
         // 立即更新所有显示元素
         gameView.updateHealthDisplay();
-        gameScreen.updateLivesDisplay(gameView.getPlayerLives());
+        gameScreen.updateLivesDisplay(gameScreen.getPlayerLives());
         gameScreen.updateEnemiesDisplay(singleGameController);
-        gameView.updateBulletDisplay();
+        gameScreen.updateBulletDisplay(gameScreen.getBulletCount());
 
         // 记录游戏开始时间
         gameView.resetGameStartTime();
-        gameView.setLastBulletRefillTime(System.currentTimeMillis());
+        gameScreen.setLastBulletRefillTime(System.currentTimeMillis());
 
         // 确保画布获取焦点
         if (gameScreen.getGameCanvas() != null) {
@@ -85,7 +88,6 @@ public class SinglePlayerGameStarter {
 
         // 启动游戏循环
         gameView.startGameLoop();
-
     }
 
     /**
@@ -113,5 +115,13 @@ public class SinglePlayerGameStarter {
      */
     public SinglePlayerGameScreen getGameScreen() {
         return gameScreen;
+    }
+
+
+    @Override
+    public void setGameController(GameController controller) {
+        if (controller instanceof SingleGameController) {
+            this.singleGameController = (SingleGameController) controller;
+        }
     }
 }

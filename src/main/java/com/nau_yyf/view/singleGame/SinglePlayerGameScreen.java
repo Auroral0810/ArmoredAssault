@@ -1,6 +1,7 @@
 package com.nau_yyf.view.singleGame;
 
 import com.jfoenix.controls.JFXButton;
+import com.nau_yyf.controller.GameController;
 import com.nau_yyf.controller.SingleGameController;
 import com.nau_yyf.model.Tank;
 import com.nau_yyf.service.EffectService;
@@ -8,6 +9,7 @@ import com.nau_yyf.service.GameStateService;
 import com.nau_yyf.service.PlayerService;
 import com.nau_yyf.service.serviceImpl.SingleEffectServiceImpl;
 import com.nau_yyf.service.serviceImpl.SingleGameStateServiceImpl;
+import com.nau_yyf.view.GameScreen;
 import com.nau_yyf.view.GameView;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -25,6 +27,7 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.control.ProgressBar;
+import javafx.animation.AnimationTimer;
 
 import static com.nau_yyf.util.TankUtil.getTankDisplayName;
 
@@ -34,12 +37,23 @@ import java.util.Map;
 /**
  * 单人游戏主屏幕界面
  */
-public class SinglePlayerGameScreen {
+public class SinglePlayerGameScreen implements GameScreen {
 
     private GameView gameView;
     private Canvas gameCanvas;
     private GraphicsContext gc;
     private HBox gameDataPanel;
+
+    /** 游戏状态变量 */
+    private long totalGameTime; // 游戏总时间（毫秒）
+    private long lastUpdateTime; // 上次更新时间
+    private boolean gamePaused = false; // 游戏是否暂停
+    private boolean isPauseMenuOpen = false; // 暂停菜单是否打开
+    private Text timeInfo; // 时间显示文本
+    private int bulletCount = 10; // 初始子弹数量
+    private long lastBulletRefillTime = 0; // 上次子弹补充时间
+    private AnimationTimer gameLoop;
+    private int playerLives = 3; // 初始生命数为3
 
     /**
      * 构造函数
@@ -254,6 +268,11 @@ public class SinglePlayerGameScreen {
 
         infoBox.getChildren().addAll(titleText, valueText);
         return infoBox;
+    }
+
+    @Override
+    public void show(GameController controller) {
+
     }
 
     /**
@@ -637,6 +656,191 @@ public class SinglePlayerGameScreen {
                 gameView.getPlayerLives(),
                 playerTankType,
                 totalLevels);
+    }
+
+    /**
+     * 获取游戏总时间
+     * @return 游戏总时间(毫秒)
+     */
+    public long getTotalGameTime() {
+        return totalGameTime;
+    }
+
+    /**
+     * 设置游戏总时间
+     * @param time 游戏总时间(毫秒)
+     */
+    public void setTotalGameTime(long time) {
+        this.totalGameTime = time;
+        updateTimeDisplay(totalGameTime);
+    }
+
+    /**
+     * 更新时间显示
+     * 
+     * @param totalTimeMillis 总游戏时间(毫秒)
+     */
+    private void updateTimeDisplay(long totalTimeMillis) {
+        if (timeInfo == null) return;
+        
+        long seconds = totalTimeMillis / 1000;
+        long minutes = seconds / 60;
+        seconds = seconds % 60;
+
+        timeInfo.setText(String.format("%02d:%02d", minutes, seconds));
+    }
+
+    /**
+     * 获取上次更新时间
+     * @return 上次更新时间
+     */
+    public long getLastUpdateTime() {
+        return lastUpdateTime;
+    }
+
+    /**
+     * 设置上次更新时间
+     * @param time 时间戳
+     */
+    public void setLastUpdateTime(long time) {
+        this.lastUpdateTime = time;
+    }
+
+    /**
+     * 获取游戏是否暂停
+     * @return 是否暂停
+     */
+    public boolean isGamePaused() {
+        return gamePaused;
+    }
+
+    /**
+     * 设置游戏暂停状态
+     * @param paused 是否暂停
+     */
+    public void setGamePaused(boolean paused) {
+        this.gamePaused = paused;
+    }
+
+    /**
+     * 获取暂停菜单是否打开
+     * @return 是否打开
+     */
+    public boolean isPauseMenuOpen() {
+        return isPauseMenuOpen;
+    }
+
+    /**
+     * 设置暂停菜单打开状态
+     * @param open 是否打开
+     */
+    public void setIsPauseMenuOpen(boolean open) {
+        this.isPauseMenuOpen = open;
+    }
+
+    /**
+     * 设置时间信息显示文本
+     * @param timeInfo 时间文本组件
+     */
+    public void setTimeInfo(Text timeInfo) {
+        this.timeInfo = timeInfo;
+    }
+
+    /**
+     * 获取子弹数量
+     * @return 子弹数量
+     */
+    public int getBulletCount() {
+        return bulletCount;
+    }
+
+    /**
+     * 设置子弹数量
+     * @param count 子弹数量
+     */
+    public void setBulletCount(int count) {
+        this.bulletCount = count;
+        updateBulletDisplay(count);
+    }
+
+    /**
+     * 获取上次子弹补充时间
+     * @return 上次子弹补充时间(毫秒)
+     */
+    public long getLastBulletRefillTime() {
+        return lastBulletRefillTime;
+    }
+
+    /**
+     * 设置上次子弹补充时间
+     * @param time 时间戳
+     */
+    public void setLastBulletRefillTime(long time) {
+        this.lastBulletRefillTime = time;
+    }
+
+    /**
+     * 设置游戏数据面板
+     * @param gameDataPanel 游戏数据面板
+     */
+    public void setGameDataPanel(HBox gameDataPanel) {
+        this.gameDataPanel = gameDataPanel;
+    }
+
+    /**
+     * 获取游戏循环
+     * @return 游戏循环
+     */
+    public AnimationTimer getGameLoop() {
+        return gameLoop;
+    }
+
+    /**
+     * 设置游戏循环
+     * @param gameLoop 游戏循环
+     */
+    public void setGameLoop(AnimationTimer gameLoop) {
+        this.gameLoop = gameLoop;
+    }
+
+    /**
+     * 获取玩家生命值
+     * @return 玩家生命值
+     */
+    public int getPlayerLives() {
+        return playerLives;
+    }
+
+    /**
+     * 设置玩家生命值
+     * @param lives 生命值
+     */
+    public void setPlayerLives(int lives) {
+        this.playerLives = lives;
+        updateLivesDisplay(lives);
+    }
+
+    /**
+     * 清理游戏资源
+     */
+    public void cleanupGameResources() {
+        // 重置游戏状态变量
+        this.bulletCount = 10;
+        this.gamePaused = false;
+        this.isPauseMenuOpen = false;
+        this.totalGameTime = 0;
+        this.lastUpdateTime = 0;
+        this.lastBulletRefillTime = 0;
+        this.playerLives = 3;
+        
+        // 停止游戏循环
+        if (gameLoop != null) {
+            gameLoop.stop();
+            gameLoop = null;
+        }
+        
+        // 其他资源清理
+        timeInfo = null;
     }
 
 }
