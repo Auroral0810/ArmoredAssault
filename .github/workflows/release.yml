@@ -252,17 +252,18 @@ jobs:
           # Create launcher script
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             echo '@echo off
-            java --module-path libs -jar ArmoredAssault-1.0-SNAPSHOT.jar
+            cd /d "%~dp0"
+            java --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.desktop/sun.awt=ALL-UNNAMED --add-opens=java.desktop/sun.java2d=ALL-UNNAMED --module-path libs --add-modules javafx.controls,javafx.fxml,javafx.media,javafx.graphics,javafx.base -jar ArmoredAssault-1.0-SNAPSHOT.jar
             pause' > release/ArmoredAssault-${{ matrix.platform_name }}/ArmoredAssault.bat
           else
             echo '#!/bin/bash
-            java --module-path ./libs -jar ArmoredAssault-1.0-SNAPSHOT.jar' > release/ArmoredAssault-${{ matrix.platform_name }}/ArmoredAssault.sh
+            java --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.desktop/sun.awt=ALL-UNNAMED --add-opens java.desktop/sun.java2d=ALL-UNNAMED --module-path ./libs --add-modules javafx.controls,javafx.fxml,javafx.media,javafx.graphics,javafx.base -jar ArmoredAssault-1.0-SNAPSHOT.jar' > release/ArmoredAssault-${{ matrix.platform_name }}/ArmoredAssault.sh
             chmod +x release/ArmoredAssault-${{ matrix.platform_name }}/ArmoredAssault.sh
           fi
           
           # Create ZIP archive
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            powershell Compress-Archive -Path release/ArmoredAssault-${{ matrix.platform_name }} -DestinationPath release/ArmoredAssault-${{ matrix.platform_name }}.zip
+            powershell Compress-Archive -Force -Path release/ArmoredAssault-${{ matrix.platform_name }} -DestinationPath release/ArmoredAssault-${{ matrix.platform_name }}.zip
           else
             (cd release && zip -r ArmoredAssault-${{ matrix.platform_name }}.zip ArmoredAssault-${{ matrix.platform_name }})
           fi
