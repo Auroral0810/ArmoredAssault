@@ -72,6 +72,42 @@ public class MultiPlayerOptionsView {
             
             // 创建按钮
             JFXButton newGameButton = createMenuButton("新游戏", e -> gameView.showMultiTankSelection());
+//            JFXButton newGameButton = createMenuButton("新游戏", e -> {
+//                // 测试显示双人关卡完成界面，使用模拟数据
+//                MultiLevelCompletedView levelCompletedView =
+//                    new MultiLevelCompletedView(gameView, root, stage.getScene());
+//
+//                // 使用测试数据显示界面
+//                // 参数: 当前关卡, 玩家1击败敌人数, 玩家2击败敌人数, 游戏时间(毫秒),
+//                //      玩家1剩余生命, 玩家2剩余生命, 玩家1坦克类型, 玩家2坦克类型, 总关卡数
+//                levelCompletedView.show(
+//                    3,                  // 当前关卡
+//                    12, 8,              // 玩家1和玩家2击败的敌人数
+//                    180000,             // 游戏时间: 3分钟
+//                    2, 3,               // 玩家1和玩家2剩余生命
+//                    "heavy", "speed",   // 玩家1和玩家2坦克类型
+//                    5                   // 总关卡数
+//                );
+//            });
+            // JFXButton newGameButton = createMenuButton("新游戏", e -> {
+            // // 测试显示双人游戏结束界面（闯关失败），使用模拟数据
+            // MultiGameOverScreen gameOverScreen =
+            // new MultiGameOverScreen(gameView, root, stage.getScene());
+
+            // // 使用测试数据显示界面
+            // // 参数: 总得分, 玩家1得分, 玩家2得分,
+            // // 玩家1击败坦克数, 玩家2击败坦克数,
+            // // 玩家1剩余生命, 玩家2剩余生命,
+            // // 游戏时间(秒), 当前关卡
+            // gameOverScreen.show(
+            // 5200, // 总得分
+            // 3000, 2200, // 玩家1和玩家2的分数
+            // 12, 8, // 玩家1和玩家2击败的坦克数
+            // 0, 0, // 玩家1和玩家2剩余生命（已阵亡）
+            // 180, // 游戏时间: 3分钟
+            // 3 // 当前关卡：第3关
+            // );
+            // });
             JFXButton vsComputerButton = createMenuButton("对战电脑", e -> gameView.showMessage("即将开启人机对战模式"));
             JFXButton vsPlayerButton = createMenuButton("双人对战", e -> gameView.showMessage("双人对战功能即将推出"));
             JFXButton loadGameButton = createMenuButton("加载游戏", e -> gameView.showMessage("双人游戏加载功能即将推出"));

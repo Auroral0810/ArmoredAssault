@@ -56,7 +56,7 @@ public class GameView {
     private SingleGameController singleGameController;
 
     /** 游戏主题常量 */
-    private final String GAME_TITLE = "TANK 2025";
+    private final String GAME_TITLE = "ArmoredAssault";
     private final Color PRIMARY_COLOR = Color.rgb(37, 160, 218); // 蓝色
     private final Color TEXT_COLOR = Color.WHITE;
     private final Color BACKGROUND_COLOR = Color.rgb(27, 40, 56); // 深蓝灰色

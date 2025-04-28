@@ -22,7 +22,12 @@ public class SingleKeyboardServiceImpl implements KeyboardService {
     // 回调函数
     private Runnable pauseCallback;
     private Runnable resumeCallback;
-    
+
+    @Override
+    public void setupKeyboardControls(Object gameController, Canvas gameCanvas, Runnable pauseCallback, Runnable resumeCallback) {
+
+    }
+
     /**
      * 设置键盘控制
      */

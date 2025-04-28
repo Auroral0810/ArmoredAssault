@@ -8,7 +8,12 @@ import javafx.scene.input.KeyEvent;
  * 键盘输入服务接口 - 负责键盘输入处理
  */
 public interface KeyboardService {
-    
+
+    void setupKeyboardControls(Object gameController,
+                               Canvas gameCanvas,
+                               Runnable pauseCallback,
+                               Runnable resumeCallback);
+
     /**
      * 设置键盘控制
      * 

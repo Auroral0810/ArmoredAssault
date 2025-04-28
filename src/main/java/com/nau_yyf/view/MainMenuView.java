@@ -28,7 +28,7 @@ public class MainMenuView {
     private Stage stage;
 
     // 从GameView中提取的常量
-    private final String GAME_TITLE = "TANK 2025";
+    private final String GAME_TITLE = "ArmoredAssault";
     private final Color PRIMARY_COLOR = Color.rgb(37, 160, 218);    // 蓝色
     private final Color TEXT_COLOR = Color.WHITE;
 

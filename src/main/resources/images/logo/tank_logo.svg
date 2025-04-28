@@ -2,54 +2,83 @@
 <svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <!-- 背景 -->
   <defs>
-    <radialGradient id="bgGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#2A3F5F" stop-opacity="1" />
       <stop offset="100%" stop-color="#1B2838" stop-opacity="1" />
-    </radialGradient>
-  </defs>
-  <rect width="512" height="512" rx="80" fill="url(#bgGradient)" />
-  
-  <!-- 坦克轮廓 -->
-  <g transform="translate(70, 130) scale(0.73)">
-    <!-- 坦克履带 -->
-    <rect x="30" y="180" width="410" height="120" rx="20" fill="#3A3A3A" />
-    <rect x="30" y="180" width="410" height="120" rx="20" fill="none" stroke="#555555" stroke-width="12" />
+    </linearGradient>
     
-    <!-- 履带纹理 -->
-    <g fill="#2C2C2C">
-      <rect x="50" y="200" width="20" height="80" rx="4" />
-      <rect x="90" y="200" width="20" height="80" rx="4" />
-      <rect x="130" y="200" width="20" height="80" rx="4" />
-      <rect x="170" y="200" width="20" height="80" rx="4" />
-      <rect x="210" y="200" width="20" height="80" rx="4" />
-      <rect x="250" y="200" width="20" height="80" rx="4" />
-      <rect x="290" y="200" width="20" height="80" rx="4" />
-      <rect x="330" y="200" width="20" height="80" rx="4" />
-      <rect x="370" y="200" width="20" height="80" rx="4" />
-      <rect x="410" y="200" width="20" height="80" rx="4" />
+    <!-- 金属质感 -->
+    <linearGradient id="metalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4A90E2" stop-opacity="1" />
+      <stop offset="100%" stop-color="#1E5799" stop-opacity="1" />
+    </linearGradient>
+    
+    <!-- 高光效果 -->
+    <linearGradient id="highlightGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.7" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 背景圆角矩形 -->
+  <rect width="512" height="512" rx="60" fill="url(#bgGradient)" />
+  
+  <!-- 装饰性圆环 -->
+  <circle cx="256" cy="256" r="220" fill="none" stroke="#3A5F8A" stroke-width="2" opacity="0.3" />
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#3A5F8A" stroke-width="1" opacity="0.2" />
+  
+  <!-- 现代化坦克设计 -->
+  <g transform="translate(106, 120) scale(0.6)">
+    <!-- 坦克履带 -->
+    <rect x="30" y="220" width="440" height="100" rx="30" fill="#333333" />
+    <rect x="30" y="220" width="440" height="100" rx="30" fill="none" stroke="#444444" stroke-width="6" />
+    
+    <!-- 履带纹理 - 更现代的设计 -->
+    <g fill="#222222">
+      <rect x="50" y="235" width="30" height="70" rx="5" />
+      <rect x="100" y="235" width="30" height="70" rx="5" />
+      <rect x="150" y="235" width="30" height="70" rx="5" />
+      <rect x="200" y="235" width="30" height="70" rx="5" />
+      <rect x="250" y="235" width="30" height="70" rx="5" />
+      <rect x="300" y="235" width="30" height="70" rx="5" />
+      <rect x="350" y="235" width="30" height="70" rx="5" />
+      <rect x="400" y="235" width="30" height="70" rx="5" />
     </g>
     
-    <!-- 坦克身体 -->
-    <rect x="80" y="100" width="300" height="140" rx="15" fill="#25A0DA" />
-    <rect x="80" y="100" width="300" height="140" rx="15" fill="none" stroke="#1A7FB9" stroke-width="8" />
+    <!-- 坦克底盘 -->
+    <rect x="60" y="160" width="380" height="100" rx="20" fill="#2C5F8A" />
+    <rect x="60" y="160" width="380" height="100" rx="20" fill="none" stroke="#1E5799" stroke-width="4" />
+    
+    <!-- 坦克主体 -->
+    <rect x="100" y="100" width="300" height="120" rx="25" fill="url(#metalGradient)" />
+    <rect x="100" y="100" width="300" height="120" rx="25" fill="none" stroke="#1E5799" stroke-width="3" />
     
     <!-- 坦克炮塔 -->
-    <ellipse cx="230" cy="130" rx="80" ry="60" fill="#1E8BC9" />
-    <ellipse cx="230" cy="130" rx="80" ry="60" fill="none" stroke="#1A7FB9" stroke-width="6" />
+    <ellipse cx="250" cy="120" rx="70" ry="50" fill="#2C5F8A" />
+    <ellipse cx="250" cy="120" rx="70" ry="50" fill="none" stroke="#1E5799" stroke-width="3" />
     
-    <!-- 坦克炮管 -->
-    <rect x="230" y="110" width="210" height="40" rx="10" fill="#1E8BC9" />
-    <rect x="230" y="110" width="210" height="40" rx="10" fill="none" stroke="#1A7FB9" stroke-width="5" />
-    <circle cx="310" cy="130" r="8" fill="#1A7FB9" />
+    <!-- 坦克炮管 - 更长更精细 -->
+    <rect x="250" y="110" width="240" height="20" rx="10" fill="#2C5F8A" />
+    <rect x="250" y="110" width="240" height="20" rx="10" fill="none" stroke="#1E5799" stroke-width="2" />
     
-    <!-- 高光 -->
-    <ellipse cx="200" cy="115" rx="40" ry="20" fill="#5CCEFF" opacity="0.3" />
-    <rect x="240" y="115" width="120" height="15" rx="7" fill="#5CCEFF" opacity="0.2" />
+    <!-- 炮管装饰 -->
+    <circle cx="320" cy="120" r="6" fill="#1E5799" />
+    <circle cx="380" cy="120" r="6" fill="#1E5799" />
+    
+    <!-- 装甲板细节 -->
+    <path d="M120,140 L180,140 L190,160 L120,160 Z" fill="#1E5799" opacity="0.8" />
+    <path d="M320,140 L380,140 L370,160 L310,160 Z" fill="#1E5799" opacity="0.8" />
+    
+    <!-- 高光效果 -->
+    <rect x="120" y="110" width="100" height="10" rx="5" fill="url(#highlightGradient)" opacity="0.5" />
+    <ellipse cx="230" cy="110" rx="30" ry="15" fill="#FFFFFF" opacity="0.2" />
   </g>
   
-  <!-- 2025 文字 -->
-  <text x="256" y="380" font-family="Arial, sans-serif" font-size="100" font-weight="900" text-anchor="middle" fill="#FFFFFF">2025</text>
+  <!-- 标题文字 -->
+  <text x="256" y="360" font-family="Arial, sans-serif" font-size="42" font-weight="bold" text-anchor="middle" fill="#FFFFFF">ARMORED</text>
+  <text x="256" y="410" font-family="Arial, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="#4A90E2">ASSAULT</text>
   
-  <!-- TANK 文字 -->
-  <text x="256" y="450" font-family="Impact, sans-serif" font-size="60" text-anchor="middle" fill="#25A0DA" font-weight="bold">TANK</text>
+  <!-- 装饰线条 -->
+  <line x1="150" y1="430" x2="362" y2="430" stroke="#4A90E2" stroke-width="3" />
+  <line x1="170" y1="440" x2="342" y2="440" stroke="#4A90E2" stroke-width="2" opacity="0.7" />
 </svg>

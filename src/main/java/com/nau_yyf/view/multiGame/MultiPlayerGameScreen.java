@@ -1,4 +1,4 @@
-package com.nau_yyf.view.singleGame;
+package com.nau_yyf.view.multiGame;
 
 import com.jfoenix.controls.JFXButton;
 import com.nau_yyf.controller.SingleGameController;
@@ -34,7 +34,7 @@ import java.util.Map;
 /**
  * 单人游戏主屏幕界面
  */
-public class SinglePlayerGameScreen {
+public class MultiPlayerGameScreen {
 
     private GameView gameView;
     private Canvas gameCanvas;
@@ -46,7 +46,7 @@ public class SinglePlayerGameScreen {
      * 
      * @param gameView 游戏主视图引用
      */
-    public SinglePlayerGameScreen(GameView gameView) {
+    public MultiPlayerGameScreen(GameView gameView) {
         this.gameView = gameView;
     }
 
@@ -118,14 +118,9 @@ public class SinglePlayerGameScreen {
         // 添加设置按钮
         JFXButton settingsButton = new JFXButton();
         settingsButton.getStyleClass().add("settings-button");
-        settingsButton.setButtonType(JFXButton.ButtonType.FLAT);
-        settingsButton.setStyle("-fx-background-color: rgba(30, 87, 153, 0.7); " +
-                               "-fx-background-radius: 50%; " +
-                               "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 5, 0, 0, 1); " +
-                               "-fx-cursor: hand;");
-        settingsButton.setPrefSize(42, 42);
-        settingsButton.setMinSize(42, 42);
-        settingsButton.setRipplerFill(Color.WHITE);
+        settingsButton.setButtonType(JFXButton.ButtonType.RAISED);
+        settingsButton.setStyle("-fx-background-color: rgba(0, 0, 0, 0.5);");
+        settingsButton.setPrefSize(40, 40);
 
         try {
             Text settingsIcon = new Text("\uf013");

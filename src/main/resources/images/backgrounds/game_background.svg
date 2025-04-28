@@ -1,46 +1,80 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="1024" height="768" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <!-- 背景渐变 -->
+<svg height="768" width="1024" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!-- 高级渐变背景 -->
   <defs>
     <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#1B2838" />
-      <stop offset="100%" stop-color="#121C28" />
+      <stop offset="0%" stop-color="#1a2e4d" />
+      <stop offset="50%" stop-color="#0f1b2d" />
+      <stop offset="100%" stop-color="#0a1624" />
     </linearGradient>
     
     <!-- 网格图案 -->
-    <pattern id="gridPattern" width="50" height="50" patternUnits="userSpaceOnUse">
-      <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#2A3F5F" stroke-width="0.5" opacity="0.3"/>
+    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M60 0H0V60" fill="none" stroke="#3a5f8a" stroke-width="0.3" opacity="0.15" />
     </pattern>
     
-    <!-- 坦克剪影图案 -->
-    <path id="tankPath" d="M 0,15 H 30 V 5 H 40 V 15 H 45 V 25 H 40 V 35 H 30 V 25 H 0 V 15 Z" fill="#25A0DA" opacity="0.1"/>
+    <!-- 中心辉光 -->
+    <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#4a90e2" stop-opacity="0.25" />
+      <stop offset="70%" stop-color="#4a90e2" stop-opacity="0.05" />
+      <stop offset="100%" stop-color="#4a90e2" stop-opacity="0" />
+    </radialGradient>
+    
+    <!-- 装饰性辉光 -->
+    <filter id="softGlow" height="300%" width="300%" x="-75%" y="-75%">
+      <feGaussianBlur stdDeviation="5" result="blurred" />
+      <feFlood flood-color="#4a90e2" flood-opacity="0.3" result="glowColor" />
+      <feComposite in="glowColor" in2="blurred" operator="in" result="softGlow" />
+      <feMerge>
+        <feMergeNode in="softGlow" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
   </defs>
   
-  <!-- 背景颜色 -->
-  <rect width="1024" height="768" fill="url(#bgGradient)" />
+  <!-- 基础背景 -->
+  <rect x="0" y="0" width="1024" height="768" fill="url(#bgGradient)" />
+  <rect x="0" y="0" width="1024" height="768" fill="url(#grid)" />
   
-  <!-- 添加网格 -->
-  <rect width="1024" height="768" fill="url(#gridPattern)" />
+  <!-- 装饰性圆和辉光 -->
+  <circle cx="512" cy="384" r="300" fill="none" stroke="#3a5f8a" stroke-width="1" opacity="0.15" />
+  <circle cx="512" cy="384" r="250" fill="none" stroke="#3a5f8a" stroke-width="0.8" opacity="0.12" />
+  <circle cx="512" cy="384" r="200" fill="none" stroke="#3a5f8a" stroke-width="0.6" opacity="0.1" />
+  <circle cx="512" cy="384" r="150" fill="url(#centerGlow)" />
   
-  <!-- 随机分布的坦克剪影 -->
-  <use xlink:href="#tankPath" x="100" y="100" transform="scale(1.5) rotate(30)" />
-  <use xlink:href="#tankPath" x="300" y="650" transform="scale(2) rotate(-15)" />
-  <use xlink:href="#tankPath" x="800" y="200" transform="scale(1.2) rotate(45)" />
-  <use xlink:href="#tankPath" x="600" y="400" transform="scale(1.8) rotate(0)" />
-  <use xlink:href="#tankPath" x="200" y="450" transform="scale(2.2) rotate(-30)" />
-  <use xlink:href="#tankPath" x="850" y="600" transform="scale(1.3) rotate(15)" />
+  <!-- 坐标线 -->
+  <path d="M100 384H924" stroke="#3a5f8a" stroke-width="0.5" stroke-dasharray="5 5" opacity="0.2" />
+  <path d="M512 100V668" stroke="#3a5f8a" stroke-width="0.5" stroke-dasharray="5 5" opacity="0.2" />
   
-  <!-- 装饰性设计元素 - 大圆环 -->
-  <circle cx="150" cy="150" r="300" fill="none" stroke="#25A0DA" stroke-width="2" opacity="0.1" />
-  <circle cx="850" cy="600" r="400" fill="none" stroke="#25A0DA" stroke-width="2" opacity="0.1" />
+
+
   
-  <!-- 战斗元素 - 爆炸效果 -->
-  <circle cx="700" cy="300" r="30" fill="#FF5500" opacity="0.05" />
-  <circle cx="700" cy="300" r="20" fill="#FFAA00" opacity="0.05" />
-  <circle cx="250" cy="500" r="25" fill="#FF5500" opacity="0.05" />
-  <circle cx="250" cy="500" r="15" fill="#FFAA00" opacity="0.05" />
+  <!-- 角落装饰 -->
+  <path d="M0 0L100 100" stroke="#4a90e2" stroke-width="1" opacity="0.2" />
+  <path d="M1024 0L924 100" stroke="#4a90e2" stroke-width="1" opacity="0.2" />
+  <path d="M0 768L100 668" stroke="#4a90e2" stroke-width="1" opacity="0.2" />
+  <path d="M1024 768L924 668" stroke="#4a90e2" stroke-width="1" opacity="0.2" />
   
-  <!-- 战术线条 -->
-  <path d="M 100,650 L 300,600 L 500,650 L 700,600 L 900,650" stroke="#25A0DA" stroke-width="2" fill="none" opacity="0.1" />
-  <path d="M 100,100 L 300,150 L 500,100 L 700,150 L 900,100" stroke="#25A0DA" stroke-width="2" fill="none" opacity="0.1" />
+  <!-- 弧形曲线增加动感 -->
+  <path d="M100 100Q512 50 924 100" fill="none" stroke="#4a90e2" stroke-width="0.8" opacity="0.2" />
+  <path d="M100 668Q512 718 924 668" fill="none" stroke="#4a90e2" stroke-width="0.8" opacity="0.2" />
+  
+  <!-- 游戏标题背景文字 -->
+  <text x="512" y="384" font-family="'Arial Black', Gadget, sans-serif" font-size="68" 
+        font-weight="bold" text-anchor="middle" fill="#4a90e2" opacity="0.25" filter="url(#softGlow)">
+    ArmoredAssault
+  </text>
+  
+  <!-- 添加一些粒子/星点效果 -->
+  <g fill="#ffffff" opacity="0.2">
+    <circle cx="123" cy="245" r="1.2" />
+    <circle cx="421" cy="132" r="1" />
+    <circle cx="732" cy="321" r="1.5" />
+    <circle cx="842" cy="521" r="1" />
+    <circle cx="342" cy="621" r="1.3" />
+    <circle cx="642" cy="452" r="0.8" />
+    <circle cx="542" cy="152" r="1.2" />
+    <circle cx="212" cy="452" r="1" />
+    <circle cx="912" cy="252" r="1.4" />
+  </g>
 </svg>

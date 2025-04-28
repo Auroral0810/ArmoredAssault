@@ -173,7 +173,7 @@
                     <linuxIcon>src/main/resources/images/ui/app_icon.png</linuxIcon>
                     <winDirChooser>true</winDirChooser>
                     <winMenu>true</winMenu>
-                    <winMenuGroup>Tank 2025</winMenuGroup>
+                    <winMenuGroup>ArmoredAssault</winMenuGroup>
                     <winShortcut>true</winShortcut>
                     <macPackageIdentifier>com.nau-yyf.ArmoredAssault</macPackageIdentifier>
                     <macPackageName>ArmoredAssault</macPackageName>
