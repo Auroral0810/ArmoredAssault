@@ -1908,8 +1908,7 @@ public class SingleGameController implements GameController {
                 
                 // 1. 先设置生命值和分数
                 gameView.setPlayerLives(saveData.getPlayerLives());
-                gameView.setScore(saveData.getScore());
-                
+
                 // 2. 设置游戏时间 - 注意这里读取的时间可能是时间戳而不是持续时间
                 long gameTime = saveData.getGameTime();
                 
@@ -2001,7 +2000,6 @@ public class SingleGameController implements GameController {
                     
                     // 设置游戏数据
                     gameView.setPlayerLives(saveData.getPlayerLives());
-                    gameView.setScore(saveData.getScore());
                     gameView.setBulletCount(saveData.getBulletCount());
 
                     // 设置时间

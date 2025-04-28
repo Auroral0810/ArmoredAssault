@@ -164,7 +164,7 @@ public class LevelSelectionDialog {
             // 执行关卡选择逻辑
             Platform.runLater(() -> {
                 // 检查是否为双人游戏模式
-                if (selectedTankType.equals(gameView.getP1TankType())) {
+                if (selectedTankType.equals("player2")) {
                     // 双人游戏模式
                     gameView.startMultiPlayerGame(level);
                 } else {

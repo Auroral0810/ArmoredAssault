@@ -97,7 +97,7 @@ public class MultiPlayerGameStarter implements GameStarterController {
                 Platform.runLater(() -> {
                     gameScreen.handlePlayer1Destroyed(
                             multiGameController,
-                            gameView.getP1TankType(),
+                            "gameView.getP1TankType()",
                             gameScreen.getPlayer1Lives());
                 });
             }
@@ -108,7 +108,7 @@ public class MultiPlayerGameStarter implements GameStarterController {
                 Platform.runLater(() -> {
                     gameScreen.handlePlayer2Destroyed(
                             multiGameController,
-                            gameView.getP2TankType(),
+                            "gameView.getP2TankType()",
                             gameScreen.getPlayer2Lives());
                 });
             }
