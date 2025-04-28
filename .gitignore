@@ -1,7 +1,7 @@
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
-!**/src/test/**/target/
+!**/src/test/**/build/
 
 ### IntelliJ IDEA ###
 .idea/modules.xml
@@ -96,3 +96,12 @@ application-prod.properties
 
 ### 缓存文件 ###
 .cache/
+
+# Gradle
+.gradle
+**/build/
+!src/**/build/
+
+# 保留Gradle包装器
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties

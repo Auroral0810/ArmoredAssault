@@ -20,13 +20,72 @@
         <version>0.0.8</version>
         <configuration>
           <mainClass>com.nau_yyf.ArmoredAssaultApplication</mainClass>
-          <launcher>tanklauncher</launcher>
-          <jlinkImageName>tankbattle</jlinkImageName>
-          <jlinkZipName>tankbattlezip</jlinkZipName>
-          <noManPages>true</noManPages>
-          <stripDebug>true</stripDebug>
-          <noHeaderFiles>true</noHeaderFiles>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.panteleyev</groupId>
+        <artifactId>jpackage-maven-plugin</artifactId>
+        <version>1.4.0</version>
+        <configuration>
+          <name>ArmoredAssault</name>
+          <appVersion>1.0</appVersion>
+          <vendor>NAU-YYF</vendor>
+          <destination>target/dist</destination>
+          <mainClass>com.nau_yyf.ArmoredAssaultApplication</mainClass>
+          <type>DMG</type>
+          <icon>src/main/resources/images/logo/tank_logo.icns</icon>
+          <javaOptions>
+            <option>-Dfile.encoding=UTF-8</option>
+            <option>--add-opens=java.base/java.lang=ALL-UNNAMED</option>
+          </javaOptions>
+          <input>${project.build.directory}/dependency</input>
+          <mainJar>${project.artifactId}-${project.version}.jar</mainJar>
+          <runtimeImage>/Library/Java/JavaVirtualMachines/liberica-jdk-17-full.jdk/Contents/Home</runtimeImage>
+          <macPackageIdentifier>com.nau_yyf.ArmoredAssault</macPackageIdentifier>
+          <macAppStore>false</macAppStore>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-dependencies</id>
+            <phase>package</phase>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/dependency</outputDirectory>
+              <overWriteReleases>false</overWriteReleases>
+              <overWriteSnapshots>false</overWriteSnapshots>
+              <overWriteIfNewer>true</overWriteIfNewer>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.3.1</version>
+        <executions>
+          <execution>
+            <id>copy-jar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/dependency</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.build.directory}</directory>
+                  <includes>
+                    <include>${project.artifactId}-${project.version}.jar</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-shade-plugin</artifactId>
@@ -38,6 +97,19 @@
               <goal>shade</goal>
             </goals>
             <configuration>
+              <minimizeJar>true</minimizeJar>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
+                    <exclude>module-info.class</exclude>
+                  </excludes>
+                </filter>
+              </filters>
               <transformers>
                 <transformer>
                   <mainClass>com.nau_yyf.ArmoredAssaultApplication</mainClass>
@@ -48,42 +120,33 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.panteleyev</groupId>
-        <artifactId>jpackage-maven-plugin</artifactId>
-        <version>1.4.0</version>
+        <artifactId>maven-jlink-plugin</artifactId>
+        <version>3.1.0</version>
         <executions>
           <execution>
-            <id>mac</id>
+            <id>create-runtime</id>
             <phase>package</phase>
             <goals>
-              <goal>jpackage</goal>
+              <goal>jlink</goal>
             </goals>
             <configuration>
-              <platformPackageType>dmg</platformPackageType>
+              <modulePaths>
+                <modulePath>${java.home}/jmods</modulePath>
+                <modulePath>/Users/auroral/javafx-sdk/javafx-sdk-21/lib</modulePath>
+              </modulePaths>
+              <addModules>
+                <addModule>java.base</addModule>
+                <addModule>java.desktop</addModule>
+                <addModule>javafx.controls</addModule>
+                <addModule>javafx.fxml</addModule>
+                <addModule>javafx.media</addModule>
+                <addModule>javafx.graphics</addModule>
+                <addModule>javafx.base</addModule>
+              </addModules>
+              <outputDirectory>${project.build.directory}/custom-runtime</outputDirectory>
             </configuration>
           </execution>
         </executions>
-        <configuration>
-          <name>ArmoredAssault</name>
-          <appVersion>1.0.0</appVersion>
-          <vendor>NAU-YYF</vendor>
-          <destination>target/dist</destination>
-          <mainClass>com.nau_yyf.ArmoredAssaultApplication</mainClass>
-          <javaOptions>
-            <option>-Dfile.encoding=UTF-8</option>
-            <option>-Dapple.awt.application.name=ArmoredAssault</option>
-            <option>-Dapple.laf.useScreenMenuBar=true</option>
-          </javaOptions>
-          <icon>src/main/resources/images/logo/tank_logo.icns</icon>
-          <winIcon>src/main/resources/images/ui/app_icon.ico</winIcon>
-          <linuxIcon>src/main/resources/images/ui/app_icon.png</linuxIcon>
-          <winDirChooser>true</winDirChooser>
-          <winMenu>true</winMenu>
-          <winMenuGroup>Tank 2025</winMenuGroup>
-          <winShortcut>true</winShortcut>
-          <macPackageIdentifier>com.nau-yyf.ArmoredAssault</macPackageIdentifier>
-          <macPackageName>ArmoredAssault</macPackageName>
-        </configuration>
       </plugin>
     </plugins>
   </build>

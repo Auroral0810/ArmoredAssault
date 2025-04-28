@@ -3,6 +3,7 @@ package com.nau_yyf;
 import com.nau_yyf.updater.UpdateManager;
 import com.nau_yyf.view.GameView;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.stage.Stage;
 
 /**
@@ -16,6 +17,13 @@ public class ArmoredAssaultApplication extends Application {
         System.setProperty("apple.awt.application.name", "ArmoredAssault");
         System.setProperty("apple.laf.useScreenMenuBar", "true");
         System.setProperty("com.apple.mrj.application.apple.menu.about.name", "ArmoredAssault");
+        
+        // macOS兼容性修复
+        System.setProperty("glass.disable.nestedloop", "true");
+        System.setProperty("prism.order", "sw");
+        
+        // 防止渲染线程死锁
+        System.setProperty("quantum.multithreaded", "false");
     }
 
     /**
@@ -26,14 +34,23 @@ public class ArmoredAssaultApplication extends Application {
     @Override
     public void start(Stage primaryStage) {
         try {
-            // 检查更新（已设置离线模式，不会阻止游戏启动）
+            // 设置stage不可调整大小，减少可能导致崩溃的窗口操作
+            primaryStage.setResizable(false);
+            
+            // 检查更新
             boolean updateInProgress = UpdateManager.checkForUpdates();
             
             // 如果不在更新过程中，则启动游戏
             if (!updateInProgress) {
-                // 创建游戏视图并显示主菜单
-                GameView gameView = new GameView(primaryStage);
-                gameView.showMainMenu();
+                Platform.runLater(() -> {
+                    try {
+                        // 创建游戏视图并显示主菜单
+                        GameView gameView = new GameView(primaryStage);
+                        gameView.showMainMenu();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
             }
         } catch (Exception e) {
             e.printStackTrace();
