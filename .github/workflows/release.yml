@@ -120,6 +120,9 @@ jobs:
       - name: Prepare Windows ZIP with improved launcher
         if: matrix.os == 'windows-latest'
         run: |
+          # 确保目录存在
+          mkdir -p release/ArmoredAssault-windows
+          
           # 创建更可靠的启动脚本
           echo '@echo off
           cd /d "%~dp0"
