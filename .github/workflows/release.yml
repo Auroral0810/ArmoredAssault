@@ -84,11 +84,14 @@ jobs:
         run: |
           mkdir -p release
           
-          # Create batch file launcher
+          # 创建更完整的批处理文件启动器
           echo '@echo off
-          java --module-path libs -jar ArmoredAssault-1.0-SNAPSHOT.jar' > installer/input/ArmoredAssault.bat
+          cd /d "%~dp0"
+          java --module-path ".\libs" --add-modules javafx.controls,javafx.fxml,javafx.media,javafx.graphics,javafx.base -jar ArmoredAssault-1.0-SNAPSHOT.jar
+          if errorlevel 1 pause
+          ' > installer/input/ArmoredAssault.bat
           
-          # Use jpackage to create installer
+          # 使用更多兼容性选项创建安装程序
           jpackage --input installer/input \
             --name "ArmoredAssault" \
             --main-jar ArmoredAssault-1.0-SNAPSHOT.jar \
@@ -97,6 +100,8 @@ jobs:
             --win-console \
             --win-shortcut \
             --win-menu \
+            --win-dir-chooser \
+            --win-per-user-install \
             --icon src/main/resources/images/logo/tank_logo.ico \
             --app-version 1.1.0 \
             --vendor "NAU-YYF" \
@@ -203,8 +208,10 @@ jobs:
   release:
     name: Create Release
     needs: build
-    if: startsWith(github.ref, 'refs/tags/')  # 这是关键条件
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
       - name: Download all artifacts
@@ -221,13 +228,11 @@ jobs:
         with:
           files: |
             artifacts/ArmoredAssault-windows-installers/*.zip
-            artifacts/ArmoredAssault-windows-installers/*.exe
             artifacts/ArmoredAssault-windows-installers/*.msi
             artifacts/ArmoredAssault-mac-installers/*.zip
             artifacts/ArmoredAssault-mac-installers/*.dmg
             artifacts/ArmoredAssault-linux-installers/*.zip
             artifacts/ArmoredAssault-linux-installers/*.deb
-            artifacts/ArmoredAssault-linux-installers/*.rpm
           draft: false
           prerelease: false
           name: ArmoredAssault ${{ github.ref_name }}
