@@ -270,7 +270,7 @@ public class MultiGameController implements GameController {
      */
     public void placeP1Bomb() {
         // 实现玩家1放置炸弹的逻辑
-        System.out.println("玩家1放置炸弹");
+        
     }
 
     /**
@@ -278,7 +278,7 @@ public class MultiGameController implements GameController {
      */
     public void placeP2Bomb() {
         // 实现玩家2放置炸弹的逻辑
-        System.out.println("玩家2放置炸弹");
+        
     }
 
     /**

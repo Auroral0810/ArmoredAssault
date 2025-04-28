@@ -125,7 +125,7 @@ public class MultiKeyboardServiceImpl implements KeyboardService {
                 if (multiGameController != null) {
                     // 临时注释掉，直到MultiGameController实现此方法
                     // multiGameController.placeP1Bomb();
-                    System.out.println("玩家1尝试放置炸弹");
+                    
                 }
             }
             
@@ -149,7 +149,7 @@ public class MultiKeyboardServiceImpl implements KeyboardService {
                 if (multiGameController != null) {
                     // 临时注释掉，直到MultiGameController实现此方法
                     // multiGameController.placeP2Bomb();
-                    System.out.println("玩家2尝试放置炸弹");
+                    
                 }
             }
             

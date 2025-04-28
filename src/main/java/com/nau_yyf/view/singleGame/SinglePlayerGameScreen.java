@@ -731,12 +731,18 @@ public class SinglePlayerGameScreen implements GameScreen {
         int defeatedEnemies = singleGameController.getDefeatedEnemiesCount();
         String playerTankType = singleGameController.getPlayerTank().getTypeString();
         int totalLevels = 5; // 游戏总关卡数
+        
+        // 重要修改：直接从GameView获取游戏时间
+        long gameTime = gameView.getTotalGameTime();
+        
+        // 打印调试信息以便确认时间正确
+        System.out.println("关卡完成，游戏时间: " + gameTime + "ms");
 
         // 创建包含关卡数据的Map
         Map<String, Object> levelData = new HashMap<>();
         levelData.put("currentLevel", currentLevel);
         levelData.put("defeatedEnemies", defeatedEnemies);
-        levelData.put("totalGameTime", gameView.getTotalGameTime());
+        levelData.put("totalGameTime", gameTime);
         levelData.put("playerLives", gameView.getPlayerLives());
         levelData.put("playerTankType", playerTankType);
         levelData.put("totalLevels", totalLevels);

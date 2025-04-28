@@ -43,9 +43,10 @@ public class LevelSelectionDialog {
     
     /**
      * 显示关卡选择对话框
-     * @param selectedTankType 选中的坦克类型
+     * 支持多个坦克类型参数
+     * @param tankTypes 选中的坦克类型数组
      */
-    public void show(String selectedTankType) {
+    public void show(String... tankTypes) {
         Platform.runLater(() -> {
             // 创建对话框布局
             JFXDialogLayout content = new JFXDialogLayout();
@@ -95,7 +96,7 @@ public class LevelSelectionDialog {
             // 添加关卡按钮
             for (int i = 1; i <= 5; i++) {
                 final int level = i;
-                JFXButton levelButton = createLevelButton("关卡 " + i, level, selectedTankType, dialog);
+                JFXButton levelButton = createLevelButton("关卡 " + i, level, tankTypes, dialog);
                 levelButtonsContainer.getChildren().add(levelButton);
             }
             
@@ -127,7 +128,7 @@ public class LevelSelectionDialog {
     /**
      * 创建关卡按钮
      */
-    private JFXButton createLevelButton(String text, int level, String selectedTankType, JFXDialog dialog) {
+    private JFXButton createLevelButton(String text, int level, String[] tankTypes, JFXDialog dialog) {
         JFXButton button = new JFXButton(text);
         button.setPrefWidth(300);
         button.setPrefHeight(60);
@@ -163,19 +164,8 @@ public class LevelSelectionDialog {
             
             // 执行关卡选择逻辑
             Platform.runLater(() -> {
-                // 检查是否为双人游戏模式
-                if (gameView.getCurrentGameMode() == GameView.GAME_MODE_MULTI) {
-                    // 双人游戏模式 - 使用存储在GameView中的p1TankType和p2TankType
-                    String[] tankTypes = new String[]{
-                        gameView.p1TankType, 
-                        gameView.p2TankType
-                    };
-                    gameView.startGameWithLevel(tankTypes, level);
-                } else {
-                    String[] tankTypes = new String[]{selectedTankType};
-                    // 单人游戏模式
-                    gameView.startGameWithLevel(tankTypes, level);
-                }
+                // 使用传入的坦克类型参数数组
+                gameView.startGameWithLevel(tankTypes, level);
             });
         });
         

@@ -170,6 +170,16 @@ public class GameView {
     private Map<Integer, GameStarterController> gameStarters = new HashMap<>();
 
     /**
+     * 游戏开始时间
+     */
+    private long gameStartTime;
+
+    /**
+     * 游戏总时间
+     */
+    private long totalGameTime;
+
+    /**
      * 构造函数，初始化游戏视图
      *
      * @param stage JavaFX主舞台
@@ -302,7 +312,6 @@ public class GameView {
      */
     public void cleanupGameResources() {
         // 打印当前子模式信息，便于调试
-        System.out.println("清理游戏资源，当前子模式: " + getGameModeName(currentGameMode));
 
         // 停止游戏循环
         AnimationTimer gameLoop = getGameLoop();
@@ -324,7 +333,7 @@ public class GameView {
                 if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
                     singlePlayerGameStarter.getGameScreen().cleanupGameResources();
                     singlePlayerGameStarter.getGameScreen().setPlayerLives(3);
-                    System.out.println("清理单人闯关模式资源");
+
                 }
 
                 // 清理单人游戏控制器
@@ -338,7 +347,7 @@ public class GameView {
                 if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
                     singlePlayerGameStarter.getGameScreen().cleanupGameResources();
                     singlePlayerGameStarter.getGameScreen().setPlayerLives(3);
-                    System.out.println("清理单人VS AI模式资源");
+
                 }
 
                 // 清理单人游戏控制器
@@ -352,7 +361,7 @@ public class GameView {
                 if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
                     singlePlayerGameStarter.getGameScreen().cleanupGameResources();
                     singlePlayerGameStarter.getGameScreen().setPlayerLives(3);
-                    System.out.println("清理单人无尽模式资源");
+
                 }
 
                 // 清理单人游戏控制器
@@ -367,7 +376,7 @@ public class GameView {
                 GameStarterController multiStarter = gameStarters.get(GAME_MODE_MULTI);
                 if (multiStarter != null && multiStarter.getGameScreen() != null) {
                     multiStarter.getGameScreen().cleanupGameResources();
-                    System.out.println("清理双人闯关模式资源");
+
                 }
 
                 // 清理多人游戏控制器
@@ -381,7 +390,7 @@ public class GameView {
                 multiStarter = gameStarters.get(GAME_MODE_MULTI);
                 if (multiStarter != null && multiStarter.getGameScreen() != null) {
                     multiStarter.getGameScreen().cleanupGameResources();
-                    System.out.println("清理双人对战模式资源");
+
                 }
 
                 // 清理多人游戏控制器
@@ -395,7 +404,7 @@ public class GameView {
                 multiStarter = gameStarters.get(GAME_MODE_MULTI);
                 if (multiStarter != null && multiStarter.getGameScreen() != null) {
                     multiStarter.getGameScreen().cleanupGameResources();
-                    System.out.println("清理双人无尽模式资源");
+
                 }
 
                 // 清理多人游戏控制器
@@ -412,7 +421,7 @@ public class GameView {
                 GameStarterController onlineStarter = gameStarters.get(GAME_MODE_ONLINE);
                 if (onlineStarter != null && onlineStarter.getGameScreen() != null) {
                     onlineStarter.getGameScreen().cleanupGameResources();
-                    System.out.println("清理联机游戏资源，子模式: " + getGameModeName(currentGameMode));
+
                 }
 
                 // 清理联机游戏控制器
@@ -426,7 +435,7 @@ public class GameView {
                 if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
                     singlePlayerGameStarter.getGameScreen().cleanupGameResources();
                     singlePlayerGameStarter.getGameScreen().setPlayerLives(3);
-                    System.out.println("清理单人游戏资源（主模式）");
+
                 }
 
                 // 清理单人游戏控制器
@@ -439,7 +448,7 @@ public class GameView {
                 multiStarter = gameStarters.get(GAME_MODE_MULTI);
                 if (multiStarter != null && multiStarter.getGameScreen() != null) {
                     multiStarter.getGameScreen().cleanupGameResources();
-                    System.out.println("清理多人游戏资源（主模式）");
+
                 }
 
                 // 清理多人游戏控制器
@@ -452,7 +461,7 @@ public class GameView {
                 onlineStarter = gameStarters.get(GAME_MODE_ONLINE);
                 if (onlineStarter != null && onlineStarter.getGameScreen() != null) {
                     onlineStarter.getGameScreen().cleanupGameResources();
-                    System.out.println("清理联机游戏资源（主模式）");
+
                 }
 
                 // 清理联机游戏控制器
@@ -498,8 +507,6 @@ public class GameView {
         int currentSubMode = currentGameMode;
         int mainMode = getCurrentMainGameMode();
 
-        System.out.println("加载游戏存档，当前子模式: " + getGameModeName(currentSubMode)
-                + ", 主模式: " + getGameModeName(mainMode));
 
         // 根据游戏子模式加载存档
         switch (currentSubMode) {
@@ -508,7 +515,7 @@ public class GameView {
                 // 单人闯关模式的存档加载
                 if (gameStateService instanceof SingleGameStateServiceImpl) {
                     success = ((SingleGameStateServiceImpl) gameStateService).showLoadGameDialog(singleGameController);
-                    System.out.println("加载单人闯关模式存档");
+
                 }
                 break;
 
@@ -517,7 +524,7 @@ public class GameView {
                 if (gameStateService instanceof SingleGameStateServiceImpl) {
                     // 暂时使用通用的单人存档加载逻辑
                     success = ((SingleGameStateServiceImpl) gameStateService).showLoadGameDialog(singleGameController);
-                    System.out.println("加载单人VS AI模式存档");
+
                 }
                 break;
 
@@ -526,7 +533,7 @@ public class GameView {
                 if (gameStateService instanceof SingleGameStateServiceImpl) {
                     // 暂时使用通用的单人存档加载逻辑
                     success = ((SingleGameStateServiceImpl) gameStateService).showLoadGameDialog(singleGameController);
-                    System.out.println("加载单人无尽模式存档");
+
                 }
                 break;
 
@@ -536,7 +543,7 @@ public class GameView {
             case GAME_MODE_MULTI_ENDLESS:
                 // TODO: 多人游戏各子模式的存档加载
                 showMessage("多人游戏存档加载功能尚未实现");
-                System.out.println("尝试加载多人游戏存档，子模式: " + getGameModeName(currentSubMode) + " (待实现)");
+
                 return;
 
             // 联机游戏子模式
@@ -545,25 +552,25 @@ public class GameView {
             case GAME_MODE_ONLINE_ENDLESS:
                 // TODO: 联机游戏各子模式的存档加载
                 showMessage("联机游戏存档加载功能尚未实现");
-                System.out.println("尝试加载联机游戏存档，子模式: " + getGameModeName(currentSubMode) + " (待实现)");
+
                 return;
 
             // 主游戏模式（兼容旧代码）
             case GAME_MODE_SINGLE:
                 if (gameStateService instanceof SingleGameStateServiceImpl) {
                     success = ((SingleGameStateServiceImpl) gameStateService).showLoadGameDialog(singleGameController);
-                    System.out.println("加载单人游戏存档（主模式）");
+
                 }
                 break;
 
             case GAME_MODE_MULTI:
                 showMessage("多人游戏存档加载功能尚未实现");
-                System.out.println("尝试加载多人游戏存档（主模式）(待实现)");
+
                 return;
 
             case GAME_MODE_ONLINE:
                 showMessage("联机游戏存档加载功能尚未实现");
-                System.out.println("尝试加载联机游戏存档（主模式）(待实现)");
+
                 return;
 
             default:
@@ -584,14 +591,12 @@ public class GameView {
                 long currentTime = System.currentTimeMillis();
                 screen.setLastUpdateTime(currentTime);
 
-                System.out.println("成功加载存档，游戏时间: " + loadedTime + "ms");
             }
 
             // 启动游戏循环前强制更新一次UI
             Platform.runLater(() -> {
                 // 确保加载后的模式与加载前相同
                 setGameMode(currentSubMode);
-                System.out.println("加载后恢复子模式: " + getGameModeName(currentSubMode));
 
                 // 更新UI显示
                 updateUIAfterLoading(screen, mainMode);
@@ -628,7 +633,6 @@ public class GameView {
                     ((SinglePlayerGameScreen) screen).updateLivesDisplay(screen.getPlayerLives());
                 }
 
-                System.out.println("更新单人游戏UI，子模式: " + getGameModeName(currentGameMode));
                 break;
 
             // 双人游戏子模式
@@ -647,7 +651,6 @@ public class GameView {
                             multiScreen.getPlayer2Lives());
                 }
 
-                System.out.println("更新多人游戏UI，子模式: " + getGameModeName(currentGameMode));
                 break;
 
             // 联机游戏子模式
@@ -655,7 +658,7 @@ public class GameView {
             case GAME_MODE_ONLINE_VS:
             case GAME_MODE_ONLINE_ENDLESS:
                 // TODO: 更新联机游戏UI
-                System.out.println("更新联机游戏UI，子模式: " + getGameModeName(currentGameMode) + " (待实现)");
+
                 break;
 
             // 主游戏模式
@@ -670,7 +673,6 @@ public class GameView {
                     ((SinglePlayerGameScreen) screen).updateLivesDisplay(screen.getPlayerLives());
                 }
 
-                System.out.println("更新单人游戏UI（主模式）");
                 break;
 
             case GAME_MODE_MULTI:
@@ -686,12 +688,11 @@ public class GameView {
                             multiScreen.getPlayer2Lives());
                 }
 
-                System.out.println("更新多人游戏UI（主模式）");
                 break;
 
             case GAME_MODE_ONLINE:
                 // TODO: 更新联机游戏UI（主模式）
-                System.out.println("更新联机游戏UI（主模式）(待实现)");
+
                 break;
 
             default:
@@ -704,13 +705,15 @@ public class GameView {
      * 启动游戏循环
      */
     public void startGameLoop() {
-        // 记录当前游戏子模式信息
-        int currentSubMode = currentGameMode;
+        // 获取当前游戏子模式
+        int currentSubMode = getCurrentGameMode();
         System.out.println("启动游戏循环，当前子模式: " + getGameModeName(currentSubMode));
-
+        
+        // 获取当前游戏控制器
         GameController controller = getActiveController();
         if (controller == null) {
             System.err.println("错误：无法获取游戏控制器");
+            showMessage("错误：无法获取游戏控制器");
             return;
         }
 
@@ -718,143 +721,64 @@ public class GameView {
         GameScreen screen = getGameScreen();
         if (screen == null) {
             System.err.println("错误：无法获取游戏屏幕");
+            showMessage("错误：无法获取游戏屏幕");
             return;
         }
 
         // 创建时间更新回调函数
         GameLoopService.TimeUpdateCallback timeUpdateCallback = (totalGameTime) -> {
-            // 使用屏幕的方法更新总时间
             Platform.runLater(() -> {
                 screen.setTotalGameTime(totalGameTime);
-                updateTimeDisplay(); // 调用现有的更新时间显示方法
+                updateTimeDisplay();
             });
         };
 
-        // 根据游戏子模式创建游戏循环
+        // 获取主游戏模式
+        int mainMode = getCurrentMainGameMode();
+        System.out.println("获取游戏循环服务，主模式: " + getGameModeName(mainMode));
+        
+        // 获取对应主模式的游戏循环服务
+        GameLoopService currentLoopService = gameLoopServices.get(mainMode);
+        
+        // 确保循环服务存在
+        if (currentLoopService == null) {
+            System.err.println("错误：无法获取游戏循环服务，模式: " + getGameModeName(mainMode));
+            showMessage("错误：无法获取游戏循环服务");
+            return;
+        }
+
+        // 创建游戏循环
         AnimationTimer loop = null;
-
         try {
-            // 根据子模式选择适当的游戏循环服务和创建方式
-            switch (currentSubMode) {
-                // 单人游戏子模式
-                case GAME_MODE_SINGLE_CAMPAIGN:
-                    // 单人闯关模式游戏循环
-                    if (gameLoopService instanceof SingleGameLoopServiceImpl) {
-                        loop = gameLoopService.createGameLoop(
-                                controller,
-                                this::renderGame,
-                                timeUpdateCallback);
-                        System.out.println("创建单人闯关模式游戏循环");
-                    }
-                    break;
+            System.out.println("正在创建游戏循环...");
+            
+            // 使用当前的游戏循环服务创建循环
+            loop = currentLoopService.createGameLoop(
+                    controller,
+                    this::renderGame,
+                    timeUpdateCallback);
 
-                case GAME_MODE_SINGLE_VS_AI:
-                    // TODO: 单人VS AI模式专用游戏循环
-                    if (gameLoopService instanceof SingleGameLoopServiceImpl) {
-                        // 暂时使用通用的单人游戏循环
-                        loop = gameLoopService.createGameLoop(
-                                controller,
-                                this::renderGame,
-                                timeUpdateCallback);
-                        System.out.println("创建单人VS AI模式游戏循环");
-                    }
-                    break;
-
-                case GAME_MODE_SINGLE_ENDLESS:
-                    // TODO: 单人无尽模式专用游戏循环
-                    if (gameLoopService instanceof SingleGameLoopServiceImpl) {
-                        // 暂时使用通用的单人游戏循环
-                        loop = gameLoopService.createGameLoop(
-                                controller,
-                                this::renderGame,
-                                timeUpdateCallback);
-                        System.out.println("创建单人无尽模式游戏循环");
-                    }
-                    break;
-
-                // 双人游戏子模式
-                case GAME_MODE_MULTI_CAMPAIGN:
-                case GAME_MODE_MULTI_VS:
-                case GAME_MODE_MULTI_ENDLESS:
-                    // TODO: 双人游戏各子模式专用游戏循环
-                    GameLoopService multiLoopService = gameLoopServices.get(GAME_MODE_MULTI);
-                    if (multiLoopService != null) {
-                        loop = multiLoopService.createGameLoop(
-                                controller,
-                                this::renderGame,
-                                timeUpdateCallback);
-                        System.out.println("创建多人游戏循环，子模式: " + getGameModeName(currentSubMode));
-                    }
-                    break;
-
-                // 联机游戏子模式
-                case GAME_MODE_ONLINE_CAMPAIGN:
-                case GAME_MODE_ONLINE_VS:
-                case GAME_MODE_ONLINE_ENDLESS:
-                    // TODO: 联机游戏各子模式专用游戏循环
-                    GameLoopService onlineLoopService = gameLoopServices.get(GAME_MODE_ONLINE);
-                    if (onlineLoopService != null) {
-                        loop = onlineLoopService.createGameLoop(
-                                controller,
-                                this::renderGame,
-                                timeUpdateCallback);
-                        System.out.println("创建联机游戏循环，子模式: " + getGameModeName(currentSubMode) + " (待实现)");
-                    }
-                    break;
-
-                // 主游戏模式
-                case GAME_MODE_SINGLE:
-                    if (gameLoopService instanceof SingleGameLoopServiceImpl) {
-                        loop = gameLoopService.createGameLoop(
-                                controller,
-                                this::renderGame,
-                                timeUpdateCallback);
-                        System.out.println("创建单人游戏循环（主模式）");
-                    }
-                    break;
-
-                case GAME_MODE_MULTI:
-                    GameLoopService mainMultiLoopService = gameLoopServices.get(GAME_MODE_MULTI);
-                    if (mainMultiLoopService != null) {
-                        loop = mainMultiLoopService.createGameLoop(
-                                controller,
-                                this::renderGame,
-                                timeUpdateCallback);
-                        System.out.println("创建多人游戏循环（主模式）");
-                    }
-                    break;
-
-                case GAME_MODE_ONLINE:
-                    GameLoopService mainOnlineLoopService = gameLoopServices.get(GAME_MODE_ONLINE);
-                    if (mainOnlineLoopService != null) {
-                        loop = mainOnlineLoopService.createGameLoop(
-                                controller,
-                                this::renderGame,
-                                timeUpdateCallback);
-                        System.out.println("创建联机游戏循环（主模式）");
-                    }
-                    break;
-
-                default:
-                    System.err.println("警告：未知的游戏模式 " + currentSubMode + " 在startGameLoop中");
-                    break;
-            }
-
-            // 设置游戏循环到屏幕
             if (loop != null) {
+                System.out.println("游戏循环创建成功");
                 screen.setGameLoop(loop);
-                System.out.println("游戏循环已设置到屏幕");
+                
+                // 确保设置了最后更新时间
+                if (screen.getLastUpdateTime() == 0) {
+                    screen.setLastUpdateTime(System.currentTimeMillis());
+                }
+                
+                // 打印调试信息
+                System.out.println("游戏循环已设置到屏幕，控制器类型: " + controller.getClass().getSimpleName());
             } else {
+                System.err.println("错误：游戏循环创建返回空值");
                 showMessage("错误：无法创建游戏循环");
-                System.err.println("错误：无法创建游戏循环");
             }
         } catch (Exception e) {
-            showMessage("启动游戏循环时出错：" + e.getMessage());
-            System.err.println("游戏循环启动错误: " + e.getMessage());
+            System.err.println("创建游戏循环时出错: " + e.getMessage());
             e.printStackTrace();
+            showMessage("错误：创建游戏循环时出错 - " + e.getMessage());
         }
     }
-
 
     /**
      * 获取当前游戏模式的游戏启动器
@@ -865,20 +789,12 @@ public class GameView {
         // 获取主游戏模式
         int mainMode = getCurrentMainGameMode();
 
-        // 记录当前子模式和主模式信息，用于调试
-        System.out.println("获取游戏启动器，当前子模式: " + getGameModeName(currentGameMode)
-                + ", 主模式: " + getGameModeName(mainMode));
-
         // 目前启动器仍按主模式组织，但记录子模式信息以便将来扩展
         GameStarterController starter = gameStarters.get(mainMode);
 
         // TODO: 在未来可以为每个子模式创建专用的启动器
-        // 例如：gameStarters.put(GAME_MODE_SINGLE_CAMPAIGN, new SingleCampaignGameStarter(this));
-
-        if (starter == null) {
-            System.err.println("警告：未找到游戏模式 " + getGameModeName(currentGameMode) + " 的启动器");
-        }
-
+        // 例如：gameStarters.put(GAME_MODE_SINGLE_CAMPAIGN, new
+        // SingleCampaignGameStarter(this));
         return starter;
     }
 
@@ -900,9 +816,6 @@ public class GameView {
                 mainMode = GAME_MODE_ONLINE;
         }
 
-        // 记录子模式和主模式信息，用于调试
-        System.out.println("获取游戏启动器，指定子模式: " + getGameModeName(gameMode)
-                + ", 对应主模式: " + getGameModeName(mainMode));
 
         // 获取对应主模式的启动器
         GameStarterController starter = gameStarters.get(mainMode);
@@ -938,8 +851,6 @@ public class GameView {
         int currentSubMode = currentGameMode;
         int mainMode = getCurrentMainGameMode();
 
-        System.out.println("开始游戏，当前子模式: " + getGameModeName(currentSubMode)
-                + ", 主模式: " + getGameModeName(mainMode));
 
         // 根据主游戏模式处理参数并显示关卡选择对话框
         switch (mainMode) {
@@ -949,12 +860,12 @@ public class GameView {
                     this.currentTankType = tankTypes[0];
 
                     // 记录当前子模式并显示关卡选择对话框
-                    System.out.println("显示单人游戏关卡选择对话框，子模式: " + getGameModeName(currentSubMode));
+
                     levelSelectionDialog.show(currentTankType);
 
                     // 恢复子模式设置
                     setGameMode(currentSubMode);
-                    System.out.println("关卡选择后恢复子模式: " + getGameModeName(currentSubMode));
+
                 } else {
                     showMessage("单人游戏需要指定坦克类型");
                 }
@@ -969,24 +880,20 @@ public class GameView {
                         return;
                     }
 
-                    // 存储玩家坦克类型
-                    this.p1TankType = tankTypes[0];
-                    this.p2TankType = tankTypes[1];
+                    currentSubMode = currentGameMode;
 
-                    // 显示关卡选择对话框，使用玩家1的坦克类型作为参考
+                    // 显示关卡选择对话框，传入两个坦克类型
                     if (levelSelectionDialog == null) {
                         levelSelectionDialog = new LevelSelectionDialog(this, root);
                     }
 
-                    // 记录当前子模式并显示关卡选择对话框
-                    System.out.println("显示双人游戏关卡选择对话框，子模式: " + getGameModeName(currentSubMode));
-                    levelSelectionDialog.show(p1TankType);
+                    // 使用数组直接传递多个坦克类型
+                    levelSelectionDialog.show(tankTypes);
 
                     // 恢复子模式设置
                     setGameMode(currentSubMode);
-                    System.out.println("关卡选择后恢复子模式: " + getGameModeName(currentSubMode));
                 } else {
-                    showMessage("双人游戏需要指定两种坦克类型");
+                    showMessage("双人游戏需要选择两种坦克类型！");
                 }
                 break;
 
@@ -994,13 +901,13 @@ public class GameView {
                 // 联机游戏可能有不同的关卡选择机制
                 showMessage("联机游戏关卡选择尚未实现");
                 // TODO: 实现不同联机子模式的关卡选择
-                System.out.println("联机游戏关卡选择（待实现），子模式: " + getGameModeName(currentSubMode));
+
                 break;
 
             default:
                 // 如果游戏模式未设置，默认使用单人闯关模式
                 if (tankTypes.length >= 1) {
-                    System.out.println("未设置游戏模式，默认使用单人闯关模式");
+
                     setGameMode(GAME_MODE_SINGLE_CAMPAIGN);
                     this.currentTankType = tankTypes[0];
                     levelSelectionDialog.show(currentTankType);
@@ -1022,8 +929,6 @@ public class GameView {
         int currentSubMode = currentGameMode;
         int mainMode = getCurrentMainGameMode();
 
-        System.out.println("开始关卡游戏，当前子模式: " + getGameModeName(currentSubMode)
-                + ", 主模式: " + getGameModeName(mainMode) + ", 关卡: " + level);
 
         // 确保使用正确的游戏启动器
         GameStarterController starter = getGameStarter();
@@ -1033,9 +938,6 @@ public class GameView {
                 case GAME_MODE_SINGLE:
                     // 单人游戏模式只需要第一个坦克类型
                     if (tankTypes.length >= 1) {
-                        // 设置正确的子模式再启动游戏
-                        System.out.println("启动单人游戏，子模式: " + getGameModeName(currentSubMode)
-                                + ", 坦克类型: " + tankTypes[0] + ", 关卡: " + level);
 
                         // 根据具体子模式选择不同的启动逻辑
                         // TODO: 为不同的单人游戏子模式实现专用的启动逻辑
@@ -1047,13 +949,13 @@ public class GameView {
 
                             case GAME_MODE_SINGLE_VS_AI:
                                 // TODO: 单人VS AI模式的专用启动逻辑
-                                System.out.println("使用单人VS AI模式专用启动逻辑（待实现）");
+
                                 starter.startGame(tankTypes[0], level);
                                 break;
 
                             case GAME_MODE_SINGLE_ENDLESS:
                                 // TODO: 单人无尽模式的专用启动逻辑
-                                System.out.println("使用单人无尽模式专用启动逻辑（待实现）");
+
                                 starter.startGame(tankTypes[0], level);
                                 break;
 
@@ -1065,7 +967,7 @@ public class GameView {
 
                         // 游戏启动后恢复子模式设置
                         setGameMode(currentSubMode);
-                        System.out.println("游戏启动后恢复子模式: " + getGameModeName(currentSubMode));
+
                     } else {
                         showMessage("单人游戏需要指定坦克类型");
                     }
@@ -1075,9 +977,6 @@ public class GameView {
                     // 双人游戏模式需要两种坦克类型
                     if (tankTypes.length >= 2 && starter instanceof MultiPlayerGameStarter) {
                         MultiPlayerGameStarter multiStarter = (MultiPlayerGameStarter) starter;
-
-                        System.out.println("启动双人游戏，子模式: " + getGameModeName(currentSubMode)
-                                + ", 坦克类型: " + tankTypes[0] + "," + tankTypes[1] + ", 关卡: " + level);
 
                         // 根据具体子模式选择不同的启动逻辑
                         // TODO: 为不同的双人游戏子模式实现专用的启动逻辑
@@ -1089,13 +988,13 @@ public class GameView {
 
                             case GAME_MODE_MULTI_VS:
                                 // TODO: 双人对战模式的专用启动逻辑
-                                System.out.println("使用双人对战模式专用启动逻辑（待实现）");
+
                                 multiStarter.startGame(tankTypes[0], tankTypes[1], level);
                                 break;
 
                             case GAME_MODE_MULTI_ENDLESS:
                                 // TODO: 双人无尽模式的专用启动逻辑
-                                System.out.println("使用双人无尽模式专用启动逻辑（待实现）");
+
                                 multiStarter.startGame(tankTypes[0], tankTypes[1], level);
                                 break;
 
@@ -1107,7 +1006,7 @@ public class GameView {
 
                         // 游戏启动后恢复子模式设置
                         setGameMode(currentSubMode);
-                        System.out.println("游戏启动后恢复子模式: " + getGameModeName(currentSubMode));
+
                     } else {
                         showMessage("双人游戏需要指定两种坦克类型");
                     }
@@ -1115,7 +1014,7 @@ public class GameView {
 
                 case GAME_MODE_ONLINE:
                     // TODO: 实现不同联机子模式的游戏启动逻辑
-                    System.out.println("联机游戏启动（待实现），子模式: " + getGameModeName(currentSubMode));
+
                     showMessage("联机游戏启动功能尚未实现");
                     break;
 
@@ -1128,7 +1027,6 @@ public class GameView {
         }
     }
 
-
     /**
      * 更新玩家血量显示
      */
@@ -1137,8 +1035,6 @@ public class GameView {
         GameStarterController gameStarter = getGameStarter(currentGameMode);
         if (gameStarter == null)
             return;
-
-        System.out.println("更新血量显示，当前模式: " + getGameModeName(currentGameMode));
 
         // 根据具体子模式更新血量显示
         switch (currentGameMode) {
@@ -1184,7 +1080,7 @@ public class GameView {
                 if (gameStarter.getGameScreen() instanceof MultiPlayerGameScreen) {
                     // TODO: 使用双人闯关模式专用的血量显示逻辑
                     // 暂时只打印日志
-                    System.out.println("双人闯关模式血量显示（待实现）");
+
                 }
                 break;
 
@@ -1196,7 +1092,7 @@ public class GameView {
                 if (gameStarter.getGameScreen() instanceof MultiPlayerGameScreen) {
                     // TODO: 使用双人对战模式专用的血量显示逻辑
                     // 暂时只打印日志
-                    System.out.println("双人对战模式血量显示（待实现）");
+
                 }
                 break;
 
@@ -1208,7 +1104,7 @@ public class GameView {
                 if (gameStarter.getGameScreen() instanceof MultiPlayerGameScreen) {
                     // TODO: 使用双人无尽模式专用的血量显示逻辑
                     // 暂时只打印日志
-                    System.out.println("双人无尽模式血量显示（待实现）");
+
                 }
                 break;
 
@@ -1220,7 +1116,7 @@ public class GameView {
 
                 // TODO: 使用联机闯关模式专用的血量显示逻辑
                 // 暂时只打印日志
-                System.out.println("联机闯关模式血量显示（待实现）");
+
                 break;
 
             case GAME_MODE_ONLINE_VS:
@@ -1230,7 +1126,7 @@ public class GameView {
 
                 // TODO: 使用联机对战模式专用的血量显示逻辑
                 // 暂时只打印日志
-                System.out.println("联机对战模式血量显示（待实现）");
+
                 break;
 
             case GAME_MODE_ONLINE_ENDLESS:
@@ -1240,7 +1136,7 @@ public class GameView {
 
                 // TODO: 使用联机无尽模式专用的血量显示逻辑
                 // 暂时只打印日志
-                System.out.println("联机无尽模式血量显示（待实现）");
+
                 break;
 
             // 主游戏模式（兼容原有逻辑）
@@ -1260,7 +1156,7 @@ public class GameView {
 
                 // TODO: 实现通用的多人游戏血量显示
                 // 暂时只打印日志
-                System.out.println("多人游戏血量显示（通用模式，待实现）");
+
                 break;
 
             case GAME_MODE_ONLINE:
@@ -1269,7 +1165,7 @@ public class GameView {
 
                 // TODO: 实现通用的联机游戏血量显示
                 // 暂时只打印日志
-                System.out.println("联机游戏血量显示（通用模式，待实现）");
+
                 break;
 
             default:
@@ -1353,7 +1249,7 @@ public class GameView {
         }
 
         // 输出调试信息
-        System.out.println("选择坦克时的游戏模式: " + getGameModeName(currentGameMode));
+
     }
 
     /**
@@ -1430,23 +1326,23 @@ public class GameView {
                 }
 
                 // 调试输出
-                System.out.println("设置单人游戏键盘控制，模式: " + getGameModeName(currentGameMode));
+
                 break;
 
             case GAME_MODE_MULTI:
                 // 设置双人游戏键盘控制
                 // TODO: 实现双人游戏键盘控制
-                System.out.println("设置双人游戏键盘控制，模式: " + getGameModeName(currentGameMode));
+
                 break;
 
             case GAME_MODE_ONLINE:
                 // 设置联机游戏键盘控制
                 // TODO: 实现联机游戏键盘控制
-                System.out.println("设置联机游戏键盘控制，模式: " + getGameModeName(currentGameMode));
+
                 break;
 
             default:
-                System.out.println("警告: 未识别的游戏模式: " + getGameModeName(currentGameMode));
+
                 break;
         }
     }
@@ -1457,7 +1353,6 @@ public class GameView {
      * @param lives 生命值
      */
     public void setPlayerLives(int lives) {
-        System.out.println("设置玩家生命值: " + lives + ", 当前模式: " + getGameModeName(currentGameMode));
 
         // 根据具体子模式设置生命值
         switch (currentGameMode) {
@@ -1467,7 +1362,7 @@ public class GameView {
             case GAME_MODE_SINGLE_ENDLESS:
                 if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
                     singlePlayerGameStarter.getGameScreen().setPlayerLives(lives);
-                    System.out.println("设置单人游戏生命值: " + lives + ", 子模式: " + getGameModeName(currentGameMode));
+
                 }
                 break;
 
@@ -1479,7 +1374,7 @@ public class GameView {
                 GameStarterController multiStarter = gameStarters.get(GAME_MODE_MULTI);
                 if (multiStarter != null && multiStarter.getGameScreen() != null) {
                     // TODO: 根据不同子模式设置双人游戏生命值
-                    System.out.println("设置双人游戏生命值: " + lives + ", 子模式: " + getGameModeName(currentGameMode) + " (待实现)");
+
                 }
                 break;
 
@@ -1488,25 +1383,25 @@ public class GameView {
             case GAME_MODE_ONLINE_VS:
             case GAME_MODE_ONLINE_ENDLESS:
                 // TODO: 实现联机游戏各子模式的生命值设置
-                System.out.println("设置联机游戏生命值: " + lives + ", 子模式: " + getGameModeName(currentGameMode) + " (待实现)");
+
                 break;
 
             // 兼容主模式
             case GAME_MODE_SINGLE:
                 if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
                     singlePlayerGameStarter.getGameScreen().setPlayerLives(lives);
-                    System.out.println("设置单人游戏生命值: " + lives + " (主模式)");
+
                 }
                 break;
 
             case GAME_MODE_MULTI:
                 // TODO: 实现双人游戏生命值设置
-                System.out.println("设置双人游戏生命值: " + lives + " (主模式) (待实现)");
+
                 break;
 
             case GAME_MODE_ONLINE:
                 // TODO: 实现联机游戏生命值设置
-                System.out.println("设置联机游戏生命值: " + lives + " (主模式) (待实现)");
+
                 break;
 
             default:
@@ -1521,7 +1416,6 @@ public class GameView {
      * @param count 子弹数量
      */
     public void setBulletCount(int count) {
-        System.out.println("设置子弹数量: " + count + ", 当前模式: " + getGameModeName(currentGameMode));
 
         // 根据具体子模式设置子弹数量
         switch (currentGameMode) {
@@ -1531,7 +1425,7 @@ public class GameView {
             case GAME_MODE_SINGLE_ENDLESS:
                 if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
                     singlePlayerGameStarter.getGameScreen().setBulletCount(count);
-                    System.out.println("设置单人游戏子弹数量: " + count + ", 子模式: " + getGameModeName(currentGameMode));
+
                 }
                 break;
 
@@ -1543,7 +1437,7 @@ public class GameView {
                 GameStarterController multiStarter = gameStarters.get(GAME_MODE_MULTI);
                 if (multiStarter != null && multiStarter.getGameScreen() != null) {
                     // TODO: 根据不同子模式设置双人游戏子弹数量
-                    System.out.println("设置双人游戏子弹数量: " + count + ", 子模式: " + getGameModeName(currentGameMode) + " (待实现)");
+
                 }
                 break;
 
@@ -1552,25 +1446,25 @@ public class GameView {
             case GAME_MODE_ONLINE_VS:
             case GAME_MODE_ONLINE_ENDLESS:
                 // TODO: 实现联机游戏各子模式的子弹数量设置
-                System.out.println("设置联机游戏子弹数量: " + count + ", 子模式: " + getGameModeName(currentGameMode) + " (待实现)");
+
                 break;
 
             // 兼容主模式
             case GAME_MODE_SINGLE:
                 if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
                     singlePlayerGameStarter.getGameScreen().setBulletCount(count);
-                    System.out.println("设置单人游戏子弹数量: " + count + " (主模式)");
+
                 }
                 break;
 
             case GAME_MODE_MULTI:
                 // TODO: 实现双人游戏子弹数量设置
-                System.out.println("设置双人游戏子弹数量: " + count + " (主模式) (待实现)");
+
                 break;
 
             case GAME_MODE_ONLINE:
                 // TODO: 实现联机游戏子弹数量设置
-                System.out.println("设置联机游戏子弹数量: " + count + " (主模式) (待实现)");
+
                 break;
 
             default:
@@ -1789,11 +1683,11 @@ public class GameView {
                 if (currentSubMode >= 10 && currentSubMode < 20) {
                     // 保持子模式不变，只更新控制器
                     // setGameMode 会自动设置正确的服务
-                    System.out.println("设置单人游戏控制器，保留子模式: " + getGameModeName(currentSubMode));
+
                 } else {
                     // 如果之前不是单人游戏子模式，则设置为默认的单人闯关模式
                     currentSubMode = GAME_MODE_SINGLE_CAMPAIGN;
-                    System.out.println("设置单人游戏控制器，默认使用子模式: " + getGameModeName(currentSubMode));
+
                 }
                 break;
 
@@ -1803,11 +1697,11 @@ public class GameView {
                 // 根据当前子模式区分不同类型的多人游戏控制器
                 if (currentSubMode >= 20 && currentSubMode < 30) {
                     // 保持子模式不变，只更新控制器
-                    System.out.println("设置多人游戏控制器，保留子模式: " + getGameModeName(currentSubMode));
+
                 } else {
                     // 如果之前不是多人游戏子模式，则设置为默认的多人闯关模式
                     currentSubMode = GAME_MODE_MULTI_CAMPAIGN;
-                    System.out.println("设置多人游戏控制器，默认使用子模式: " + getGameModeName(currentSubMode));
+
                 }
                 break;
 
@@ -1817,11 +1711,11 @@ public class GameView {
                 // 根据当前子模式区分不同类型的联机游戏控制器
                 if (currentSubMode >= 30 && currentSubMode < 40) {
                     // 保持子模式不变，只更新控制器
-                    System.out.println("设置联机游戏控制器，保留子模式: " + getGameModeName(currentSubMode));
+
                 } else {
                     // 如果之前不是联机游戏子模式，则设置为默认的联机闯关模式
                     currentSubMode = GAME_MODE_ONLINE_CAMPAIGN;
-                    System.out.println("设置联机游戏控制器，默认使用子模式: " + getGameModeName(currentSubMode));
+
                 }
                 break;
 
@@ -1836,84 +1730,15 @@ public class GameView {
     }
 
     /**
-     * 重置游戏开始时间，保持总游戏时间不变
+     * 重置游戏开始时间
      */
     public void resetGameStartTime() {
-        // 根据具体子模式重置游戏开始时间
-        switch (currentGameMode) {
-            // 单人游戏子模式
-            case GAME_MODE_SINGLE_CAMPAIGN:
-                if (gameLoopService instanceof SingleGameLoopServiceImpl) {
-                    ((SingleGameLoopServiceImpl) gameLoopService).resetGameStartTime();
-                }
-                break;
-
-            case GAME_MODE_SINGLE_VS_AI:
-                // TODO: 重置单人VS AI模式的游戏开始时间
-                if (gameLoopService instanceof SingleGameLoopServiceImpl) {
-                    ((SingleGameLoopServiceImpl) gameLoopService).resetGameStartTime();
-                }
-                break;
-
-            case GAME_MODE_SINGLE_ENDLESS:
-                // TODO: 重置单人无尽模式的游戏开始时间
-                if (gameLoopService instanceof SingleGameLoopServiceImpl) {
-                    ((SingleGameLoopServiceImpl) gameLoopService).resetGameStartTime();
-                }
-                break;
-
-            // 双人游戏子模式
-            case GAME_MODE_MULTI_CAMPAIGN:
-                // TODO: 重置双人闯关模式的游戏开始时间
-                if (gameLoopService instanceof MultiGameLoopServiceImpl) {
-                    // ((MultiGameLoopServiceImpl) gameLoopService).resetGameStartTime();
-                }
-                break;
-
-            case GAME_MODE_MULTI_VS:
-                // TODO: 重置双人对战模式的游戏开始时间
-                if (gameLoopService instanceof MultiGameLoopServiceImpl) {
-                    // ((MultiGameLoopServiceImpl) gameLoopService).resetGameStartTime();
-                }
-                break;
-
-            case GAME_MODE_MULTI_ENDLESS:
-                // TODO: 重置双人无尽模式的游戏开始时间
-                if (gameLoopService instanceof MultiGameLoopServiceImpl) {
-                    // ((MultiGameLoopServiceImpl) gameLoopService).resetGameStartTime();
-                }
-                break;
-
-            // 联机游戏子模式
-            case GAME_MODE_ONLINE_CAMPAIGN:
-                // TODO: 重置联机闯关模式的游戏开始时间
-                break;
-
-            case GAME_MODE_ONLINE_VS:
-                // TODO: 重置联机对战模式的游戏开始时间
-                break;
-
-            case GAME_MODE_ONLINE_ENDLESS:
-                // TODO: 重置联机无尽模式的游戏开始时间
-                break;
-
-            // 主游戏模式
-            case GAME_MODE_SINGLE:
-                if (gameLoopService instanceof SingleGameLoopServiceImpl) {
-                    ((SingleGameLoopServiceImpl) gameLoopService).resetGameStartTime();
-                }
-                break;
-
-            case GAME_MODE_MULTI:
-                if (gameLoopService instanceof MultiGameLoopServiceImpl) {
-                    // ((MultiGameLoopServiceImpl) gameLoopService).resetGameStartTime();
-                }
-                break;
-
-            case GAME_MODE_ONLINE:
-                // TODO: 重置联机模式的游戏开始时间
-                break;
-        }
+        // 记录当前时间为游戏开始时间
+        gameStartTime = System.currentTimeMillis();
+        // System.out.println("游戏开始时间已重置: " + gameStartTime);
+        
+        // 同时重置总游戏时间
+        totalGameTime = 0;
     }
 
     /**
@@ -1998,8 +1823,6 @@ public class GameView {
 
         // 记录当前主模式和子模式
         int mainMode = getCurrentMainGameMode();
-        System.out.println("设置游戏模式: " + getGameModeName(mode) + " (代码: " + mode +
-                ", 主模式: " + mainMode + ")");
 
         // 根据子模式设置对应的服务
         switch (mode) {
@@ -2147,7 +1970,6 @@ public class GameView {
      */
     public LevelCompletedView getLevelCompletedView() {
         // 调试输出
-        System.out.println("获取关卡完成视图，当前模式: " + getGameModeName(currentGameMode) + " (代码: " + currentGameMode + ")");
 
         // 根据子模式返回对应的关卡完成视图
         switch (currentGameMode) {
@@ -2217,7 +2039,6 @@ public class GameView {
      */
     public GameOverScreen getGameOverScreen() {
         // 调试输出
-        System.out.println("获取游戏结束屏幕，当前模式: " + getGameModeName(currentGameMode) + " (代码: " + currentGameMode + ")");
 
         // 根据子模式返回对应的游戏结束屏幕
         switch (currentGameMode) {
@@ -2354,8 +2175,6 @@ public class GameView {
             int currentLevel = 1;
             String[] tankTypes = null;
 
-            System.out.println("重新开始游戏，当前模式: " + getGameModeName(currentSubMode));
-
             switch (mainMode) {
                 case GAME_MODE_SINGLE:
                     if (singleGameController != null) {
@@ -2460,7 +2279,7 @@ public class GameView {
                 break;
 
             default:
-                System.out.println("警告: 未知的游戏模式: " + getGameModeName(currentGameMode));
+
                 break;
         }
     }
@@ -2616,15 +2435,58 @@ public class GameView {
 
     /**
      * 获取游戏总时间
-     *
-     * @return 游戏总时间(毫秒)
      */
     public long getTotalGameTime() {
-        GameScreen screen = getGameScreen();
-        if (screen != null) {
-            return screen.getTotalGameTime();
+        // 避免递归调用，根据游戏模式返回相应的时间
+        switch (currentGameMode) {
+            case GAME_MODE_SINGLE:
+            case GAME_MODE_SINGLE_CAMPAIGN:
+            case GAME_MODE_SINGLE_VS_AI:
+            case GAME_MODE_SINGLE_ENDLESS:
+                // 单人游戏模式 - 基于游戏开始时间计算
+                if (gameStartTime > 0 && !getIsPauseMenuOpen()) {
+                    return System.currentTimeMillis() - gameStartTime;
+                }
+                return totalGameTime;
+                
+            case GAME_MODE_MULTI:
+            case GAME_MODE_MULTI_CAMPAIGN:
+            case GAME_MODE_MULTI_VS:
+            case GAME_MODE_MULTI_ENDLESS:
+                // 多人游戏模式 - 使用多人游戏屏幕的时间计算
+                return calculateMultiPlayerGameTime();
+                
+            case GAME_MODE_ONLINE:
+            case GAME_MODE_ONLINE_CAMPAIGN:
+            case GAME_MODE_ONLINE_VS:
+            case GAME_MODE_ONLINE_ENDLESS:
+                // 联机游戏模式 - 使用联机游戏屏幕的时间计算
+                return calculateOnlineGameTime();
+                
+            default:
+                return 0;
         }
-        return 0;
+    }
+
+    /**
+     * 计算多人游戏时间
+     */
+    private long calculateMultiPlayerGameTime() {
+        // 如果游戏未暂停，返回当前时间与游戏开始时间的差
+        if (!getIsPauseMenuOpen()) {
+            long currentTime = System.currentTimeMillis();
+            return currentTime - gameStartTime;
+        }
+        // 如果游戏已暂停，返回上次记录的总时间
+        return totalGameTime;
+    }
+
+    /**
+     * 计算联机游戏时间
+     */
+    private long calculateOnlineGameTime() {
+        // 类似的时间计算逻辑
+        return totalGameTime;
     }
 
     /**

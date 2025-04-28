@@ -71,7 +71,7 @@ public class SinglePlayerOptionsView {
             JFXButton newGameButton = createMenuButton("新游戏", e -> {
                 // 确保保留当前子模式
                 int currentSubMode = gameView.getCurrentGameMode();
-                System.out.println("新游戏按钮点击，当前模式: " + gameView.getGameModeName(currentSubMode));
+                
 
                 // 子模式处理
                 if (currentSubMode == GameView.GAME_MODE_SINGLE) {

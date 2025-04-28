@@ -41,6 +41,12 @@ public class MultiPlayerGameStarter implements GameStarterController {
 
         // 设置两个玩家的坦克类型
         setPlayerTankTypes(player1TankType, player2TankType);
+        
+        // 将坦克类型存储到游戏屏幕中
+        if (gameScreen != null) {
+            gameScreen.setPlayer1TankType(player1TankType);
+            gameScreen.setPlayer2TankType(player2TankType);
+        }
 
         // 设置对GameView的引用
         multiGameController.setGameView(gameView);
@@ -64,15 +70,20 @@ public class MultiPlayerGameStarter implements GameStarterController {
         // 立即更新所有显示元素
         updateDisplayElements();
 
+        // 设置游戏屏幕的初始时间
+        gameScreen.setLastUpdateTime(System.currentTimeMillis());
+        
         // 记录游戏开始时间
         gameView.resetGameStartTime();
         gameScreen.setLastBulletRefillTime(System.currentTimeMillis());
-
+        
         // 确保画布获取焦点
         if (gameScreen.getGameCanvas() != null) {
             gameScreen.getGameCanvas().requestFocus();
         }
-
+        
+        System.out.println("多人游戏初始化完成，准备启动游戏循环...");
+        
         // 启动游戏循环
         gameView.startGameLoop();
     }

@@ -53,6 +53,10 @@ public class MultiPlayerGameScreen implements GameScreen {
     private long lastUpdateTime = 0;
     private long pauseTime = 0;
 
+    // 添加坦克类型字段
+    private String player1TankType;
+    private String player2TankType;
+
     /**
      * 构造函数
      * 
@@ -101,12 +105,12 @@ public class MultiPlayerGameScreen implements GameScreen {
         gameLayout.setCenter(gameWithSidePanels);
         gameLayout.setBottom(gameDataPanel);
 
-        // 初始化游戏时间和子弹
+        // 初始化关键时间变量
+        lastUpdateTime = System.currentTimeMillis();
         gameView.resetGameStartTime();
-        gameView.setLastUpdateTime(System.currentTimeMillis());
+        lastBulletRefillTime = System.currentTimeMillis();
         gameView.setTotalGameTime(0);
         gameView.setGamePaused(false);
-        gameView.setLastBulletRefillTime(System.currentTimeMillis());
 
         // 添加游戏布局到根
         gameView.getRoot().getChildren().add(gameLayout);
@@ -660,8 +664,8 @@ public class MultiPlayerGameScreen implements GameScreen {
         levelData.put("totalGameTime", gameView.getTotalGameTime());
         levelData.put("p1Lives", player1Lives);
         levelData.put("p2Lives", player2Lives);
-        levelData.put("p1TankType", multiGameController.getPlayer1Tank().getTypeString());
-        levelData.put("p2TankType", multiGameController.getPlayer2Tank().getTypeString());
+        levelData.put("p1TankType", player1TankType);
+        levelData.put("p2TankType", player2TankType);
         levelData.put("totalLevels", totalLevels);
 
         // 显示关卡完成视图
@@ -707,7 +711,11 @@ public class MultiPlayerGameScreen implements GameScreen {
      */
     @Override
     public long getTotalGameTime() {
-        return gameView.getTotalGameTime(); // 委托给GameView
+        // 使用屏幕自己记录的时间，避免递归调用
+        if (lastUpdateTime > 0 && !gamePaused) {
+            return System.currentTimeMillis() - lastUpdateTime;
+        }
+        return 0;
     }
 
     /**
@@ -938,5 +946,72 @@ public class MultiPlayerGameScreen implements GameScreen {
         // 在多人游戏中，我们将这个通用方法映射到玩家1的生命值
         this.player1Lives = lives;
         updateLivesDisplay(player1Lives, player2Lives);
+    }
+
+    /**
+     * 设置玩家1坦克类型
+     */
+    public void setPlayer1TankType(String tankType) {
+        this.player1TankType = tankType;
+        updateTankTypeDisplay();
+    }
+
+    /**
+     * 设置玩家2坦克类型
+     */
+    public void setPlayer2TankType(String tankType) {
+        this.player2TankType = tankType;
+        updateTankTypeDisplay();
+    }
+
+    /**
+     * 获取玩家1坦克类型
+     */
+    public String getPlayer1TankType() {
+        return player1TankType;
+    }
+
+    /**
+     * 获取玩家2坦克类型
+     */
+    public String getPlayer2TankType() {
+        return player2TankType;
+    }
+
+    /**
+     * 更新坦克类型显示
+     */
+    private void updateTankTypeDisplay() {
+        Platform.runLater(() -> {
+            // 更新玩家1坦克类型显示
+            VBox player1Panel = (VBox) gameView.getRoot().lookup("#player1Panel");
+            if (player1Panel != null && player1Panel.getChildren().size() > 2) {
+                Text tankTypeText = (Text) player1Panel.getChildren().get(2);
+                if (tankTypeText != null && player1TankType != null) {
+                    tankTypeText.setText("坦克: " + getTankTypeDisplayName(player1TankType));
+                }
+            }
+            
+            // 更新玩家2坦克类型显示
+            VBox player2Panel = (VBox) gameView.getRoot().lookup("#player2Panel");
+            if (player2Panel != null && player2Panel.getChildren().size() > 2) {
+                Text tankTypeText = (Text) player2Panel.getChildren().get(2);
+                if (tankTypeText != null && player2TankType != null) {
+                    tankTypeText.setText("坦克: " + getTankTypeDisplayName(player2TankType));
+                }
+            }
+        });
+    }
+
+    /**
+     * 获取坦克类型的显示名称
+     */
+    private String getTankTypeDisplayName(String tankType) {
+        switch (tankType) {
+            case "light": return "轻型";
+            case "heavy": return "重型";
+            case "standard": return "标准";
+            default: return tankType;
+        }
     }
 }
