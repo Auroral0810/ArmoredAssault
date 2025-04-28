@@ -84,30 +84,101 @@ jobs:
         run: |
           mkdir -p release
           
-          # 创建更完整的批处理文件启动器
+          # 创建完整的批处理文件启动器
           echo '@echo off
           cd /d "%~dp0"
-          java --module-path ".\libs" --add-modules javafx.controls,javafx.fxml,javafx.media,javafx.graphics,javafx.base -jar ArmoredAssault-1.0-SNAPSHOT.jar
+          set JAVA_OPTS=--add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.desktop/sun.awt=ALL-UNNAMED --add-opens=java.desktop/sun.java2d=ALL-UNNAMED
+          java %JAVA_OPTS% --module-path ".\libs" --add-modules javafx.controls,javafx.fxml,javafx.media,javafx.graphics,javafx.base -jar ArmoredAssault-1.0-SNAPSHOT.jar
           if errorlevel 1 pause
           ' > installer/input/ArmoredAssault.bat
           
-          # 使用更多兼容性选项创建安装程序
+          # 创建info.properties文件避免部分配置问题
+          echo 'app.name=ArmoredAssault
+          app.version=1.1.0
+          app.vendor=NAU-YYF
+          ' > installer/input/info.properties
+          
+          # 使用简化配置创建EXE而不是MSI
           jpackage --input installer/input \
             --name "ArmoredAssault" \
             --main-jar ArmoredAssault-1.0-SNAPSHOT.jar \
             --main-class com.nau_yyf.ArmoredAssaultApplication \
-            --type msi \
+            --type exe \
             --win-console \
             --win-shortcut \
             --win-menu \
-            --win-dir-chooser \
             --win-per-user-install \
             --icon src/main/resources/images/logo/tank_logo.ico \
             --app-version 1.1.0 \
             --vendor "NAU-YYF" \
             --dest release
             
-          cp release/*.msi release/ArmoredAssault-Windows-Installer.msi
+          cp release/*.exe release/ArmoredAssault-Windows-Installer.exe
+        shell: bash
+
+      # 为使用ZIP的用户提供更可靠的启动脚本
+      - name: Prepare Windows ZIP with improved launcher
+        if: matrix.os == 'windows-latest'
+        run: |
+          # 创建更可靠的启动脚本
+          echo '@echo off
+          cd /d "%~dp0"
+          
+          REM 检查Java是否安装
+          where java >nul 2>nul
+          if %ERRORLEVEL% NEQ 0 (
+            echo Java未安装！请安装Java 17或更高版本...
+            echo 访问 https://adoptium.net/ 下载Java
+            pause
+            exit /b 1
+          )
+          
+          REM 设置Java选项
+          set JAVA_OPTS=--add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.desktop/sun.awt=ALL-UNNAMED --add-opens=java.desktop/sun.java2d=ALL-UNNAMED
+          
+          REM 启动应用
+          echo 正在启动ArmoredAssault...
+          java %JAVA_OPTS% --module-path libs --add-modules javafx.controls,javafx.fxml,javafx.media,javafx.graphics,javafx.base -jar ArmoredAssault-1.0-SNAPSHOT.jar
+          
+          if %ERRORLEVEL% NEQ 0 (
+            echo 程序异常退出，错误代码: %ERRORLEVEL%
+            pause
+          )
+          ' > release/ArmoredAssault-windows/ArmoredAssault.bat
+          
+          # 创建自动修复脚本
+          echo '@echo off
+          echo 正在修复ArmoredAssault环境...
+          
+          REM 检查Java是否安装
+          where java >nul 2>nul
+          if %ERRORLEVEL% NEQ 0 (
+            echo Java未安装！请安装Java 17或更高版本...
+            echo 访问 https://adoptium.net/ 下载Java
+            pause
+            exit /b 1
+          )
+          
+          echo 环境检查完成，可以正常启动游戏了！
+          pause
+          ' > release/ArmoredAssault-windows/修复环境.bat
+          
+          # 创建便捷的README
+          echo '# ArmoredAssault 使用说明
+          
+          ## 启动方法
+          双击 ArmoredAssault.bat 启动游戏
+          
+          ## 常见问题
+          1. 如果启动失败，请先运行"修复环境.bat"
+          2. 确保已安装Java 17或更高版本
+          
+          ## 联系方式
+          如有问题请联系开发者
+          ' > release/ArmoredAssault-windows/README.txt
+          
+          # 重新打包
+          powershell Compress-Archive -Force -Path release/ArmoredAssault-windows -DestinationPath release/ArmoredAssault-windows.zip
         shell: bash
 
       # macOS Installer
@@ -158,9 +229,10 @@ jobs:
             --type deb \
             --linux-shortcut \
             --linux-app-category "Game" \
-            --app-version 1.1.0 \
+            --app-version 1.0.0 \
             --vendor "NAU-YYF" \
             --icon src/main/resources/images/logo/tank_logo.png \
+            --linux-package-deps "libasound2, libatk-bridge2.0-0, libatk1.0-0, libatspi2.0-0, libglib2.0-0, libgtk-3-0, libpng16-16" \
             --dest release
             
           cp release/*.deb release/ArmoredAssault-Linux.deb
