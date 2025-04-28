@@ -1,6 +1,8 @@
 package com.nau_yyf.view;
 
 import com.jfoenix.controls.JFXButton;
+import com.nau_yyf.view.multiGame.MultiPlayerModeSelectionView;
+import com.nau_yyf.view.singleGame.SinglePlayerModeSelectionView;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -105,9 +107,9 @@ public class MainMenuView {
             menuContainer.getChildren().add(spacer);
 
             // 创建按钮
-            JFXButton singlePlayerButton = createMenuButton("单人游戏", e -> gameView.showGameOptions(GameView.GAME_MODE_SINGLE));
-            JFXButton multiPlayerButton = createMenuButton("双人游戏", e -> gameView.showGameOptions(GameView.GAME_MODE_MULTI));
-            JFXButton onlineButton = createMenuButton("远程联机", e -> gameView.showMessage("联机功能即将推出"));
+            JFXButton singlePlayerButton = createMenuButton("单人游戏", e -> showSinglePlayerModeSelection());
+            JFXButton multiPlayerButton = createMenuButton("双人游戏", e -> showMultiPlayerModeSelection());
+            JFXButton onlineButton = createMenuButton("远程联机", e -> showOnlinePlayerModeSelection());
             JFXButton instructionsButton = createMenuButton("游戏说明", e -> gameView.showInstructions());
             JFXButton settingsButton = createMenuButton("设置", e -> gameView.showMessage("设置功能即将推出"));
             JFXButton exitButton = createMenuButton("退出游戏", e -> Platform.exit());
@@ -159,5 +161,32 @@ public class MainMenuView {
                 (int) (color.getRed() * 255),
                 (int) (color.getGreen() * 255),
                 (int) (color.getBlue() * 255));
+    }
+
+    /**
+     * 显示单人游戏模式选择界面
+     */
+    private void showSinglePlayerModeSelection() {
+        SinglePlayerModeSelectionView modeSelectionView = new SinglePlayerModeSelectionView(gameView, root, stage);
+        modeSelectionView.show();
+    }
+
+    /**
+     * 显示双人游戏模式选择界面
+     */
+    private void showMultiPlayerModeSelection() {
+        MultiPlayerModeSelectionView modeSelectionView = new MultiPlayerModeSelectionView(gameView, root, stage);
+        modeSelectionView.show();
+    }
+
+    /**
+     * 显示联机游戏模式选择界面
+     */
+    private void showOnlinePlayerModeSelection() {
+        // 如果尚未实现，显示消息
+        gameView.showMessage("联机游戏模式选择界面即将推出");
+        // 未来实现时使用
+        // OnlinePlayerModeSelectionView modeSelectionView = new OnlinePlayerModeSelectionView(gameView, root, stage);
+        // modeSelectionView.show();
     }
 }

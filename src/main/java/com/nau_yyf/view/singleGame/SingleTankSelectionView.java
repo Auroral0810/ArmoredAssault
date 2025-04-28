@@ -210,7 +210,7 @@ public class SingleTankSelectionView {
         bottomButtons.setAlignment(Pos.CENTER);
         bottomButtons.setPadding(new Insets(30));
 
-        JFXButton backButton = createMenuButton("返回", e -> gameView.showGameOptions(GameView.GAME_MODE_SINGLE));
+        JFXButton backButton = createMenuButton("返回", e -> gameView.showGameOptions(GameView.GAME_MODE_MULTI_CAMPAIGN));
         JFXButton startButton = createMenuButton("开始游戏", e -> startGame());
         startButton.setStyle("-fx-background-color: " + toHexString(SECONDARY_COLOR) + ";");
 

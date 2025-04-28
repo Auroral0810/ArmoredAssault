@@ -1,4 +1,4 @@
-package com.nau_yyf.view.multiGame;
+package com.nau_yyf.view.singleGame;
 
 import com.jfoenix.controls.JFXButton;
 import com.nau_yyf.view.GameView;
@@ -17,15 +17,15 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
 /**
- * 双人游戏选项界面视图组件
+ * 单人游戏模式选择界面
  */
-public class MultiPlayerOptionsView {
+public class SinglePlayerModeSelectionView {
     
     private GameView gameView;
     private StackPane root;
     private Stage stage;
     
-    // 使用与单人游戏相同的颜色方案
+    // 颜色常量
     private final Color PRIMARY_COLOR = Color.rgb(37, 160, 218);    // 蓝色
     private final Color TEXT_COLOR = Color.WHITE;
     private final Color BACKGROUND_COLOR = Color.rgb(27, 40, 56);   // 深蓝灰色
@@ -36,22 +36,19 @@ public class MultiPlayerOptionsView {
      * @param root 根布局容器
      * @param stage 主舞台
      */
-    public MultiPlayerOptionsView(GameView gameView, StackPane root, Stage stage) {
+    public SinglePlayerModeSelectionView(GameView gameView, StackPane root, Stage stage) {
         this.gameView = gameView;
         this.root = root;
         this.stage = stage;
     }
     
     /**
-     * 显示双人游戏选项界面
+     * 显示单人游戏模式选择界面
      */
     public void show() {
         Platform.runLater(() -> {
             // 清除当前内容
             root.getChildren().clear();
-            
-            // 设置根布局背景色
-            root.setStyle("-fx-background-color: " + toHexString(BACKGROUND_COLOR) + ";");
             
             // 创建垂直布局容器
             VBox optionsContainer = new VBox(20);
@@ -60,7 +57,7 @@ public class MultiPlayerOptionsView {
             optionsContainer.setMaxWidth(600);
             
             // 界面标题
-            Text titleText = new Text("双人游戏");
+            Text titleText = new Text("单人游戏模式");
             titleText.setFont(Font.font("Arial", FontWeight.BOLD, 36));
             titleText.setFill(PRIMARY_COLOR);
             optionsContainer.getChildren().add(titleText);
@@ -70,27 +67,24 @@ public class MultiPlayerOptionsView {
             VBox.setVgrow(spacer1, Priority.ALWAYS);
             optionsContainer.getChildren().add(spacer1);
             
-            // 创建按钮
-            JFXButton newGameButton = createMenuButton("新游戏", e -> gameView.showTankSelection());
-            JFXButton vsComputerButton = createMenuButton("对战电脑", e -> gameView.showMessage("即将开启人机对战模式"));
-            JFXButton vsPlayerButton = createMenuButton("双人对战", e -> gameView.showMessage("双人对战功能即将推出"));
-            JFXButton loadGameButton = createMenuButton("加载游戏", e -> {
-                // 确保在加载前设置正确的子模式
-                if (gameView.getCurrentGameMode() == GameView.GAME_MODE_MULTI) {
-                    // 如果是主模式，改为对应的子模式
-                    gameView.setGameMode(GameView.GAME_MODE_MULTI_CAMPAIGN);
-                }
-                // 调用加载游戏功能
-                gameView.loadGame();
-            });
-            JFXButton backButton = createMenuButton("返回主菜单", e -> gameView.showMainMenu());
+            // 创建不同模式的按钮
+            JFXButton campaignButton = createMenuButton("闯关模式", e -> 
+                gameView.showGameOptions(GameView.GAME_MODE_SINGLE_CAMPAIGN));
+            
+            JFXButton vsAIButton = createMenuButton("对战电脑", e -> 
+                gameView.showGameOptions(GameView.GAME_MODE_SINGLE_VS_AI));
+            
+            JFXButton endlessButton = createMenuButton("无尽模式", e -> 
+                gameView.showGameOptions(GameView.GAME_MODE_SINGLE_ENDLESS));
+            
+            JFXButton backButton = createMenuButton("返回主菜单", e -> 
+                gameView.showMainMenu());
             
             // 将按钮添加到布局容器
             optionsContainer.getChildren().addAll(
-                    newGameButton,
-                    vsComputerButton,
-                    vsPlayerButton,
-                    loadGameButton,
+                    campaignButton,
+                    vsAIButton,
+                    endlessButton,
                     backButton
             );
             
@@ -100,7 +94,7 @@ public class MultiPlayerOptionsView {
             optionsContainer.getChildren().add(spacer2);
             
             // 提示标签
-            Label tipLabel = new Label("提示: 双人模式可以一起游玩，或者与电脑对战");
+            Label tipLabel = new Label("提示: 选择一种游戏模式开始游戏");
             tipLabel.setTextFill(TEXT_COLOR);
             tipLabel.setStyle("-fx-font-style: italic;");
             optionsContainer.getChildren().add(tipLabel);

@@ -136,7 +136,7 @@ public class MultiTankSelectionView {
         bottomButtons.setPadding(new Insets(20));
         
         // 返回按钮
-        JFXButton backButton = createMenuButton("返回", e -> gameView.showGameOptions(GameView.GAME_MODE_SINGLE), false);
+        JFXButton backButton = createMenuButton("返回", e -> gameView.showGameOptions(GameView.GAME_MODE_MULTI_CAMPAIGN), false);
         
         // 开始游戏按钮
         JFXButton startButton = createMenuButton("开始游戏", e -> startMultiplayerGame(), true);
