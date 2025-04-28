@@ -20,12 +20,14 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
+import com.nau_yyf.view.GameOverScreen;
+import java.util.Map;
 
 /**
  * 游戏结束界面
  * 处理游戏失败时的界面显示
  */
-public class SingleGameOverScreen {
+public class SingleGameOverScreen implements GameOverScreen {
     private GameView gameView;
     private StackPane root;
     private Scene scene;
@@ -47,9 +49,13 @@ public class SingleGameOverScreen {
     
     /**
      * 显示游戏结束界面
-     * @param score 玩家最终得分
+     * @param gameData 游戏数据，包含得分、击败敌人数、剩余生命等信息
      */
-    public void show(int score) {
+    @Override
+    public void show(Map<String, Object> gameData) {
+        // 从gameData中提取单人游戏需要的数据
+        int finalScore = (int) gameData.getOrDefault("finalScore", 0);
+        
         Platform.runLater(() -> {
             // 如果已经显示了消息，不重复显示
             if (root.lookup("#gameOverScreen") != null) return;
@@ -93,7 +99,7 @@ public class SingleGameOverScreen {
             gameOverText.setEffect(textShadow);
             
             // 分数显示
-            Text scoreText = new Text("得分: " + score);
+            Text scoreText = new Text("得分: " + finalScore);
             scoreText.setFont(Font.font("Arial", FontWeight.BOLD, 36));
             scoreText.setFill(Color.WHITE);
             
@@ -236,4 +242,5 @@ public class SingleGameOverScreen {
                 (int) (color.getGreen() * 255),
                 (int) (color.getBlue() * 255));
     }
+
 } 

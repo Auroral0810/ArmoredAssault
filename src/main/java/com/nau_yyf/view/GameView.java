@@ -2,6 +2,8 @@ package com.nau_yyf.view;
 
 import com.nau_yyf.controller.*;
 import com.nau_yyf.model.Tank;
+import com.nau_yyf.view.multiGame.MultiGameOverScreen;
+import com.nau_yyf.view.multiGame.MultiLevelCompletedView;
 import com.nau_yyf.view.singleGame.SingleGameOverScreen;
 import com.nau_yyf.view.singleGame.SingleLevelCompletedView;
 import com.nau_yyf.view.singleGame.SinglePlayerOptionsView;
@@ -116,6 +118,14 @@ public class GameView {
     /** 当前活动的游戏控制器 */
     private GameController activeController;
 
+    /** 添加多人游戏相关的界面组件 */
+    private MultiGameOverScreen multiGameOverScreen;
+    private MultiLevelCompletedView multiLevelCompletedView;
+
+    /** 修改字段声明，使用接口类型 */
+    private Map<Integer, GameOverScreen> gameOverScreens = new HashMap<>();
+    private Map<Integer, LevelCompletedView> levelCompletedViews = new HashMap<>();
+
     /**
      * 构造函数，初始化游戏视图
      * 
@@ -190,6 +200,15 @@ public class GameView {
         this.gameLoopService = new SingleGameLoopServiceImpl(this, effectService, playerService);
         this.renderService = new SingleRenderServiceImpl();
 
+        // 初始化游戏结束和关卡完成视图
+        this.gameOverScreens.put(GAME_MODE_SINGLE, new SingleGameOverScreen(this, root, scene));
+        this.gameOverScreens.put(GAME_MODE_MULTI, new MultiGameOverScreen(this, root, scene));
+        // this.gameOverScreens.put(GAME_MODE_ONLINE, new OnlineGameOverScreen(this, root, scene)); // 未来可添加
+        
+        this.levelCompletedViews.put(GAME_MODE_SINGLE, new SingleLevelCompletedView(this, root, scene));
+        this.levelCompletedViews.put(GAME_MODE_MULTI, new MultiLevelCompletedView(this, root, scene));
+        // this.levelCompletedViews.put(GAME_MODE_ONLINE, new OnlineLevelCompletedView(this, root, scene)); // 未来可添加
+        
         // 使用Platform.runLater处理后续的UI更新
         Platform.runLater(() -> {
             // 显示主菜单
@@ -1121,19 +1140,29 @@ public class GameView {
     }
 
     /**
-     * 获取关卡完成视图
-     * @return 关卡完成视图
+     * 获取当前游戏模式的游戏结束屏幕
+     * @return 当前游戏模式的游戏结束屏幕
      */
-    public SingleLevelCompletedView getLevelCompletedView() {
-        return singleLevelCompletedView;
+    public GameOverScreen getGameOverScreen() {
+        GameOverScreen screen = gameOverScreens.get(currentGameMode);
+        if (screen == null) {
+            // 如果没有找到对应模式的屏幕，使用单人游戏屏幕作为默认值
+            screen = gameOverScreens.get(GAME_MODE_SINGLE);
+        }
+        return screen;
     }
 
     /**
-     * 获取游戏结束界面
-     * @return 游戏结束界面
+     * 获取当前游戏模式的关卡完成视图
+     * @return 当前游戏模式的关卡完成视图
      */
-    public SingleGameOverScreen getGameOverScreen() {
-        return singleGameOverScreen;
+    public LevelCompletedView getLevelCompletedView() {
+        LevelCompletedView view = levelCompletedViews.get(currentGameMode);
+        if (view == null) {
+            // 如果没有找到对应模式的视图，使用单人游戏视图作为默认值
+            view = levelCompletedViews.get(GAME_MODE_SINGLE);
+        }
+        return view;
     }
 
     /**
@@ -1351,5 +1380,25 @@ public class GameView {
         if (screen != null) {
             action.accept(screen);
         }
+    }
+
+    /**
+     * 获取多人游戏结束屏幕
+     */
+    public MultiGameOverScreen getMultiGameOverScreen() {
+        if (multiGameOverScreen == null) {
+            multiGameOverScreen = new MultiGameOverScreen(this, root, scene);
+        }
+        return multiGameOverScreen;
+    }
+
+    /**
+     * 获取多人游戏关卡完成视图
+     */
+    public MultiLevelCompletedView getMultiLevelCompletedView() {
+        if (multiLevelCompletedView == null) {
+            multiLevelCompletedView = new MultiLevelCompletedView(this, root, scene);
+        }
+        return multiLevelCompletedView;
     }
 }

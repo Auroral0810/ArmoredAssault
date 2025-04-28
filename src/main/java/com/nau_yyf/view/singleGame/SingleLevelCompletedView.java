@@ -21,12 +21,14 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
+import com.nau_yyf.view.LevelCompletedView;
+import java.util.Map;
 
 /**
  * 关卡完成视图
  * 用于显示关卡完成后的统计信息和动画效果
  */
-public class SingleLevelCompletedView {
+public class SingleLevelCompletedView implements LevelCompletedView {
 
     private GameView gameView;
     private StackPane root;
@@ -55,6 +57,24 @@ public class SingleLevelCompletedView {
     
     /**
      * 显示关卡完成界面
+     * @param levelData 关卡数据，包含当前关卡、击败敌人数、游戏时间等信息
+     */
+    @Override
+    public void show(Map<String, Object> levelData) {
+        // 从levelData中提取单人游戏需要的数据
+        int currentLevel = (int) levelData.getOrDefault("currentLevel", 1);
+        int defeatedEnemies = (int) levelData.getOrDefault("defeatedEnemies", 0);
+        long totalGameTime = (long) levelData.getOrDefault("totalGameTime", 0L);
+        int playerLives = (int) levelData.getOrDefault("playerLives", 3);
+        String playerTankType = (String) levelData.getOrDefault("playerTankType", "standard");
+        int totalLevels = (int) levelData.getOrDefault("totalLevels", 5);
+        
+        // 调用原有的显示方法
+        show(currentLevel, defeatedEnemies, totalGameTime, playerLives, playerTankType, totalLevels);
+    }
+    
+    /**
+     * 显示关卡完成界面
      * @param currentLevel 当前关卡
      * @param defeatedEnemies 击败的敌人数量
      * @param totalGameTime 游戏总时间（毫秒）
@@ -62,7 +82,7 @@ public class SingleLevelCompletedView {
      * @param playerTankType 玩家坦克类型
      * @param totalLevels 游戏总关卡数
      */
-    public void show(int currentLevel, int defeatedEnemies, long totalGameTime, 
+    private void show(int currentLevel, int defeatedEnemies, long totalGameTime, 
                      int playerLives, String playerTankType, int totalLevels) {
         // 如果已经显示了消息，不重复显示
         if (root.lookup("#levelCompletedMessage") != null) return;

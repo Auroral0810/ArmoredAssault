@@ -27,12 +27,14 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
+import com.nau_yyf.view.GameOverScreen;
+import java.util.Map;
 
 /**
  * 双人游戏结束界面
  * 展示双方玩家数据及游戏统计信息
  */
-public class MultiGameOverScreen {
+public class MultiGameOverScreen implements GameOverScreen {
     private GameView gameView;
     private StackPane root;
     private Scene scene;
@@ -420,4 +422,23 @@ public class MultiGameOverScreen {
                 (int) (color.getGreen() * 255),
                 (int) (color.getBlue() * 255));
     }
+
+    @Override
+    public void show(Map<String, Object> gameData) {
+        // 从gameData中提取多人游戏需要的数据
+        int totalScore = (int) gameData.getOrDefault("totalScore", 0);
+        int p1Score = (int) gameData.getOrDefault("p1Score", 0);
+        int p2Score = (int) gameData.getOrDefault("p2Score", 0);
+        int p1TanksDestroyed = (int) gameData.getOrDefault("p1TanksDestroyed", 0);
+        int p2TanksDestroyed = (int) gameData.getOrDefault("p2TanksDestroyed", 0);
+        int p1LivesRemaining = (int) gameData.getOrDefault("p1LivesRemaining", 0);
+        int p2LivesRemaining = (int) gameData.getOrDefault("p2LivesRemaining", 0);
+        int gameTime = (int) gameData.getOrDefault("gameTime", 0);
+        int currentLevel = (int) gameData.getOrDefault("currentLevel", 1);
+        
+        // 显示多人游戏结束界面
+        show(totalScore, p1Score, p2Score, p1TanksDestroyed, p2TanksDestroyed, p1LivesRemaining, p2LivesRemaining, gameTime, currentLevel);
+    }
+    
+
 } 

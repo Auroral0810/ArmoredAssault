@@ -1,6 +1,7 @@
 package com.nau_yyf.model;
 
 import com.nau_yyf.model.Tank.Direction;
+import javafx.scene.canvas.GraphicsContext;
 
 public class Bullet extends GameObject {
     private Direction direction;
@@ -90,5 +91,32 @@ public class Bullet extends GameObject {
 
     public void setDestroyed(boolean isDestroyed) {
         this.isDestroyed = isDestroyed;
+    }
+
+    /**
+     * 渲染子弹到画布
+     * @param gc 图形上下文
+     */
+    public void render(GraphicsContext gc) {
+        // 设置子弹颜色
+        if (fromPlayer) {
+            gc.setFill(javafx.scene.paint.Color.YELLOW);  // 玩家子弹为黄色
+        } else {
+            gc.setFill(javafx.scene.paint.Color.ORANGE);  // 敌人子弹为橙色
+        }
+        
+        // 绘制子弹 - 使用getter方法替代直接访问
+        gc.fillOval(getX(), getY(), getWidth(), getHeight());
+        
+        // 如果是特殊子弹，添加效果
+        if ("powerful".equals(bulletType)) {
+            gc.setStroke(javafx.scene.paint.Color.RED);
+            gc.setLineWidth(1.5);
+            gc.strokeOval(getX() - 2, getY() - 2, getWidth() + 4, getHeight() + 4);
+        } else if ("rapid".equals(bulletType)) {
+            gc.setStroke(javafx.scene.paint.Color.BLUE);
+            gc.setLineWidth(1);
+            gc.strokeOval(getX() - 1, getY() - 1, getWidth() + 2, getHeight() + 2);
+        }
     }
 }

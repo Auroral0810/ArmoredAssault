@@ -1,21 +1,23 @@
 package com.nau_yyf.view.multiGame;
 
 import com.jfoenix.controls.JFXButton;
-import com.nau_yyf.controller.SingleGameController;
+import com.nau_yyf.controller.GameController;
+import com.nau_yyf.controller.MultiGameController;
 import com.nau_yyf.model.Tank;
 import com.nau_yyf.service.EffectService;
 import com.nau_yyf.service.GameStateService;
 import com.nau_yyf.service.PlayerService;
-import com.nau_yyf.service.serviceImpl.SingleEffectServiceImpl;
-import com.nau_yyf.service.serviceImpl.SingleGameStateServiceImpl;
+import com.nau_yyf.view.GameOverScreen;
+import com.nau_yyf.view.GameScreen;
 import com.nau_yyf.view.GameView;
+import com.nau_yyf.view.LevelCompletedView;
+import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
@@ -23,23 +25,32 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
-import javafx.scene.shape.Rectangle;
-import javafx.scene.control.ProgressBar;
-
-import static com.nau_yyf.util.TankUtil.getTankDisplayName;
 
 import java.util.HashMap;
 import java.util.Map;
 
+
 /**
- * 单人游戏主屏幕界面
+ * 多人游戏主屏幕界面
  */
-public class MultiPlayerGameScreen {
+public class MultiPlayerGameScreen implements GameScreen {
 
     private GameView gameView;
     private Canvas gameCanvas;
     private GraphicsContext gc;
     private HBox gameDataPanel;
+    
+    // 双人游戏状态变量
+    private boolean gamePaused = false;
+    private boolean isPauseMenuOpen = false;
+    private Text timeInfo;
+    private int player1BulletCount = 10;
+    private int player2BulletCount = 10;
+    private long lastBulletRefillTime = 0;
+    private AnimationTimer gameLoop;
+    private int player1Lives = 3;
+    private int player2Lives = 3;
+    private long lastUpdateTime = 0;
 
     /**
      * 构造函数
@@ -51,44 +62,55 @@ public class MultiPlayerGameScreen {
     }
 
     /**
-     * 显示游戏主屏幕
-     * 
-     * @param singleGameController 游戏控制器
+     * 实现GameScreen接口方法
      */
-    public void show(SingleGameController singleGameController) {
+    @Override
+    public void show(GameController controller) {
+        if (controller instanceof MultiGameController) {
+            show((MultiGameController) controller);
+        } else {
+            throw new IllegalArgumentException("多人游戏屏幕需要MultiGameController类型的控制器");
+        }
+    }
+
+    /**
+     * 显示多人游戏主屏幕
+     * 
+     * @param multiGameController 多人游戏控制器
+     */
+    public void show(MultiGameController multiGameController) {
         // 清除当前内容
         gameView.getRoot().getChildren().clear();
 
-        // 创建简化的游戏主布局
+        // 创建游戏主布局
         BorderPane gameLayout = new BorderPane();
         gameLayout.setStyle("-fx-background-color: #1a2634;");
 
         // ---------- 顶部区域 ----------
-        HBox topInfoBar = createTopInfoBar(singleGameController);
+        HBox topInfoBar = createTopInfoBar(multiGameController);
 
         // ---------- 中央游戏区域 ----------
         HBox gameWithSidePanels = createGameArea();
 
         // ---------- 底部数据面板 ----------
-        gameDataPanel = createDataPanel(singleGameController);
+        gameDataPanel = createDataPanel(multiGameController);
         
         // 将各部分添加到布局
         gameLayout.setTop(topInfoBar);
         gameLayout.setCenter(gameWithSidePanels);
-        gameLayout.setBottom(gameDataPanel); // 直接使用gameDataPanel作为底部组件
+        gameLayout.setBottom(gameDataPanel);
 
         // 初始化游戏时间和子弹
         gameView.resetGameStartTime();
         gameView.setLastUpdateTime(System.currentTimeMillis());
         gameView.setTotalGameTime(0);
         gameView.setGamePaused(false);
-        gameView.setBulletCount(10);
-        gameView.setLastBulletRefillTime(0);
+        gameView.setLastBulletRefillTime(System.currentTimeMillis());
 
         // 添加游戏布局到根
         gameView.getRoot().getChildren().add(gameLayout);
 
-        // 设置键盘控制（放在添加到场景之后）
+        // 设置键盘控制
         gameView.setupKeyboardControls();
 
         // 确保画布获取焦点
@@ -98,19 +120,24 @@ public class MultiPlayerGameScreen {
     /**
      * 创建顶部信息栏
      */
-    private HBox createTopInfoBar(SingleGameController singleGameController) {
+    private HBox createTopInfoBar(MultiGameController multiGameController) {
         HBox topInfoBar = new HBox(20);
         topInfoBar.setAlignment(Pos.CENTER_LEFT);
         topInfoBar.setPadding(new Insets(10, 20, 10, 20));
         topInfoBar.setStyle("-fx-background-color: rgba(0, 0, 0, 0.4);");
 
         // 关卡信息
-        Text levelInfo = new Text("第" + singleGameController.getCurrentLevel() + "关");
+        Text levelInfo = new Text("第" + multiGameController.getCurrentLevel() + "关");
         levelInfo.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         levelInfo.setFill(gameView.getPrimaryColor());
 
+        // 双人模式标识
+        Text modeInfo = new Text("双人模式");
+        modeInfo.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        modeInfo.setFill(Color.ORANGE);
+
         // 游戏时间
-        Text timeInfo = new Text("00:00");
+        timeInfo = new Text("00:00");
         timeInfo.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         timeInfo.setFill(gameView.getTextColor());
         gameView.setTimeInfo(timeInfo);
@@ -118,9 +145,14 @@ public class MultiPlayerGameScreen {
         // 添加设置按钮
         JFXButton settingsButton = new JFXButton();
         settingsButton.getStyleClass().add("settings-button");
-        settingsButton.setButtonType(JFXButton.ButtonType.RAISED);
-        settingsButton.setStyle("-fx-background-color: rgba(0, 0, 0, 0.5);");
-        settingsButton.setPrefSize(40, 40);
+        settingsButton.setButtonType(JFXButton.ButtonType.FLAT);
+        settingsButton.setStyle("-fx-background-color: rgba(30, 87, 153, 0.7); " +
+                               "-fx-background-radius: 50%; " +
+                               "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 5, 0, 0, 1); " +
+                               "-fx-cursor: hand;");
+        settingsButton.setPrefSize(42, 42);
+        settingsButton.setMinSize(42, 42);
+        settingsButton.setRipplerFill(Color.WHITE);
 
         try {
             Text settingsIcon = new Text("\uf013");
@@ -137,7 +169,7 @@ public class MultiPlayerGameScreen {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        topInfoBar.getChildren().addAll(levelInfo, timeInfo, spacer, settingsButton);
+        topInfoBar.getChildren().addAll(levelInfo, modeInfo, timeInfo, spacer, settingsButton);
 
         return topInfoBar;
     }
@@ -153,80 +185,122 @@ public class MultiPlayerGameScreen {
         gameView.setGameCanvas(gameCanvas);
         gameView.setGraphicsContext(gc);
 
-        // 重要：确保画布可以获取焦点
+        // 确保画布可以获取焦点
         gameCanvas.setFocusTraversable(true);
 
-        // 创建游戏区域容器，添加明显的边框和背景
+        // 创建游戏区域容器
         StackPane gameArea = new StackPane();
-        gameArea.getChildren().add(gameCanvas); // 确保画布被添加到容器中
+        gameArea.getChildren().add(gameCanvas);
         gameArea.setStyle("-fx-border-color: #37a0da; -fx-border-width: 3; -fx-background-color: #0a1624;");
 
-        // 创建左右两侧的面板，使游戏区域更加明显
-        VBox leftPanel = new VBox();
-        leftPanel.setPrefWidth(100);
+        // 创建左右两侧的面板
+        VBox leftPanel = new VBox(10);
+        leftPanel.setPrefWidth(120);
+        leftPanel.setPadding(new Insets(10));
         leftPanel.setStyle("-fx-background-color: #2a3645; -fx-border-color: #37a0da; -fx-border-width: 0 2 0 0;");
 
-        VBox rightPanel = new VBox();
-        rightPanel.setPrefWidth(100);
+        // 玩家1信息面板
+        VBox player1Panel = createPlayerInfoPanel("玩家1");
+        player1Panel.setId("player1Panel");
+        leftPanel.getChildren().add(player1Panel);
+        
+        VBox rightPanel = new VBox(10);
+        rightPanel.setPrefWidth(120);
+        rightPanel.setPadding(new Insets(10));
         rightPanel.setStyle("-fx-background-color: #2a3645; -fx-border-color: #37a0da; -fx-border-width: 0 0 0 2;");
+        
+        // 玩家2信息面板
+        VBox player2Panel = createPlayerInfoPanel("玩家2");
+        player2Panel.setId("player2Panel");
+        rightPanel.getChildren().add(player2Panel);
 
         // 创建包含左侧面板、游戏区域和右侧面板的水平布局
         HBox gameWithSidePanels = new HBox();
         gameWithSidePanels.getChildren().addAll(leftPanel, gameArea, rightPanel);
         HBox.setHgrow(gameArea, Priority.ALWAYS);
 
-        // 初始绘制一些内容到画布，确认它正在工作
+        // 初始绘制内容到画布
         gc.setFill(Color.rgb(10, 30, 50));
         gc.fillRect(0, 0, gameCanvas.getWidth(), gameCanvas.getHeight());
         gc.setStroke(Color.CYAN);
         gc.strokeRect(5, 5, gameCanvas.getWidth() - 10, gameCanvas.getHeight() - 10);
         gc.setFill(Color.WHITE);
-        gc.fillText("游戏画布已初始化", 20, 30);
+        gc.fillText("多人游戏画布已初始化", 20, 30);
 
         return gameWithSidePanels;
+    }
+    
+    /**
+     * 创建玩家信息面板
+     */
+    private VBox createPlayerInfoPanel(String playerTitle) {
+        VBox playerPanel = new VBox(10);
+        playerPanel.setAlignment(Pos.TOP_CENTER);
+        playerPanel.setPadding(new Insets(5));
+        playerPanel.setStyle("-fx-background-color: rgba(0, 0, 0, 0.3); -fx-border-color: #555555; -fx-border-radius: 5;");
+        
+        Text title = new Text(playerTitle);
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        title.setFill(Color.WHITE);
+        
+        // 生命值显示
+        HBox livesBox = new HBox(3);
+        livesBox.setAlignment(Pos.CENTER);
+        
+        for (int i = 0; i < 3; i++) {
+            ImageView heartIcon = new ImageView(new Image(getClass().getResourceAsStream("/images/ui/heart.png")));
+            heartIcon.setFitWidth(18);
+            heartIcon.setFitHeight(18);
+            livesBox.getChildren().add(heartIcon);
+        }
+        
+        // 坦克类型
+        Text tankType = new Text("坦克: -");
+        tankType.setFont(Font.font("Arial", 12));
+        tankType.setFill(Color.LIGHTGRAY);
+        
+        // 血量
+        Text health = new Text("血量: 3");
+        health.setFont(Font.font("Arial", 12));
+        health.setFill(Color.LIGHTGRAY);
+        
+        // 子弹
+        Text bullets = new Text("子弹: 10");
+        bullets.setFont(Font.font("Arial", 12));
+        bullets.setFill(Color.LIGHTGRAY);
+        
+        playerPanel.getChildren().addAll(title, livesBox, tankType, health, bullets);
+        
+        return playerPanel;
     }
 
     /**
      * 创建数据面板
      */
-    private HBox createDataPanel(SingleGameController singleGameController) {
+    private HBox createDataPanel(MultiGameController multiGameController) {
         HBox dataPanel = new HBox(20);
         dataPanel.setPadding(new Insets(10));
-        dataPanel.setAlignment(Pos.CENTER); // 确保所有内容居中对齐
+        dataPanel.setAlignment(Pos.CENTER);
         dataPanel.setBackground(new Background(new BackgroundFill(
                 Color.rgb(0, 20, 40), CornerRadii.EMPTY, Insets.EMPTY)));
 
-        // 使用方法创建各种信息显示
-        VBox playerInfo = createInfoBox("坦克类型", getTankDisplayName(singleGameController.getPlayerTank().getTypeString()));
-        playerInfo.setId("playerInfo");
-
-        VBox healthInfo = createInfoBox("血量", Integer.toString(singleGameController.getPlayerTank().getHealth()));
-        healthInfo.setId("healthInfo");
-
-        VBox bulletInfo = createInfoBox("子弹", Integer.toString(gameView.getBulletCount()));
-        bulletInfo.setId("bulletInfo");
-
-        VBox enemiesInfo = createInfoBox("关卡目标", 
-                singleGameController.getDefeatedEnemiesCount() + "/" + singleGameController.getTotalEnemyTarget());
+        // 创建共享信息显示
+        VBox enemiesInfo = createInfoBox("关卡目标", multiGameController.getDefeatedEnemiesCount() + "/" + multiGameController.getTotalEnemyTarget());
         enemiesInfo.setId("enemiesInfo");
-
-        // 添加生命显示
-        HBox livesDisplay = createLivesDisplay(gameView.getPlayerLives());
-        livesDisplay.setId("livesDisplay");
         
         // 创建增益效果信息框
-        VBox powerUpsInfo = createPowerUpsInfoBox(singleGameController, gameView.getEffectService());
+        VBox powerUpsInfo = createPowerUpsInfoBox(multiGameController, gameView.getEffectService());
         powerUpsInfo.setId("powerUpsInfo");
 
-        // 在数据面板中添加所有信息，均匀分布
-        dataPanel.getChildren().addAll(playerInfo, healthInfo, bulletInfo, enemiesInfo, livesDisplay, powerUpsInfo);
+        // 在数据面板中添加所有信息
+        dataPanel.getChildren().addAll(enemiesInfo, powerUpsInfo);
 
-        // 为所有子元素设置相同的HGrow优先级，使它们均匀分布
+        // 为所有子元素设置HGrow优先级
         for (Node node : dataPanel.getChildren()) {
             HBox.setHgrow(node, Priority.ALWAYS);
         }
 
-        // 设置GameView的数据面板 - 确保在访问前设置
+        // 设置GameView的数据面板
         gameView.setGameDataPanel(dataPanel);
 
         return dataPanel;
@@ -252,164 +326,77 @@ public class MultiPlayerGameScreen {
     }
 
     /**
-     * 获取游戏画布
+     * 创建增益信息框
      */
-    public Canvas getGameCanvas() {
-        return gameCanvas;
-    }
-
-    /**
-     * 获取图形上下文
-     */
-    public GraphicsContext getGraphicsContext() {
-        return gc;
-    }
-
-    /**
-     * 获取游戏数据面板
-     */
-    public HBox getGameDataPanel() {
-        return gameDataPanel;
-    }
-
-    /**
-     * 创建增益信息框，风格与其他信息框一致
-     */
-    private VBox createPowerUpsInfoBox(SingleGameController singleGameController, EffectService effectService) {
+    private VBox createPowerUpsInfoBox(MultiGameController multiGameController, EffectService effectService) {
         VBox powerUpsBox = new VBox(5);
         powerUpsBox.setAlignment(Pos.CENTER);
-        powerUpsBox.setMinWidth(120); // 设置最小宽度，与其他信息框保持一致
+        powerUpsBox.setMinWidth(120);
         
-        // 使用与其他信息框相同的标题样式
         Text titleText = new Text("增益");
         titleText.setFont(Font.font("Arial", FontWeight.BOLD, 14));
         titleText.setFill(gameView.getPrimaryColor());
         
-        // 创建图标容器，水平放置图标
-        HBox iconsContainer = new HBox(5);
+        HBox iconsContainer = new HBox(10);
         iconsContainer.setAlignment(Pos.CENTER);
         
-        // 存储增益效果指示器和进度条的映射
-        Map<String, ImageView> powerUpIndicators = new HashMap<>();
-        Map<String, ProgressBar> powerUpProgressBars = new HashMap<>();
+        // 左侧玩家1的增益
+        VBox player1PowerUps = new VBox(3);
+        player1PowerUps.setAlignment(Pos.CENTER);
+        Text p1Label = new Text("P1");
+        p1Label.setFill(Color.LIGHTBLUE);
+        p1Label.setFont(Font.font("Arial", FontWeight.BOLD, 12));
         
-        // 防止gameController为null时出错
-        if (singleGameController == null) {
-            powerUpsBox.getChildren().addAll(titleText, iconsContainer);
-            return powerUpsBox;
-        }
+        HBox p1Icons = new HBox(3);
+        p1Icons.setAlignment(Pos.CENTER);
+        p1Icons.setId("p1PowerUps");
         
-        // 为每种增益效果创建图标，但不包括即时效果(HEALTH)
-        for (Tank.PowerUpType type : Tank.PowerUpType.values()) {
-            if (type == Tank.PowerUpType.HEALTH)
-                continue;
-            
-            String typeName = type.getName();
-            
-            // 紧凑布局
-            HBox effectBox = new HBox(2);
-            effectBox.setAlignment(Pos.CENTER);
-            effectBox.setPadding(new Insets(1));
-            
-            // 使用StackPane让进度条能够显示在图标底部
-            StackPane iconContainer = new StackPane();
-            iconContainer.setMinSize(22, 22);
-            iconContainer.setMaxSize(22, 22);
-            
-            // 创建图标
-            ImageView iconView = new ImageView();
-            iconView.setFitWidth(22);
-            iconView.setFitHeight(22);
-            
-            // 使用安全的方式加载图标
-            try {
-                Image icon = null;
-                if (singleGameController != null) {
-                    icon = singleGameController.getPowerUpImage(typeName);
-                }
-                
-                if (icon != null) {
-                    iconView.setImage(icon);
-                } else {
-                    // 占位符
-                    Rectangle placeholder = new Rectangle(22, 22);
-                    placeholder.setFill(Color.rgb(80, 200, 255, 0.7));
-                    placeholder.setArcWidth(5);
-                    placeholder.setArcHeight(5);
-                    iconContainer.getChildren().add(placeholder);
-                }
-            } catch (Exception e) {
-                // 占位符
-                Rectangle placeholder = new Rectangle(22, 22);
-                placeholder.setFill(Color.rgb(200, 100, 100, 0.7));
-                placeholder.setArcWidth(5);
-                placeholder.setArcHeight(5);
-                iconContainer.getChildren().add(placeholder);
-            }
-            
-            // 将图标添加到容器
-            iconContainer.getChildren().add(iconView);
-            
-            // 创建进度条
-            ProgressBar progressBar = new ProgressBar(0);
-            progressBar.setPrefWidth(22);
-            progressBar.setPrefHeight(3);
-            progressBar.setStyle("-fx-accent: #00AAFF;");
-            
-            // 创建垂直布局用于图标和进度条
-            VBox iconWithProgress = new VBox(0);
-            iconWithProgress.setAlignment(Pos.CENTER);
-            iconWithProgress.getChildren().addAll(iconContainer, progressBar);
-            
-            // 将垂直布局添加到效果盒子
-            effectBox.getChildren().add(iconWithProgress);
-            
-            // 添加边框效果
-            effectBox.setStyle("-fx-border-color: #004466; -fx-border-radius: 3;");
-            
-            // 初始设置为不可见
-            effectBox.setVisible(false);
-            
-            // 存储引用以供更新
-            powerUpIndicators.put(typeName, iconView);
-            powerUpProgressBars.put(typeName, progressBar);
-            
-            // 将效果盒子添加到图标容器
-            iconsContainer.getChildren().add(effectBox);
-            
-            // 将引用存储到服务
-            if (effectService instanceof SingleEffectServiceImpl) {
-                ((SingleEffectServiceImpl)effectService).registerEffectBox(typeName, effectBox);
-            }
-        }
+        player1PowerUps.getChildren().addAll(p1Label, p1Icons);
+        
+        // 右侧玩家2的增益
+        VBox player2PowerUps = new VBox(3);
+        player2PowerUps.setAlignment(Pos.CENTER);
+        Text p2Label = new Text("P2");
+        p2Label.setFill(Color.LIGHTGREEN);
+        p2Label.setFont(Font.font("Arial", FontWeight.BOLD, 12));
+        
+        HBox p2Icons = new HBox(3);
+        p2Icons.setAlignment(Pos.CENTER);
+        p2Icons.setId("p2PowerUps");
+        
+        player2PowerUps.getChildren().addAll(p2Label, p2Icons);
+        
+        // 将两侧都添加到容器
+        iconsContainer.getChildren().addAll(player1PowerUps, player2PowerUps);
         
         // 将图标添加到VBox
         powerUpsBox.getChildren().addAll(titleText, iconsContainer);
         
-        // 保存进度条引用到GameView中
-        gameView.setPowerUpProgressBars(powerUpProgressBars);
+        // TODO: 初始化增益效果显示
+        // 这里需要为双人模式创建一个新的效果服务实现类
         
         return powerUpsBox;
     }
 
     /**
-     * 更新敌人数量显示 - 单人游戏专用
+     * 更新敌人数量显示
      */
-    public void updateEnemiesDisplay(SingleGameController singleGameController) {
-        if (singleGameController == null || gameDataPanel == null)
+    public void updateEnemiesDisplay(MultiGameController multiGameController) {
+        if (multiGameController == null || gameDataPanel == null)
             return;
 
+        Platform.runLater(() -> {
         // 找到敌人信息框
         VBox enemiesInfo = (VBox) gameDataPanel.lookup("#enemiesInfo");
-        if (enemiesInfo != null) {
+            if (enemiesInfo != null && enemiesInfo.getChildren().size() > 1) {
             // 找到值文本
             Text enemiesValue = (Text) enemiesInfo.getChildren().get(1);
             if (enemiesValue != null) {
                 // 获取已摧毁的敌人数量和总目标数量
-                int defeated = singleGameController.getDefeatedEnemiesCount();
-                int total = singleGameController.getTotalEnemyTarget();
+                    int defeated = multiGameController.getDefeatedEnemiesCount();
+                    int total = multiGameController.getTotalEnemyTarget();
 
-                // 更新显示格式：已消灭/总数
+                    // 更新显示格式
                 enemiesValue.setText(defeated + "/" + total);
 
                 // 如果接近完成，显示绿色
@@ -421,149 +408,8 @@ public class MultiPlayerGameScreen {
 
                 // 检查是否完成关卡
                 GameStateService gameStateService = gameView.getGameStateService();
-                if (gameStateService.isLevelCompleted(singleGameController)) {
-                    showLevelCompletedMessage(singleGameController);
-                }
-            }
-        }
-    }
-
-    /**
-     * 更新生命显示 - 单人游戏专用
-     */
-    public void updateLivesDisplay(int playerLives) {
-        // 找到生命显示区域
-        for (Node node : gameDataPanel.getChildren()) {
-            if (node instanceof HBox) {
-                HBox box = (HBox) node;
-                if (box.getChildren().size() > 0 && box.getChildren().get(0) instanceof VBox) {
-                    VBox infoBox = (VBox) box.getChildren().get(0);
-                    if (infoBox.getChildren().size() > 0 && infoBox.getChildren().get(0) instanceof Label) {
-                        Label label = (Label) infoBox.getChildren().get(0);
-                        if (label.getText().equals("生命")) {
-                            // 找到了生命区域
-                            HBox heartIcons = (HBox) infoBox.getChildren().get(1);
-                            heartIcons.getChildren().clear();
-
-                            // 添加爱心图标显示当前生命数
-                            for (int i = 0; i < playerLives; i++) {
-                                ImageView heartIcon = new ImageView(
-                                        new Image(getClass().getResourceAsStream("/images/ui/heart.png")));
-                                heartIcon.setFitWidth(20);
-                                heartIcon.setFitHeight(20);
-                                heartIcons.getChildren().add(heartIcon);
-                            }
-
-                            return;
-                        }
-                    }
-                }
-            }
-        }
-
-        // 如果没有找到生命显示区域，重新创建一个
-        HBox livesDisplay = createLivesDisplay(playerLives);
-        gameDataPanel.getChildren().add(livesDisplay);
-    }
-
-    /**
-     * 创建生命数显示区域 - 单人游戏专用
-     */
-    private HBox createLivesDisplay(int playerLives) {
-        HBox livesBox = new HBox(10);
-        livesBox.setAlignment(Pos.CENTER_LEFT);
-        livesBox.setPadding(new Insets(5));
-        livesBox.setMinWidth(120); // 设置固定最小宽度
-        livesBox.setPrefWidth(120); // 设置固定首选宽度
-
-        // 创建标题
-        Label livesLabel = new Label("生命");
-        livesLabel.setTextFill(gameView.getPrimaryColor()); // 使用蓝色
-        livesLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-
-        // 创建一个VBox包含标题和内容
-        VBox infoBox = new VBox(5);
-        infoBox.setAlignment(Pos.CENTER_LEFT);
-
-        // 创建一个HBox用于放置爱心图标
-        HBox heartIcons = new HBox(5);
-        heartIcons.setAlignment(Pos.CENTER_LEFT);
-
-        // 添加爱心图标显示生命数
-        for (int i = 0; i < playerLives; i++) {
-            ImageView heartIcon = new ImageView(new Image(getClass().getResourceAsStream("/images/ui/heart.png")));
-            heartIcon.setFitWidth(20);
-            heartIcon.setFitHeight(20);
-            heartIcons.getChildren().add(heartIcon);
-        }
-
-        // 将标题和心形图标添加到VBox中
-        infoBox.getChildren().addAll(livesLabel, heartIcons);
-        livesBox.getChildren().add(infoBox);
-
-        return livesBox;
-    }
-
-    /**
-     * 更新能力增强效果UI显示
-     */
-    public void updatePowerUpUIDisplay(SingleGameController singleGameController, EffectService effectService) {
-        if (singleGameController == null || singleGameController.getPlayerTank() == null)
-            return;
-        
-        if (effectService instanceof SingleEffectServiceImpl) {
-            ((SingleEffectServiceImpl)effectService).updateUIDisplay(
-                singleGameController.getPlayerTank(),
-                gameView.getPowerUpProgressBars()
-            );
-        }
-    }
-
-    /**
-     * 更新血量显示
-     */
-    public void updateHealthDisplay(SingleGameController singleGameController) {
-        if (singleGameController == null || gameDataPanel == null)
-            return;
-
-        // 找到血量信息框
-        VBox healthInfo = (VBox) gameDataPanel.lookup("#healthInfo");
-        if (healthInfo != null && healthInfo.getChildren().size() > 1) {
-            // 找到值文本
-            Text healthValue = (Text) healthInfo.getChildren().get(1);
-            if (healthValue != null && singleGameController.getPlayerTank() != null) {
-                // 更新血量值
-                int currentHealth = singleGameController.getPlayerTank().getHealth();
-                healthValue.setText(Integer.toString(currentHealth));
-
-                // 根据血量设置颜色
-                if (currentHealth <= 1) {
-                    healthValue.setFill(Color.RED);
-                } else if (currentHealth <= 2) {
-                    healthValue.setFill(Color.ORANGE);
-                } else {
-                    healthValue.setFill(gameView.getTextColor());
-                }
-            }
-        }
-    }
-
-    /**
-     * 更新子弹显示
-     */
-    public void updateBulletDisplay(int bulletCount) {
-        Platform.runLater(() -> {
-            // 找到子弹信息框并更新
-            for (Node node : gameDataPanel.getChildren()) {
-                if (node instanceof VBox) {
-                    VBox box = (VBox) node;
-                    if (box.getChildren().size() > 1 && box.getChildren().get(0) instanceof Text) {
-                        Text title = (Text) box.getChildren().get(0);
-                        if (title.getText().equals("子弹")) {
-                            Text value = (Text) box.getChildren().get(1);
-                            value.setText(Integer.toString(bulletCount));
-                            break;
-                        }
+                    if (gameStateService.isLevelCompleted(multiGameController)) {
+                        showLevelCompletedMessage(multiGameController);
                     }
                 }
             }
@@ -571,67 +417,458 @@ public class MultiPlayerGameScreen {
     }
 
     /**
-     * 处理玩家坦克被摧毁的情况 - 单人游戏专用
+     * 更新两名玩家的生命显示
      */
-    public void handlePlayerDestroyed(SingleGameController singleGameController, String currentTankType, int playerLives) {
-        if (singleGameController == null)
-            return;
-
-        // 获取PlayerService
-        PlayerService playerService = gameView.getPlayerService();
-
-        // 使用PlayerService处理玩家坦克被摧毁
-        boolean playerRespawned = playerService.handlePlayerDestroyed(
-                singleGameController, currentTankType, playerLives);
-
-        // 如果玩家未重生，显示游戏结束
-        if (!playerRespawned && gameView.getPlayerLives() <= 0) {
-            showGameOverScreen(singleGameController);
+    public void updateLivesDisplay(int player1Lives, int player2Lives) {
+        Platform.runLater(() -> {
+            // 更新玩家1生命
+            VBox player1Panel = (VBox) gameView.getRoot().lookup("#player1Panel");
+            if (player1Panel != null) {
+                HBox livesBox = (HBox) player1Panel.getChildren().get(1);
+                updatePlayerLivesIcons(livesBox, player1Lives);
+            }
+            
+            // 更新玩家2生命
+            VBox player2Panel = (VBox) gameView.getRoot().lookup("#player2Panel");
+            if (player2Panel != null) {
+                HBox livesBox = (HBox) player2Panel.getChildren().get(1);
+                updatePlayerLivesIcons(livesBox, player2Lives);
+            }
+        });
+    }
+    
+    /**
+     * 更新玩家生命图标
+     */
+    private void updatePlayerLivesIcons(HBox livesBox, int lives) {
+        if (livesBox == null) return;
+        
+        livesBox.getChildren().clear();
+        
+        // 添加活跃的生命图标
+        for (int i = 0; i < lives; i++) {
+            ImageView heartIcon = new ImageView(new Image(getClass().getResourceAsStream("/images/ui/heart.png")));
+            heartIcon.setFitWidth(18);
+            heartIcon.setFitHeight(18);
+            livesBox.getChildren().add(heartIcon);
+        }
+        
+        // 添加暗色的空心生命图标
+        for (int i = lives; i < 3; i++) {
+            ImageView emptyHeartIcon = new ImageView(new Image(getClass().getResourceAsStream("/images/ui/empty_heart.png")));
+            emptyHeartIcon.setFitWidth(18);
+            emptyHeartIcon.setFitHeight(18);
+            livesBox.getChildren().add(emptyHeartIcon);
         }
     }
 
     /**
-     * 显示游戏结束界面 - 单人游戏专用
+     * 更新玩家1健康状态显示
      */
-    private void showGameOverScreen(SingleGameController singleGameController) {
+    public void updatePlayer1HealthDisplay(MultiGameController multiGameController) {
+        if (multiGameController == null) return;
+        
+        Platform.runLater(() -> {
+            Tank player1Tank = multiGameController.getPlayer1Tank();
+            if (player1Tank == null) return;
+            
+            VBox player1Panel = (VBox) gameView.getRoot().lookup("#player1Panel");
+            if (player1Panel != null && player1Panel.getChildren().size() > 3) {
+                Text healthText = (Text) player1Panel.getChildren().get(3);
+                int health = player1Tank.getHealth();
+                healthText.setText("血量: " + health);
+                
+                // 根据血量设置颜色
+                if (health <= 1) {
+                    healthText.setFill(Color.RED);
+                } else if (health <= 2) {
+                    healthText.setFill(Color.ORANGE);
+                } else {
+                    healthText.setFill(Color.LIGHTGRAY);
+                }
+            }
+        });
+    }
+
+    /**
+     * 更新玩家2健康状态显示
+     */
+    public void updatePlayer2HealthDisplay(MultiGameController multiGameController) {
+        if (multiGameController == null) return;
+        
+        Platform.runLater(() -> {
+            Tank player2Tank = multiGameController.getPlayer2Tank();
+            if (player2Tank == null) return;
+            
+            VBox player2Panel = (VBox) gameView.getRoot().lookup("#player2Panel");
+            if (player2Panel != null && player2Panel.getChildren().size() > 3) {
+                Text healthText = (Text) player2Panel.getChildren().get(3);
+                int health = player2Tank.getHealth();
+                healthText.setText("血量: " + health);
+
+                // 根据血量设置颜色
+                if (health <= 1) {
+                    healthText.setFill(Color.RED);
+                } else if (health <= 2) {
+                    healthText.setFill(Color.ORANGE);
+                } else {
+                    healthText.setFill(Color.LIGHTGRAY);
+                }
+            }
+        });
+    }
+
+    /**
+     * 更新子弹显示 - 双人游戏
+     */
+    public void updateBulletDisplay(int player1BulletCount, int player2BulletCount) {
+        Platform.runLater(() -> {
+            // 更新玩家1子弹
+            VBox player1Panel = (VBox) gameView.getRoot().lookup("#player1Panel");
+            if (player1Panel != null && player1Panel.getChildren().size() > 4) {
+                Text bulletText = (Text) player1Panel.getChildren().get(4);
+                bulletText.setText("子弹: " + player1BulletCount);
+            }
+            
+            // 更新玩家2子弹
+            VBox player2Panel = (VBox) gameView.getRoot().lookup("#player2Panel");
+            if (player2Panel != null && player2Panel.getChildren().size() > 4) {
+                Text bulletText = (Text) player2Panel.getChildren().get(4);
+                bulletText.setText("子弹: " + player2BulletCount);
+            }
+        });
+    }
+
+    /**
+     * 处理玩家1坦克被摧毁的情况
+     */
+    public void handlePlayer1Destroyed(MultiGameController multiGameController, String tankType, int lives) {
+        if (multiGameController == null) return;
+        
+        // 获取多人游戏的玩家服务
+        PlayerService playerService = gameView.getPlayerService();
+
+        // 将生命值减一
+        player1Lives = Math.max(0, player1Lives - 1);
+
+        // 如果还有生命，可以重生
+        boolean playerRespawned = player1Lives > 0;
+
+        if (playerRespawned) {
+            // TODO: 调用重生方法
+            // 例如: multiPlayerService.respawnPlayer1(multiGameController, tankType);
+        }
+
+        // 如果两位玩家都没有生命了，游戏结束
+        if (player1Lives <= 0 && player2Lives <= 0) {
+            showGameOverScreen(multiGameController);
+        }
+    }
+
+    /**
+     * 处理玩家2坦克被摧毁的情况
+     */
+    public void handlePlayer2Destroyed(MultiGameController multiGameController, String tankType, int lives) {
+        if (multiGameController == null) return;
+
+        // 获取多人游戏的玩家服务
+        PlayerService playerService = gameView.getPlayerService();
+
+        // 将生命值减一
+        player2Lives = Math.max(0, player2Lives - 1);
+
+        // 如果还有生命，可以重生
+        boolean playerRespawned = player2Lives > 0;
+
+        if (playerRespawned) {
+            // TODO: 调用重生方法
+            // 例如: multiPlayerService.respawnPlayer2(multiGameController, tankType);
+        }
+
+        // 如果两位玩家都没有生命了，游戏结束
+        if (player1Lives <= 0 && player2Lives <= 0) {
+            showGameOverScreen(multiGameController);
+        }
+    }
+
+    /**
+     * 处理两名玩家都被摧毁的情况
+     */
+    public void handleBothPlayersDestroyed(MultiGameController multiGameController) {
+        // 游戏结束
+        showGameOverScreen(multiGameController);
+    }
+
+    /**
+     * 显示游戏结束界面
+     */
+    
+    private void showGameOverScreen(MultiGameController multiGameController) {
         // 暂停游戏
         gameView.setGamePaused(true);
 
         // 停止游戏循环
         gameView.stopGameLoop();
 
-        // 计算最终得分，并确保不为负数
-        int finalScore = ((SingleGameStateServiceImpl) gameView.getGameStateService()).getScore(singleGameController);
-        finalScore = Math.max(0, finalScore); // 确保分数不为负
+        // 准备游戏数据
+        Map<String, Object> gameData = new HashMap<>();
+        int defeatedEnemies = multiGameController.getDefeatedEnemiesCount();
+        int p1DefeatedEnemies = defeatedEnemies / 2; // 假设玩家1击败了一半敌人
+        int p2DefeatedEnemies = defeatedEnemies - p1DefeatedEnemies; // 剩余的由玩家2击败
+        
+        int p1Score = p1DefeatedEnemies * 200 + player1Lives * 500;
+        int p2Score = p2DefeatedEnemies * 200 + player2Lives * 500;
+        int totalScore = p1Score + p2Score;
+        
+        gameData.put("totalScore", totalScore);
+        gameData.put("p1Score", p1Score);
+        gameData.put("p2Score", p2Score);
+        gameData.put("p1TanksDestroyed", p1DefeatedEnemies);
+        gameData.put("p2TanksDestroyed", p2DefeatedEnemies);
+        gameData.put("p1LivesRemaining", player1Lives);
+        gameData.put("p2LivesRemaining", player2Lives);
+        gameData.put("gameTime", (int)(gameView.getTotalGameTime() / 1000));
+        gameData.put("currentLevel", multiGameController.getCurrentLevel());
 
-        // 显示游戏结束界面
-        gameView.getGameOverScreen().show(finalScore);
+        // 显示游戏结束屏幕
+        GameOverScreen gameOverScreen = gameView.getGameOverScreen();
+        if (gameOverScreen != null) {
+            gameOverScreen.show(gameData);
+        }
     }
-
+    
     /**
-     * 显示关卡完成消息 - 单人游戏专用
+     * 显示关卡完成消息
      */
-    private void showLevelCompletedMessage(SingleGameController singleGameController) {
-        if (gameView.getRoot().lookup("#levelCompletedMessage") != null)
+    private void showLevelCompletedMessage(MultiGameController multiGameController) {
+        if (gameView.getRoot().lookup("#multiLevelCompletedMessage") != null)
             return;
 
         // 暂停游戏
         gameView.setGamePaused(true);
 
-        // 获取所需数据
-        int currentLevel = singleGameController.getCurrentLevel();
-        int defeatedEnemies = singleGameController.getDefeatedEnemiesCount();
-        String playerTankType = singleGameController.getPlayerTank().getTypeString();
+        // 准备关卡数据
+        Map<String, Object> levelData = new HashMap<>();
+        int currentLevel = multiGameController.getCurrentLevel();
+        int defeatedEnemies = multiGameController.getDefeatedEnemiesCount();
         int totalLevels = 5; // 游戏总关卡数
 
-        // 显示完成界面
-        gameView.getLevelCompletedView().show(
-                currentLevel,
-                defeatedEnemies,
-                gameView.getTotalGameTime(),
-                gameView.getPlayerLives(),
-                playerTankType,
-                totalLevels);
+        levelData.put("currentLevel", currentLevel);
+        levelData.put("p1DefeatedEnemies", defeatedEnemies / 2); // 假设玩家1击败了一半敌人
+        levelData.put("p2DefeatedEnemies", defeatedEnemies / 2); // 假设玩家2击败了一半敌人
+        levelData.put("totalGameTime", gameView.getTotalGameTime());
+        levelData.put("p1Lives", player1Lives);
+        levelData.put("p2Lives", player2Lives);
+        levelData.put("p1TankType", multiGameController.getPlayer1Tank().getTypeString());
+        levelData.put("p2TankType", multiGameController.getPlayer2Tank().getTypeString());
+        levelData.put("totalLevels", totalLevels);
+
+        // 显示关卡完成视图
+        LevelCompletedView levelCompletedView = gameView.getLevelCompletedView();
+        if (levelCompletedView != null) {
+            levelCompletedView.show(levelData);
+        }
     }
 
+    /**
+     * 获取游戏画布
+     */
+    public Canvas getGameCanvas() {
+        return gameCanvas;
+    }
+
+    /**
+     * 获取游戏数据面板
+     */
+    @Override
+    public HBox getGameDataPanel() {
+        return gameDataPanel;
+    }
+
+    /**
+     * 设置游戏数据面板
+     */
+    @Override
+    public void setGameDataPanel(HBox panel) {
+        this.gameDataPanel = panel;
+    }
+
+    /**
+     * 设置时间信息文本
+     */
+    @Override
+    public void setTimeInfo(Text timeInfo) {
+        this.timeInfo = timeInfo;
+    }
+
+    /**
+     * 获取游戏总时间
+     */
+    @Override
+    public long getTotalGameTime() {
+        return gameView.getTotalGameTime(); // 委托给GameView
+    }
+
+    /**
+     * 设置游戏总时间
+     */
+    @Override
+    public void setTotalGameTime(long time) {
+        // 设置时间并更新显示
+        if (timeInfo != null) {
+            long seconds = time / 1000;
+            long minutes = seconds / 60;
+            seconds = seconds % 60;
+            timeInfo.setText(String.format("%02d:%02d", minutes, seconds));
+        }
+    }
+
+    /**
+     * 获取上次更新时间
+     */
+    @Override
+    public long getLastUpdateTime() {
+        return lastUpdateTime;
+    }
+
+    /**
+     * 设置上次更新时间
+     */
+    @Override
+    public void setLastUpdateTime(long time) {
+        this.lastUpdateTime = time;
+    }
+
+    @Override
+    public boolean isGamePaused() {
+        return false;
+    }
+
+    @Override
+    public void setGamePaused(boolean paused) {
+
+    }
+
+    @Override
+    public boolean isPauseMenuOpen() {
+        return false;
+    }
+
+    @Override
+    public void setIsPauseMenuOpen(boolean open) {
+
+    }
+
+    /**
+     * 获取游戏循环
+     */
+    @Override
+    public AnimationTimer getGameLoop() {
+        return gameLoop;
+    }
+
+    @Override
+    public void setGameLoop(AnimationTimer gameLoop) {
+
+    }
+
+    /**
+     * 清理游戏资源
+     */
+    @Override
+    public void cleanupGameResources() {
+        // 重置游戏状态变量
+        this.player1BulletCount = 10;
+        this.player2BulletCount = 10;
+        this.gamePaused = false;
+        this.isPauseMenuOpen = false;
+        this.lastBulletRefillTime = 0;
+        this.player1Lives = 3;
+        this.player2Lives = 3;
+        
+        // 停止游戏循环
+        if (gameLoop != null) {
+            gameLoop.stop();
+            gameLoop = null;
+        }
+        
+        // 其他资源清理
+        timeInfo = null;
+    }
+
+    /**
+     * 设置玩家1生命值
+     */
+    public void setPlayer1Lives(int lives) {
+        this.player1Lives = lives;
+        updateLivesDisplay(player1Lives, player2Lives);
+    }
+
+    /**
+     * 设置玩家2生命值
+     */
+    public void setPlayer2Lives(int lives) {
+        this.player2Lives = lives;
+        updateLivesDisplay(player1Lives, player2Lives);
+    }
+
+    /**
+     * 获取玩家1生命值
+     */
+    public int getPlayer1Lives() {
+        return player1Lives;
+    }
+
+    /**
+     * 获取玩家2生命值
+     */
+    public int getPlayer2Lives() {
+        return player2Lives;
+    }
+
+    /**
+     * 设置玩家1子弹数量
+     */
+    public void setPlayer1BulletCount(int count) {
+        this.player1BulletCount = count;
+        updateBulletDisplay(player1BulletCount, player2BulletCount);
+    }
+
+    /**
+     * 设置玩家2子弹数量
+     */
+    public void setPlayer2BulletCount(int count) {
+        this.player2BulletCount = count;
+        updateBulletDisplay(player1BulletCount, player2BulletCount);
+    }
+
+    /**
+     * 获取玩家1子弹数量
+     */
+    public int getPlayer1BulletCount() {
+        return player1BulletCount;
+    }
+
+    /**
+     * 获取玩家2子弹数量
+     */
+    public int getPlayer2BulletCount() {
+        return player2BulletCount;
+    }
+
+    /**
+     * 设置上次子弹补充时间
+     * @param time 时间戳
+     */
+    public void setLastBulletRefillTime(long time) {
+        this.lastBulletRefillTime = time;
+    }
+
+    /**
+     * 获取上次子弹补充时间
+     * @return 上次子弹补充时间(毫秒)
+     */
+    public long getLastBulletRefillTime() {
+        return lastBulletRefillTime;
+    }
 }

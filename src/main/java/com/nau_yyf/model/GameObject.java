@@ -1,5 +1,7 @@
 package com.nau_yyf.model;
 
+import javafx.scene.canvas.GraphicsContext;
+
 public class GameObject {
     private int x;
     private int y;
@@ -51,5 +53,13 @@ public class GameObject {
                 x + width > other.getX() &&
                 y < other.getY() + other.getHeight() &&
                 y + height > other.getY();
+    }
+
+    /**
+     * 渲染游戏对象
+     * @param gc 图形上下文
+     */
+    public void render(GraphicsContext gc) {
+        // Implementation of render method
     }
 }

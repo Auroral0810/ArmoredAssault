@@ -2,6 +2,7 @@ package com.nau_yyf.model;
 
 import com.nau_yyf.controller.SingleGameController;
 import com.nau_yyf.util.AStarPathfinder;
+import javafx.scene.canvas.GraphicsContext;
 
 import java.util.HashMap;
 import java.util.List;
@@ -1263,5 +1264,80 @@ public class Tank {
 
         // 没有与任何草丛重叠，返回false
         return false;
+    }
+
+    /**
+     * 渲染坦克到画布
+     * @param gc 图形上下文
+     */
+    public void render(GraphicsContext gc) {
+        if (!isVisibleDuringRespawnInvincible()) {
+            return;  // 如果在无敌状态闪烁期间不可见，则不渲染
+        }
+        
+        // 设置坦克颜色
+        if (isFriendly()) {
+            gc.setFill(javafx.scene.paint.Color.BLUE);  // 友方坦克为蓝色
+        } else {
+            gc.setFill(javafx.scene.paint.Color.RED);   // 敌方坦克为红色
+        }
+        
+        // 绘制坦克主体
+        gc.fillRect(x, y, width, height);
+        
+        // 绘制坦克炮塔
+        double turretWidth = width * 0.5;
+        double turretHeight = height * 0.2;
+        
+        double turretX = x + (width - turretWidth) / 2;
+        double turretY = y;
+        
+        // 根据方向调整炮塔位置
+        switch (direction) {
+            case UP:
+                turretY = y - turretHeight;
+                break;
+            case DOWN:
+                turretY = y + height;
+                break;
+            case LEFT:
+                turretWidth = width * 0.2;
+                turretHeight = height * 0.5;
+                turretX = x - turretWidth;
+                turretY = y + (height - turretHeight) / 2;
+                break;
+            case RIGHT:
+                turretWidth = width * 0.2;
+                turretHeight = height * 0.5;
+                turretX = x + width;
+                turretY = y + (height - turretHeight) / 2;
+                break;
+        }
+        
+        gc.fillRect(turretX, turretY, turretWidth, turretHeight);
+        
+        // 如果有护盾则绘制
+        if (isShielded()) {
+            gc.setStroke(javafx.scene.paint.Color.CYAN);
+            gc.setLineWidth(2);
+            gc.strokeOval(x - 5, y - 5, width + 10, height + 10);
+        }
+        
+        // 如果有无敌效果则绘制
+        if (isInvincible()) {
+            gc.setStroke(javafx.scene.paint.Color.GOLD);
+            gc.setLineWidth(2);
+            gc.strokeOval(x - 3, y - 3, width + 6, height + 6);
+        }
+        
+        // 绘制血量条
+        double healthPercentage = (double) health / maxHealth;
+        double healthBarWidth = width * healthPercentage;
+        
+        gc.setFill(javafx.scene.paint.Color.RED);
+        gc.fillRect(x, y - 8, width, 5);
+        
+        gc.setFill(javafx.scene.paint.Color.GREEN);
+        gc.fillRect(x, y - 8, healthBarWidth, 5);
     }
 }

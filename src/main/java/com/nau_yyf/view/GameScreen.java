@@ -36,7 +36,7 @@ public interface GameScreen {
      * 获取游戏循环
      */
     AnimationTimer getGameLoop();
-    
+
     /**
      * 设置游戏循环
      */

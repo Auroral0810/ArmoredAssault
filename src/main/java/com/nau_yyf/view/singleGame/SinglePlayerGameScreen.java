@@ -628,8 +628,16 @@ public class SinglePlayerGameScreen implements GameScreen {
         int finalScore = ((SingleGameStateServiceImpl) gameView.getGameStateService()).getScore(singleGameController);
         finalScore = Math.max(0, finalScore); // 确保分数不为负
 
+        // 创建包含游戏数据的Map
+        Map<String, Object> gameData = new HashMap<>();
+        gameData.put("finalScore", finalScore);
+        gameData.put("defeatedEnemies", singleGameController.getDefeatedEnemiesCount());
+        gameData.put("gameTime", (int)(gameView.getTotalGameTime() / 1000));
+        gameData.put("currentLevel", singleGameController.getCurrentLevel());
+        gameData.put("playerLives", gameView.getPlayerLives());
+
         // 显示游戏结束界面
-        gameView.getGameOverScreen().show(finalScore);
+        gameView.getGameOverScreen().show(gameData);
     }
 
     /**
@@ -648,14 +656,17 @@ public class SinglePlayerGameScreen implements GameScreen {
         String playerTankType = singleGameController.getPlayerTank().getTypeString();
         int totalLevels = 5; // 游戏总关卡数
 
+        // 创建包含关卡数据的Map
+        Map<String, Object> levelData = new HashMap<>();
+        levelData.put("currentLevel", currentLevel);
+        levelData.put("defeatedEnemies", defeatedEnemies);
+        levelData.put("totalGameTime", gameView.getTotalGameTime());
+        levelData.put("playerLives", gameView.getPlayerLives());
+        levelData.put("playerTankType", playerTankType);
+        levelData.put("totalLevels", totalLevels);
+
         // 显示完成界面
-        gameView.getLevelCompletedView().show(
-                currentLevel,
-                defeatedEnemies,
-                gameView.getTotalGameTime(),
-                gameView.getPlayerLives(),
-                playerTankType,
-                totalLevels);
+        gameView.getLevelCompletedView().show(levelData);
     }
 
     /**

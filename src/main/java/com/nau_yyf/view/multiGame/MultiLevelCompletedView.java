@@ -2,6 +2,7 @@ package com.nau_yyf.view.multiGame;
 
 import com.jfoenix.controls.JFXButton;
 import com.nau_yyf.view.GameView;
+import com.nau_yyf.view.LevelCompletedView;
 import javafx.animation.FadeTransition;
 import javafx.animation.ParallelTransition;
 import javafx.animation.ScaleTransition;
@@ -24,11 +25,13 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
 
+import java.util.Map;
+
 /**
  * 双人模式关卡完成视图
  * 用于显示关卡完成后的双人游戏统计信息和动画效果
  */
-public class MultiLevelCompletedView {
+public class MultiLevelCompletedView implements LevelCompletedView {
 
     private GameView gameView;
     private StackPane root;
@@ -56,6 +59,28 @@ public class MultiLevelCompletedView {
     
     /**
      * 显示关卡完成界面
+     * @param levelData 关卡数据，包含当前关卡、击败敌人数、游戏时间等信息
+     */
+    @Override
+    public void show(Map<String, Object> levelData) {
+        // 从levelData中提取多人游戏需要的数据
+        int currentLevel = (int) levelData.getOrDefault("currentLevel", 1);
+        int p1DefeatedEnemies = (int) levelData.getOrDefault("p1DefeatedEnemies", 0);
+        int p2DefeatedEnemies = (int) levelData.getOrDefault("p2DefeatedEnemies", 0);
+        long totalGameTime = (long) levelData.getOrDefault("totalGameTime", 0L);
+        int p1Lives = (int) levelData.getOrDefault("p1Lives", 0);
+        int p2Lives = (int) levelData.getOrDefault("p2Lives", 0);
+        String p1TankType = (String) levelData.getOrDefault("p1TankType", "standard");
+        String p2TankType = (String) levelData.getOrDefault("p2TankType", "standard");
+        int totalLevels = (int) levelData.getOrDefault("totalLevels", 5);
+        
+        // 调用原有的显示方法
+        show(currentLevel, p1DefeatedEnemies, p2DefeatedEnemies, totalGameTime, 
+             p1Lives, p2Lives, p1TankType, p2TankType, totalLevels);
+    }
+    
+    /**
+     * 显示关卡完成界面
      * @param currentLevel 当前关卡
      * @param p1DefeatedEnemies 玩家1击败的敌人数量
      * @param p2DefeatedEnemies 玩家2击败的敌人数量
@@ -66,7 +91,7 @@ public class MultiLevelCompletedView {
      * @param p2TankType 玩家2坦克类型
      * @param totalLevels 游戏总关卡数
      */
-    public void show(int currentLevel, 
+    private void show(int currentLevel, 
                      int p1DefeatedEnemies, int p2DefeatedEnemies, 
                      long totalGameTime, 
                      int p1Lives, int p2Lives,
