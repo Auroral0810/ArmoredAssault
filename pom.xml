@@ -82,13 +82,6 @@
             <version>2.7</version>
         </dependency>
 
-        <!-- 添加 Batik 完整套件 -->
-        <dependency>
-            <groupId>org.apache.xmlgraphics</groupId>
-            <artifactId>batik-all</artifactId>
-            <version>1.14</version>
-        </dependency>
-
         <!-- XML APIs -->
         <dependency>
             <groupId>xml-apis</groupId>
@@ -101,6 +94,13 @@
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>2.10.1</version>
+        </dependency>
+
+        <!-- Batik SVG Generator -->
+        <dependency>
+            <groupId>org.apache.xmlgraphics</groupId>
+            <artifactId>batik-svggen</artifactId>
+            <version>1.14</version>
         </dependency>
     </dependencies>
 
@@ -229,37 +229,6 @@
                                     <mainClass>com.nau_yyf.ArmoredAssaultApplication</mainClass>
                                 </transformer>
                             </transformers>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jlink-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <id>create-runtime</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>jlink</goal>
-                        </goals>
-                        <configuration>
-                            <modulePaths>
-                                <modulePath>${java.home}/jmods</modulePath>
-                                <modulePath>/Users/auroral/javafx-sdk/javafx-sdk-21/lib</modulePath>
-                            </modulePaths>
-                            <addModules>
-                                <addModule>java.base</addModule>
-                                <addModule>java.desktop</addModule>
-                                <addModule>javafx.controls</addModule>
-                                <addModule>javafx.fxml</addModule>
-                                <addModule>javafx.media</addModule>
-                                <addModule>javafx.graphics</addModule>
-                                <addModule>javafx.base</addModule>
-                            </addModules>
-                            <outputDirectory>${project.build.directory}/custom-runtime</outputDirectory>
                         </configuration>
                     </execution>
                 </executions>
