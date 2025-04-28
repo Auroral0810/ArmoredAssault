@@ -1,0 +1,53 @@
+plugins {
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.0.13'
+    id 'org.beryx.jlink' version '2.26.0'
+}
+
+group = 'com.nau_yyf'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.jfoenix:jfoenix:9.0.10'
+    implementation 'org.update4j:update4j:1.5.8'
+}
+
+javafx {
+    version = "17.0.2"
+    modules = ['javafx.controls', 'javafx.fxml']
+}
+
+application {
+    mainClass = 'com.nau_yyf.Main'
+}
+
+jlink {
+    options = ['--strip-debug', '--compress', '2', '--no-header-files', '--no-man-pages']
+    launcher {
+        name = 'ArmoredAssault'
+    }
+    jpackage {
+        imageOptions = ['--icon', 'src/main/resources/images/logo/logo.ico']
+        installerOptions = [
+                '--vendor', '坦克大作战',
+                '--app-version', project.version,
+                '--copyright', '© 2025 Yunfeng Yu'
+        ]
+        
+        if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+            installerType = 'msi'
+            installerOptions += ['--win-shortcut', '--win-menu']
+        }
+        if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+            installerType = 'dmg'
+        }
+        if (org.gradle.internal.os.OperatingSystem.current().isLinux()) {
+            installerType = 'deb'
+            installerOptions += ['--linux-shortcut']
+        }
+    }
+}

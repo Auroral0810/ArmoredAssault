@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration timestamp="2023-01-01T00:00:00Z">
+    <base uri="https://github.com/Auroral0810/ArmoredAssault/releases/download/v${version}/" />
+    
+    <properties>
+        <property key="version" value="1.0.0" />
+    </properties>
+    
+    <files>
+        <file path="lib/ArmoredAssault.jar" size="0" checksum="0000000000000000000000000000000000000000" />
+        <!-- 添加更多需要更新的文件 -->
+    </files>
+</configuration> 

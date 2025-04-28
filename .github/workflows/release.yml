@@ -1,0 +1,66 @@
+name: 构建与发布
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: 构建 ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            output_extension: deb
+          - os: windows-latest
+            output_extension: msi
+          - os: macos-latest
+            output_extension: dmg
+
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: 设置JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+      
+      - name: 授予执行权限给gradlew
+        run: chmod +x gradlew
+        if: runner.os != 'Windows'
+      
+      - name: 用Gradle构建
+        run: ./gradlew jpackage
+        if: runner.os != 'Windows'
+        
+      - name: 用Gradle构建 (Windows)
+        run: .\gradlew.bat jpackage
+        if: runner.os == 'Windows'
+      
+      - name: 上传安装包
+        uses: actions/upload-artifact@v3
+        with:
+          name: ArmoredAssault-${{ matrix.os }}
+          path: build/jpackage/*.${matrix.output_extension}
+  
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载所有构建产物
+        uses: actions/download-artifact@v3
+      
+      - name: 创建GitHub发布
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ArmoredAssault-ubuntu-latest/*.deb
+            ArmoredAssault-windows-latest/*.msi
+            ArmoredAssault-macos-latest/*.dmg
+          draft: false
+          generate_release_notes: true 
