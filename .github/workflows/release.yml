@@ -1,107 +1,236 @@
-name: Build and Release
+name: Build and Release ArmoredAssault
 
 on:
   push:
-    tags:
-      - 'v*'
-  workflow_dispatch:  # 允许手动触发
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
-  build-mac:
-    runs-on: macos-latest
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        java: [17]
+        include:
+          - os: ubuntu-latest
+            platform_name: linux
+          - os: windows-latest
+            platform_name: windows
+          - os: macos-latest
+            platform_name: mac
+
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Set up Liberica JDK 17 Full
-        uses: actions/setup-java@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Liberica JDK ${{ matrix.java }} with JavaFX
+        uses: actions/setup-java@v4
         with:
+          java-version: ${{ matrix.java }}
           distribution: 'liberica'
-          java-version: '17'
           java-package: 'jdk+fx'
-          
-      - name: Build macOS App
+          cache: maven
+
+      - name: Ensure resources directories exist
+        run: |
+          mkdir -p src/main/resources/images/logo
+        shell: bash
+
+      - name: Prepare Platform-specific Icons
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ] && [ ! -f "src/main/resources/images/logo/tank_logo.ico" ]; then
+            # Create placeholder icon if not exists
+            echo "Creating placeholder Windows icon"
+            touch src/main/resources/images/logo/tank_logo.ico
+          elif [ "${{ matrix.os }}" = "macos-latest" ] && [ ! -f "src/main/resources/images/logo/tank_logo.icns" ]; then
+            echo "Creating placeholder macOS icon"
+            touch src/main/resources/images/logo/tank_logo.icns
+          elif [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ ! -f "src/main/resources/images/logo/tank_logo.png" ]; then
+            echo "Creating placeholder Linux icon" 
+            touch src/main/resources/images/logo/tank_logo.png
+          fi
+        shell: bash
+
+      - name: Build with Maven
         run: |
           mvn clean package
           mvn dependency:copy-dependencies
-          mvn jpackage:jpackage -Dtype=dmg
-          
-      - name: Upload macOS artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: macos-app
-          path: target/dist/*.dmg
-
-  build-windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Set up Liberica JDK 17 Full
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'liberica'
-          java-version: '17'
-          java-package: 'jdk+fx'
-          
-      - name: Build Windows App
+        shell: bash
+        
+      - name: Prepare app files for packaging
         run: |
-          mvn clean package
-          mvn dependency:copy-dependencies
-          mvn jpackage:jpackage -Dtype=msi
-          
-      - name: Upload Windows artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: windows-app
-          path: target/dist/*.msi
+          mkdir -p installer/input
+          cp target/ArmoredAssault-1.0-SNAPSHOT.jar installer/input/
+          mkdir -p installer/input/libs
+          cp -r target/dependency/* installer/input/libs/
+        shell: bash
 
-  build-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Set up Liberica JDK 17 Full
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'liberica'
-          java-version: '17'
-          java-package: 'jdk+fx'
+      # Windows Installer
+      - name: Setup WiX for Windows Installer
+        if: matrix.os == 'windows-latest'
+        run: |
+          curl -L -o wix311-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311-binaries.zip
+          Expand-Archive wix311-binaries.zip -DestinationPath wix311
+          echo "$env:GITHUB_WORKSPACE\wix311" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        shell: pwsh
+
+      - name: Create Windows Installer
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir -p release
           
-      - name: Install Linux dependencies
+          # Create batch file launcher
+          echo '@echo off
+          java --module-path libs -jar ArmoredAssault-1.0-SNAPSHOT.jar' > installer/input/ArmoredAssault.bat
+          
+          # Use jpackage to create installer
+          jpackage --input installer/input \
+            --name "ArmoredAssault" \
+            --main-jar ArmoredAssault-1.0-SNAPSHOT.jar \
+            --main-class com.nau_yyf.ArmoredAssaultApplication \
+            --type msi \
+            --win-console \
+            --win-shortcut \
+            --win-menu \
+            --icon src/main/resources/images/logo/tank_logo.ico \
+            --app-version 1.0.0 \
+            --vendor "NAU-YYF" \
+            --dest release
+            
+          cp release/*.msi release/ArmoredAssault-Windows-Installer.msi
+        shell: bash
+
+      # macOS Installer
+      - name: Create macOS App Bundle and DMG
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir -p release
+          
+          # Create sh file launcher
+          echo '#!/bin/bash
+          java --module-path ./libs -jar ArmoredAssault-1.0-SNAPSHOT.jar' > installer/input/ArmoredAssault.sh
+          chmod +x installer/input/ArmoredAssault.sh
+          
+          # Use jpackage to create DMG
+          jpackage --input installer/input \
+            --name "ArmoredAssault" \
+            --main-jar ArmoredAssault-1.0-SNAPSHOT.jar \
+            --main-class com.nau_yyf.ArmoredAssaultApplication \
+            --type dmg \
+            --icon src/main/resources/images/logo/tank_logo.icns \
+            --app-version 1.0.0 \
+            --vendor "NAU-YYF" \
+            --mac-package-name "ArmoredAssault" \
+            --dest release
+            
+          cp release/*.dmg release/ArmoredAssault-macOS.dmg
+        shell: bash
+
+      # Linux Installer
+      - name: Create Linux DEB Package
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y fakeroot libgdk-pixbuf2.0-dev libgtk-3-dev
           
-      - name: Build Linux App
-        run: |
-          mvn clean package
-          mvn dependency:copy-dependencies
-          mvn jpackage:jpackage -Dtype=deb
+          mkdir -p release
           
-      - name: Upload Linux artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: linux-app
-          path: target/dist/*.deb
+          # Create shell launcher
+          echo '#!/bin/bash
+          java --module-path /opt/armoredassault/libs -jar /opt/armoredassault/ArmoredAssault-1.0-SNAPSHOT.jar "$@"' > installer/input/armoredassault
+          chmod +x installer/input/armoredassault
+          
+          # Use jpackage to create DEB
+          jpackage --input installer/input \
+            --name "armoredassault" \
+            --main-jar ArmoredAssault-1.0-SNAPSHOT.jar \
+            --main-class com.nau_yyf.ArmoredAssaultApplication \
+            --type deb \
+            --linux-shortcut \
+            --linux-app-category "Game" \
+            --app-version 1.0.0 \
+            --vendor "NAU-YYF" \
+            --icon src/main/resources/images/logo/tank_logo.png \
+            --dest release
+            
+          cp release/*.deb release/ArmoredAssault-Linux.deb
+        shell: bash
 
-  create-release:
-    needs: [build-mac, build-windows, build-linux]
+      # Create simple ZIP distributions for all platforms
+      - name: Create Platform-specific Package
+        run: |
+          mkdir -p release/ArmoredAssault-${{ matrix.platform_name }}
+          cp target/ArmoredAssault-1.0-SNAPSHOT.jar release/ArmoredAssault-${{ matrix.platform_name }}/
+          mkdir -p release/ArmoredAssault-${{ matrix.platform_name }}/libs
+          cp -r target/dependency/* release/ArmoredAssault-${{ matrix.platform_name }}/libs/
+          
+          # Create launcher script
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            echo '@echo off
+            java --module-path libs -jar ArmoredAssault-1.0-SNAPSHOT.jar
+            pause' > release/ArmoredAssault-${{ matrix.platform_name }}/ArmoredAssault.bat
+          else
+            echo '#!/bin/bash
+            java --module-path ./libs -jar ArmoredAssault-1.0-SNAPSHOT.jar' > release/ArmoredAssault-${{ matrix.platform_name }}/ArmoredAssault.sh
+            chmod +x release/ArmoredAssault-${{ matrix.platform_name }}/ArmoredAssault.sh
+          fi
+          
+          # Create ZIP archive
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            powershell Compress-Archive -Path release/ArmoredAssault-${{ matrix.platform_name }} -DestinationPath release/ArmoredAssault-${{ matrix.platform_name }}.zip
+          else
+            (cd release && zip -r ArmoredAssault-${{ matrix.platform_name }}.zip ArmoredAssault-${{ matrix.platform_name }})
+          fi
+        shell: bash
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArmoredAssault-${{ matrix.platform_name }}-installers
+          path: |
+            release/*.zip
+            release/*.exe
+            release/*.msi
+            release/*.dmg
+            release/*.deb
+            release/*.rpm
+
+  release:
+    name: Create Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
+    
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
-        
-      - name: Display structure of downloaded files
-        run: ls -R
-        
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List Downloaded Artifacts
+        run: ls -R artifacts/
+
       - name: Create Release
+        id: create_release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            macos-app/*.dmg
-            windows-app/*.msi
-            linux-app/*.deb
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            artifacts/ArmoredAssault-windows-installers/*.zip
+            artifacts/ArmoredAssault-windows-installers/*.exe
+            artifacts/ArmoredAssault-windows-installers/*.msi
+            artifacts/ArmoredAssault-mac-installers/*.zip
+            artifacts/ArmoredAssault-mac-installers/*.dmg
+            artifacts/ArmoredAssault-linux-installers/*.zip
+            artifacts/ArmoredAssault-linux-installers/*.deb
+            artifacts/ArmoredAssault-linux-installers/*.rpm
+          draft: false
+          prerelease: false
+          name: ArmoredAssault ${{ github.ref_name }}
+          body: |
+            ## ArmoredAssault Release ${{ github.ref_name }}
+            
