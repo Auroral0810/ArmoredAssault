@@ -136,7 +136,7 @@ public class MultiTankSelectionView {
         bottomButtons.setPadding(new Insets(20));
         
         // 返回按钮
-        JFXButton backButton = createMenuButton("返回", e -> gameView.showMultiPlayerOptions(), false);
+        JFXButton backButton = createMenuButton("返回", e -> gameView.showGameOptions(GameView.GAME_MODE_SINGLE), false);
         
         // 开始游戏按钮
         JFXButton startButton = createMenuButton("开始游戏", e -> startMultiplayerGame(), true);
@@ -398,14 +398,8 @@ public class MultiTankSelectionView {
         String p1TankType = TankUtil.TANK_TYPES.get(p1SelectedTankType);
         String p2TankType = TankUtil.TANK_TYPES.get(p2SelectedTankType);
         
-        // 如果两个玩家选择了相同的坦克，显示提示信息
-        if (p1SelectedTankType == p2SelectedTankType) {
-            gameView.showMessage("两位玩家不能选择相同的坦克！");
-            return;
-        }
-        
-        // 显示关卡选择对话框
-        gameView.showMultiPlayerLevelSelection(p1TankType, p2TankType);
+        // 启动双人游戏
+        gameView.startGame(p1TankType, p2TankType);
     }
     
     /**

@@ -151,7 +151,7 @@ public class SingleGameStateServiceImpl implements GameStateService {
                 gameView.setGameMode(GameView.GAME_MODE_SINGLE);
 
                 // 使用GameView的方法启动游戏
-                gameView.startGameWithLevel(tankType, level);
+                gameView.startGameWithLevel(new String[]{tankType}, level);
             });
         }
     }

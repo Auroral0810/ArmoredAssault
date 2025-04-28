@@ -195,10 +195,13 @@ public class MultiGameOverScreen implements GameOverScreen {
             buttonsBox.setAlignment(Pos.CENTER);
             
             // 修改"重新尝试"按钮的处理逻辑，返回到坦克选择界面而不是直接开始游戏
-            JFXButton retryButton = createActionButton("重新尝试", true);
+            JFXButton retryButton = createActionButton("重新挑战", true);
             retryButton.setOnAction(e -> {
-                // 返回到坦克选择界面，不直接启动游戏
-                gameView.showMultiTankSelection();
+                // 移除当前界面
+                root.getChildren().remove(containerPane);
+                
+                // 使用更可靠的方法重启游戏
+                gameView.restartGame();
             });
             
             JFXButton mainMenuButton = createActionButton("返回主菜单", false);

@@ -109,7 +109,13 @@ public class SingleGameOverScreen implements GameOverScreen {
             
             // 创建按钮
             JFXButton retryButton = createActionButton("重新挑战", true);
-            retryButton.setOnAction(e -> gameView.restartGame());
+            retryButton.setOnAction(e -> {
+                // 移除当前界面
+                root.getChildren().remove(containerPane);
+                
+                // 使用更可靠的方法重启游戏
+                gameView.restartGame();
+            });
             
             JFXButton mainMenuButton = createActionButton("返回主菜单", false);
             mainMenuButton.setOnAction(e -> {

@@ -71,7 +71,7 @@ public class MultiPlayerOptionsView {
             optionsContainer.getChildren().add(spacer1);
             
             // 创建按钮
-            JFXButton newGameButton = createMenuButton("新游戏", e -> gameView.showMultiTankSelection());
+            JFXButton newGameButton = createMenuButton("新游戏", e -> gameView.showTankSelection());
             JFXButton vsComputerButton = createMenuButton("对战电脑", e -> gameView.showMessage("即将开启人机对战模式"));
             JFXButton vsPlayerButton = createMenuButton("双人对战", e -> gameView.showMessage("双人对战功能即将推出"));
             JFXButton loadGameButton = createMenuButton("加载游戏", e -> gameView.showMessage("双人游戏加载功能即将推出"));

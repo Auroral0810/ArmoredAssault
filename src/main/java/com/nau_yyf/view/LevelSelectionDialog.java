@@ -164,12 +164,17 @@ public class LevelSelectionDialog {
             // 执行关卡选择逻辑
             Platform.runLater(() -> {
                 // 检查是否为双人游戏模式
-                if (selectedTankType.equals("player2")) {
-                    // 双人游戏模式
-                    gameView.startMultiPlayerGame(level);
+                if (gameView.getCurrentGameMode() == GameView.GAME_MODE_MULTI) {
+                    // 双人游戏模式 - 使用存储在GameView中的p1TankType和p2TankType
+                    String[] tankTypes = new String[]{
+                        gameView.p1TankType, 
+                        gameView.p2TankType
+                    };
+                    gameView.startGameWithLevel(tankTypes, level);
                 } else {
+                    String[] tankTypes = new String[]{selectedTankType};
                     // 单人游戏模式
-                    gameView.startGameWithLevel(selectedTankType, level);
+                    gameView.startGameWithLevel(tankTypes, level);
                 }
             });
         });

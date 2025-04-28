@@ -208,19 +208,23 @@ public class MultiLevelCompletedView implements LevelCompletedView {
             if (currentLevel < totalLevels) {
                 JFXButton nextButton = createActionButton("下一关", true);
                 nextButton.setOnAction(e -> {
-                    // 确保移除当前界面
+                    // 先移除当前界面
                     root.getChildren().remove(containerPane);
                     
-                    // 重要：在启动新游戏前重置游戏状态
+                    // 强制清理游戏资源和所有UI界面
                     gameView.cleanupGameResources();
                     
-                    // 设置游戏为非暂停状态
+                    // 确保游戏状态设置为非暂停
                     gameView.setGamePaused(false);
                     
-                    // 启动下一关
-                    Platform.runLater(() -> {
-                        gameView.startMultiPlayerGame(currentLevel + 1);
+                    // 短暂延迟启动下一关，确保清理完成
+                    javafx.animation.PauseTransition delay = new javafx.animation.PauseTransition(javafx.util.Duration.millis(100));
+                    delay.setOnFinished(event -> {
+                        // 使用数组形式的参数调用startGameWithLevel方法
+                        String[] tankTypes = new String[]{p1TankType, p2TankType};
+                        gameView.startGameWithLevel(tankTypes, currentLevel + 1);
                     });
+                    delay.play();
                 });
                 buttonContainer.getChildren().addAll(menuButton, nextButton);
             } else {

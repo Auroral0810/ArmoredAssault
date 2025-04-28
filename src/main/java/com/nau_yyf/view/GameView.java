@@ -92,8 +92,8 @@ public class GameView {
     private MultiTankSelectionView multiTankSelectionView;
 
     /** 双人游戏相关变量 */
-    private String p1TankType;
-    private String p2TankType;
+    String p1TankType;
+    String p2TankType;
 
     /** 游戏模式常量 */
     public static final int GAME_MODE_NONE = 0; // 无游戏模式（主菜单等）
@@ -244,6 +244,7 @@ public class GameView {
         });
     }
 
+
     /**
      * 清理游戏资源
      */
@@ -260,14 +261,46 @@ public class GameView {
             gameCanvas.setOnKeyReleased(null);
         }
 
-        // 重置所有游戏变量
-        if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
-            singlePlayerGameStarter.getGameScreen().cleanupGameResources();
-        }
+        // 根据游戏模式清理资源
+        switch (currentGameMode) {
+            case GAME_MODE_SINGLE:
+                // 重置单人游戏变量
+                if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
+                    singlePlayerGameStarter.getGameScreen().cleanupGameResources();
+                    singlePlayerGameStarter.getGameScreen().setPlayerLives(3);
+                }
 
-        // 设置gameController为null前确保没有引用它的任务在运行
-        if (singleGameController != null) {
-            singleGameController = null;
+                // 清理单人游戏控制器
+                if (singleGameController != null) {
+                    singleGameController = null;
+                }
+                break;
+
+            case GAME_MODE_MULTI:
+                // 重置多人游戏变量
+                GameStarterController multiStarter = gameStarters.get(GAME_MODE_MULTI);
+                if (multiStarter != null && multiStarter.getGameScreen() != null) {
+                    multiStarter.getGameScreen().cleanupGameResources();
+                }
+
+                // 清理多人游戏控制器
+                if (multiGameController != null) {
+                    multiGameController = null;
+                }
+                break;
+
+            case GAME_MODE_ONLINE:
+                // 重置在线游戏变量
+                GameStarterController onlineStarter = gameStarters.get(GAME_MODE_ONLINE);
+                if (onlineStarter != null && onlineStarter.getGameScreen() != null) {
+                    onlineStarter.getGameScreen().cleanupGameResources();
+                }
+
+                // 清理在线游戏控制器
+                if (onlineGameController != null) {
+                    onlineGameController = null;
+                }
+                break;
         }
 
         // 清空UI
@@ -275,15 +308,10 @@ public class GameView {
             root.getChildren().clear();
         }
 
-        // 重置生命数
-        if (singlePlayerGameStarter != null && singlePlayerGameStarter.getGameScreen() != null) {
-            singlePlayerGameStarter.getGameScreen().setPlayerLives(3);
-        }
-
         // 强制执行垃圾回收
         System.gc();
 
-        // 确保游戏循环被停止
+        // 确保游戏循环被停止（双重检查）
         if (gameLoop != null) {
             gameLoopService.stopGameLoop(gameLoop);
         }
@@ -301,11 +329,41 @@ public class GameView {
      * 加载游戏存档
      */
     public void loadGame() {
+        boolean success = false;
+
         // 使用游戏状态服务加载游戏
-        boolean success = ((SingleGameStateServiceImpl) gameStateService).showLoadGameDialog(singleGameController);
+        switch (currentGameMode) {
+            case GAME_MODE_SINGLE:
+                if (gameStateService instanceof SingleGameStateServiceImpl) {
+                    success = ((SingleGameStateServiceImpl) gameStateService).showLoadGameDialog(singleGameController);
+                }
+                break;
+
+            case GAME_MODE_MULTI:
+                // 多人游戏存档加载
+                if (gameStateService instanceof MultiGameStateServiceImpl) {
+                    // success = ((MultiGameStateServiceImpl)
+                    // gameStateService).showLoadGameDialog(multiGameController);
+                    showMessage("多人游戏存档加载功能尚未实现");
+                    return;
+                }
+                break;
+
+            case GAME_MODE_ONLINE:
+                // 在线游戏存档加载
+                // if (gameStateService instanceof OnlineGameStateServiceImpl) {
+                // success = ((OnlineGameStateServiceImpl)
+                // gameStateService).showLoadGameDialog(onlineGameController);
+                // }
+                showMessage("在线游戏存档加载功能尚未实现");
+                return;
+
+            default:
+                showMessage("无法识别的游戏模式");
+                return;
+        }
 
         if (success) {
-
             // 获取当前游戏屏幕
             GameScreen screen = getGameScreen();
             if (screen != null) {
@@ -319,17 +377,35 @@ public class GameView {
 
             // 启动游戏循环前强制更新一次UI
             Platform.runLater(() -> {
-                // 更新子弹显示
-                updateBulletDisplay();
+                // 更新UI显示
+                switch (currentGameMode) {
+                    case GAME_MODE_SINGLE:
+                        // 更新单人游戏UI
+                        updateBulletDisplay();
+                        updateTimeDisplay();
 
-                // 更新时间显示
-                updateTimeDisplay();
+                        // 更新生命显示
+                        if (screen != null && screen instanceof SinglePlayerGameScreen) {
+                            ((SinglePlayerGameScreen) screen).updateLivesDisplay(screen.getPlayerLives());
+                        }
+                        break;
 
-                // 更新生命显示
-                if (screen != null) {
-                    if (screen instanceof SinglePlayerGameScreen) {
-                        ((SinglePlayerGameScreen) screen).updateLivesDisplay(screen.getPlayerLives());
-                    }
+                    case GAME_MODE_MULTI:
+                        // 更新多人游戏UI
+                        updateBulletDisplay();
+                        updateTimeDisplay();
+
+                        // 更新多人游戏特有的UI元素
+                        if (screen != null && screen instanceof MultiPlayerGameScreen) {
+                            MultiPlayerGameScreen multiScreen = (MultiPlayerGameScreen) screen;
+                            multiScreen.updateLivesDisplay(multiScreen.getPlayer1Lives(),
+                                    multiScreen.getPlayer2Lives());
+                        }
+                        break;
+
+                    case GAME_MODE_ONLINE:
+                        // 更新在线游戏UI
+                        break;
                 }
             });
 
@@ -340,54 +416,6 @@ public class GameView {
             showMessage("游戏存档加载失败！");
         }
     }
-
-    /**
-     * 显示双人游戏选项界面
-     */
-    public void showMultiPlayerOptions() {
-        multiPlayerOptionsView.show();
-    }
-
-    /**
-     * 显示双人坦克选择界面
-     */
-    public void showMultiTankSelection() {
-        multiTankSelectionView.show();
-    }
-
-    /**
-     * 显示双人游戏关卡选择对话框
-     * 
-     * @param p1TankType 玩家1坦克类型
-     * @param p2TankType 玩家2坦克类型
-     */
-    public void showMultiPlayerLevelSelection(String p1TankType, String p2TankType) {
-        // 先将两种坦克类型存储起来
-        // 然后调用关卡选择对话框
-        // 注：这里使用的是与单人游戏相同的对话框，但后续可能需要创建专门的双人游戏关卡选择对话框
-        this.p1TankType = p1TankType;
-        this.p2TankType = p2TankType;
-        if (levelSelectionDialog == null) {
-            levelSelectionDialog = new LevelSelectionDialog(this, root);
-        }
-        levelSelectionDialog.show(p1TankType); // 传递玩家1的坦克类型作为参考
-    }
-
-    /**
-     * 启动双人游戏
-     * 
-     * @param level 关卡编号
-     */
-    public void startMultiPlayerGame(int level) {
-        showMessage("即将开始双人游戏第" + level + "关\n玩家1坦克: " +
-                TankUtil.getTankDisplayName(p1TankType) +
-                "\n玩家2坦克: " + TankUtil.getTankDisplayName(p2TankType));
-
-        // 以下是实际的游戏启动代码，需要在实现双人游戏逻辑后添加
-        // multiPlayerGameStarter.startGame(p1TankType, p2TankType, level);
-    }
-
-    // ================================================================下面的已经适配不同的游戏模式========================================================
 
     /**
      * 启动游戏循环
@@ -527,31 +555,61 @@ public class GameView {
     /**
      * 开始游戏，显示关卡选择对话框
      * 
-     * @param selectedTankType 选择的坦克类型
+     * @param tankTypes 坦克类型参数，根据游戏模式解析：
+     *                 - 单人模式：第一个参数为玩家坦克类型
+     *                 - 双人模式：前两个参数分别为玩家1和玩家2的坦克类型
+     *                 - 在线模式：根据在线模式需求解析
      */
-    public void startGame(String selectedTankType) {
-        // 保存坦克类型
-        this.currentTankType = selectedTankType;
-
-        // 根据当前游戏模式显示不同的关卡选择对话框
+    public void startGame(String... tankTypes) {
+        // 根据当前游戏模式处理参数并显示关卡选择对话框
         switch (currentGameMode) {
             case GAME_MODE_SINGLE:
-                // 单人游戏关卡选择
-                levelSelectionDialog.show(selectedTankType);
+                // 单人游戏只需要第一个坦克类型参数
+                if (tankTypes.length >= 1) {
+                    this.currentTankType = tankTypes[0];
+                    levelSelectionDialog.show(currentTankType);
+                } else {
+                    showMessage("单人游戏需要指定坦克类型");
+                }
                 break;
+                
             case GAME_MODE_MULTI:
-                // 双人游戏通常需要两个玩家的坦克类型
-                showMessage("请使用showMultiPlayerLevelSelection方法来启动双人游戏");
+                // 双人游戏需要两个坦克类型参数
+                if (tankTypes.length >= 2) {
+                    // 检查两个玩家是否选择了相同的坦克
+                    if (tankTypes[0].equals(tankTypes[1])) {
+                        showMessage("两位玩家不能选择相同的坦克！");
+                        return;
+                    }
+                    
+                    // 存储玩家坦克类型
+                    this.p1TankType = tankTypes[0];
+                    this.p2TankType = tankTypes[1];
+                    
+                    // 显示关卡选择对话框，使用玩家1的坦克类型作为参考
+                    if (levelSelectionDialog == null) {
+                        levelSelectionDialog = new LevelSelectionDialog(this, root);
+                    }
+                    levelSelectionDialog.show(p1TankType);
+                } else {
+                    showMessage("双人游戏需要指定两种坦克类型");
+                }
                 break;
+                
             case GAME_MODE_ONLINE:
                 // 联机游戏可能有不同的关卡选择机制
-                // TODO: 实现联机游戏关卡选择
                 showMessage("联机游戏关卡选择尚未实现");
                 break;
+                
             default:
                 // 如果游戏模式未设置，默认使用单人游戏
-                setGameMode(GAME_MODE_SINGLE);
-                levelSelectionDialog.show(selectedTankType);
+                if (tankTypes.length >= 1) {
+                    setGameMode(GAME_MODE_SINGLE);
+                    this.currentTankType = tankTypes[0];
+                    levelSelectionDialog.show(currentTankType);
+                } else {
+                    showMessage("请先选择游戏模式和坦克类型");
+                }
                 break;
         }
     }
@@ -559,24 +617,39 @@ public class GameView {
     /**
      * 以指定的坦克类型和关卡开始游戏
      * 
-     * @param selectedTankType 选择的坦克类型
-     * @param level            选择的关卡
+     * @param tankTypes 坦克类型参数数组，根据游戏模式解析：
+     *                 - 单人模式：数组第一个元素为玩家坦克类型
+     *                 - 双人模式：数组前两个元素分别为玩家1和玩家2的坦克类型
+     *                 - 在线模式：根据在线模式需求解析
+     * @param level 选择的关卡
      */
-    public void startGameWithLevel(String selectedTankType, int level) {
+    public void startGameWithLevel(String[] tankTypes, int level) {
         GameStarterController starter = getGameStarter();
         if (starter != null) {
             switch (currentGameMode) {
                 case GAME_MODE_SINGLE:
-                    starter.startGame(selectedTankType, level);
-                    break;
-                case GAME_MODE_MULTI:
-                    if (starter instanceof MultiPlayerGameStarter) {
-                        showMessage("双人游戏启动失败：请使用正确的方法启动双人游戏");
+                    // 单人游戏模式只需要第一个坦克类型
+                    if (tankTypes.length >= 1) {
+                        starter.startGame(tankTypes[0], level);
+                    } else {
+                        showMessage("单人游戏需要指定坦克类型");
                     }
                     break;
+                    
+                case GAME_MODE_MULTI:
+                    // 双人游戏模式需要两种坦克类型
+                    if (tankTypes.length >= 2 && starter instanceof MultiPlayerGameStarter) {
+                        MultiPlayerGameStarter multiStarter = (MultiPlayerGameStarter) starter;
+                        multiStarter.startGame(tankTypes[0], tankTypes[1], level);
+                    } else {
+                        showMessage("双人游戏需要指定两种坦克类型");
+                    }
+                    break;
+                    
                 case GAME_MODE_ONLINE:
                     showMessage("联机游戏启动功能尚未实现");
                     break;
+                    
                 default:
                     showMessage("无效的游戏模式");
                     break;
@@ -744,35 +817,61 @@ public class GameView {
         Platform.runLater(() -> {
             // 关闭暂停菜单
             closePauseMenu();
-
+            
+            // 获取当前关卡和坦克信息
+            int currentLevel = 1;
+            String[] tankTypes = null;
+            
             switch (currentGameMode) {
                 case GAME_MODE_SINGLE:
                     if (singleGameController != null) {
-                        // 获取当前关卡和坦克类型
-                        int currentLevel = singleGameController.getCurrentLevel();
-                        String tankType = singleGameController.getPlayerTank().getTypeString();
-
-                        // 使用游戏状态服务重启游戏
-                        gameStateService.restartGame(singleGameController, tankType, currentLevel);
+                        currentLevel = singleGameController.getCurrentLevel();
+                        if (singleGameController.getPlayerTank() != null) {
+                            tankTypes = new String[]{singleGameController.getPlayerTank().getTypeString()};
+                        } else {
+                            tankTypes = new String[]{currentTankType}; // 使用默认或上次选择的坦克类型
+                        }
+                    } else {
+                        tankTypes = new String[]{currentTankType};
                     }
                     break;
+                    
                 case GAME_MODE_MULTI:
-                    // 重启双人游戏
                     if (multiGameController != null) {
-                        // gameStateService.restartGame(multiGameController,
-                        // p1TankType, // 使用存储的玩家1坦克类型
-                        // multiGameController.getCurrentLevel());
+                        currentLevel = multiGameController.getCurrentLevel();
+                        tankTypes = new String[]{p1TankType, p2TankType};
+                    } else {
+                        tankTypes = new String[]{p1TankType, p2TankType};
                     }
                     break;
+                    
                 case GAME_MODE_ONLINE:
-                    // 重启联机游戏
-                    if (onlineGameController != null) {
-                        // gameStateService.restartGame(onlineGameController,
-                        // currentTankType, // 使用当前坦克类型
-                        // onlineGameController.getCurrentLevel());
-                    }
-                    break;
+                    // 处理在线游戏模式的重启逻辑
+                    return; // 暂时返回，因为尚未实现
             }
+            
+            // 为防止空引用，设置默认值
+            if (tankTypes == null || tankTypes.length == 0) {
+                tankTypes = new String[]{"standard"};
+            }
+            
+            // 强制清理所有游戏资源
+            cleanupGameResources();
+            
+            // 确保游戏设置为非暂停状态
+            setGamePaused(false);
+            
+            // 记录最终要使用的参数
+            final int finalLevel = currentLevel;
+            final String[] finalTankTypes = tankTypes;
+            
+            // 短暂延迟后启动游戏，确保清理完成
+            javafx.animation.PauseTransition delay = new javafx.animation.PauseTransition(javafx.util.Duration.millis(100));
+            delay.setOnFinished(event -> {
+                // 重新启动游戏
+                startGameWithLevel(finalTankTypes, finalLevel);
+            });
+            delay.play();
         });
     }
 
