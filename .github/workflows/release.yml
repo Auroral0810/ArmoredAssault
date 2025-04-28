@@ -98,7 +98,7 @@ jobs:
             --win-shortcut \
             --win-menu \
             --icon src/main/resources/images/logo/tank_logo.ico \
-            --app-version 1.0.0 \
+            --app-version 1.1.0 \
             --vendor "NAU-YYF" \
             --dest release
             
@@ -123,7 +123,7 @@ jobs:
             --main-class com.nau_yyf.ArmoredAssaultApplication \
             --type dmg \
             --icon src/main/resources/images/logo/tank_logo.icns \
-            --app-version 1.0.0 \
+            --app-version 1.1.0 \
             --vendor "NAU-YYF" \
             --mac-package-name "ArmoredAssault" \
             --dest release
@@ -153,7 +153,7 @@ jobs:
             --type deb \
             --linux-shortcut \
             --linux-app-category "Game" \
-            --app-version 1.0.0 \
+            --app-version 1.1.0 \
             --vendor "NAU-YYF" \
             --icon src/main/resources/images/logo/tank_logo.png \
             --dest release
@@ -203,7 +203,7 @@ jobs:
   release:
     name: Create Release
     needs: build
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/')  # 这是关键条件
     runs-on: ubuntu-latest
     
     steps:
@@ -233,4 +233,3 @@ jobs:
           name: ArmoredAssault ${{ github.ref_name }}
           body: |
             ## ArmoredAssault Release ${{ github.ref_name }}
-            
