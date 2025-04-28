@@ -3,9 +3,11 @@ package com.nau_yyf.controller;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.nau_yyf.model.*;
+import com.nau_yyf.service.serviceImpl.SingleGameLoopServiceImpl;
 import com.nau_yyf.util.MapLoader;
 import com.nau_yyf.view.GameScreen;
 import com.nau_yyf.view.GameView;
+import com.nau_yyf.view.singleGame.SinglePlayerGameScreen;
 import javafx.application.Platform;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
@@ -913,7 +915,7 @@ public class SingleGameController implements GameController {
     }
 
     /**
-     * 重生玩家坦克
+     * 重生玩家坦克 - 不重置生命值
      */
     public void respawnPlayerTank(String tankType, int x, int y) {
         // 确保位置对齐到网格
@@ -929,8 +931,8 @@ public class SingleGameController implements GameController {
 
         // 设置复活无敌状态
         playerTank.setRespawnInvincible(true);
-
-
+        
+        // 不在这里设置playerLives - 这是导致问题的原因
     }
 
     /**
@@ -1166,7 +1168,18 @@ public class SingleGameController implements GameController {
                 if (!tank.isFriendly() && isDestroyed) {
                     // 增加已击败敌方坦克计数
                     enemyTanksDestroyed++;
-
+                    
+                    // 添加关卡完成检查 - 确保在每次敌人被摧毁时都检查是否完成关卡
+                    if (enemyTanksDestroyed >= totalEnemyTanksToGenerate && enemyTanks.isEmpty()) {
+                        if (gameView != null && gameView.getGameStateService() != null) {
+                            Platform.runLater(() -> {
+                                if (gameView.getGameScreen() instanceof SinglePlayerGameScreen) {
+                                    ((SinglePlayerGameScreen)gameView.getGameScreen()).showLevelCompletedMessage(this);
+                                }
+                            });
+                        }
+                    }
+                    
                     // 修改这部分逻辑：只要当前生成的敌方坦克数小于总目标数量，就安排新坦克生成
                     if (enemyTanksGenerated < totalEnemyTanksToGenerate) {
                         tankRespawnTimes.add(System.currentTimeMillis() + 2000); // 改为2秒后生成
@@ -1386,9 +1399,10 @@ public class SingleGameController implements GameController {
 
         // 如果坦克被摧毁，立即通知GameView
         if (tankDestroyed || playerTank.isDead()) {
-
             // 确保健康值设为0
             playerTank.setHealth(0);
+
+            // 不要在这里减少生命数，只通知事件处理
 
             // 通知GameView处理玩家死亡
             if (eventListener != null) {
@@ -1730,7 +1744,6 @@ public class SingleGameController implements GameController {
             
             // 重要：保存游戏时长而不是时间戳
             long gameTimeInMillis = gameView.getTotalGameTime();
-            System.out.println("保存游戏时长: " + gameTimeInMillis + "毫秒");
             saveData.setGameTime(gameTimeInMillis);
             
             saveData.setScore(gameView.getScore());
@@ -1970,8 +1983,86 @@ public class SingleGameController implements GameController {
                 }
             }
 
+            // 重要：正确的重置和重启游戏循环流程
+            if (gameView != null) {
+                // 先确保GameView知道当前的控制器是谁
+                gameView.setGameController(this);
+                
+                // 停止旧的游戏循环
+                gameView.stopGameLoop();
+                
+                // 这里需要先完成界面初始化，确保gameDataPanel不为null
+                // 使用SinglePlayerGameScreen的show方法初始化游戏界面
+                Platform.runLater(() -> {
+                    // 确保游戏界面已初始化
+                    if (gameView.getGameScreen() instanceof SinglePlayerGameScreen) {
+                        ((SinglePlayerGameScreen) gameView.getGameScreen()).show(this);
+                    }
+                    
+                    // 设置游戏数据
+                    gameView.setPlayerLives(saveData.getPlayerLives());
+                    gameView.setScore(saveData.getScore());
+                    gameView.setBulletCount(saveData.getBulletCount());
 
-            return true;
+                    // 设置时间
+                    gameView.setTotalGameTime(saveData.getGameTime());
+                    
+                    // 更新UI显示
+                    gameView.updateHealthDisplay();
+                    gameView.updateBulletDisplay();
+                    gameView.updatePowerUpUIDisplay();
+                    
+                    // 最后，重置游戏开始时间并启动游戏循环
+                    gameView.resetGameStartTime();
+                    gameView.startGameLoop();
+                });
+            }
+
+            // 在loadGame方法的最后部分，修改重启游戏循环的代码
+
+            // 重要：确保彻底重置游戏循环
+            if (gameView != null) {
+                // 先停止现有游戏循环并等待一小段时间确保完全停止
+                gameView.stopGameLoop();
+                
+                // 强制垃圾回收，确保旧的AnimationTimer被释放
+                System.gc();
+                
+                Platform.runLater(() -> {
+                    try {
+                        // 短暂延迟确保UI和循环完全停止
+                        Thread.sleep(50);
+                        
+                        // 重置游戏相关的时间变量
+                        gameView.resetGameStartTime();
+                        
+                        // 设置游戏总时间
+                        gameView.setTotalGameTime(saveData.getGameTime());
+                        
+                        // 确保GameScreen获得正确的lastUpdateTime
+                        if (gameScreen != null) {
+                            gameScreen.setLastUpdateTime(System.currentTimeMillis());
+                        }
+                        
+                        // 更新所有UI显示
+                        gameView.updateHealthDisplay();
+                        gameView.updateBulletDisplay();
+                        gameView.updatePowerUpUIDisplay();
+                        
+                        // 启动全新的游戏循环，确保使用正确的帧率
+                        gameView.startGameLoop();
+                        
+                        // 确保画布获得焦点以正确接收键盘输入
+                        if (gameView.getGameCanvas() != null) {
+                            gameView.getGameCanvas().requestFocus();
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
+
+            return true; // 加载成功
 
         } catch (Exception e) {
             System.err.println("加载游戏失败: " + e.getMessage());

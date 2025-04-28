@@ -21,6 +21,7 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
     private long gameStartTime;
     private long lastUpdateTime;
     private boolean wasGamePaused = false;
+    private AnimationTimer gameLoop;
 
     public SingleGameLoopServiceImpl(GameView gameView, EffectService effectService, PlayerService playerService) {
         this.gameView = gameView;
@@ -45,7 +46,13 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
         gameStartTime = System.currentTimeMillis();
         lastUpdateTime = gameStartTime;
         
-        AnimationTimer gameLoop = new AnimationTimer() {
+        // 确保任何旧的循环都被停止
+        if (gameLoop != null) {
+            gameLoop.stop();
+            gameLoop = null;
+        }
+        
+        AnimationTimer newGameLoop = new AnimationTimer() {
             private long lastFrameTime = 0;
             private long focusCheckTime = 0;
             private final long FRAME_TIME = 16_666_667; // 约60FPS (纳秒)
@@ -72,38 +79,16 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
                 
                 // 计算时间差，设置合理的最大值防止异常
                 long deltaTime = currentTime - lastTime;
-                if (deltaTime > 1000) { // 如果时间差大于1秒，可能是暂停后恢复或其他异常情况
+                if (deltaTime > 100) { // 如果时间差大于100ms，可能是暂停后恢复或其他异常情况
                     deltaTime = 16; // 使用一个标准帧时间(约60FPS)
+                    System.out.println("警告: 检测到异常大的时间步长，已调整为16ms");
                 }
                 
                 // 更新游戏总时间
                 long totalGameTime = gameScreen.getTotalGameTime() + deltaTime;
                 gameScreen.setTotalGameTime(totalGameTime);
                 
-                // 使用Platform.runLater确保UI更新在JavaFX线程中进行
-                Platform.runLater(() -> {
-                    // 更新时间显示
-                    long seconds = totalGameTime / 1000;
-                    long minutes = seconds / 60;
-                    seconds = seconds % 60;
-                    
-                    Text timeInfo = gameScreen.getTimeInfo();
-                    if (timeInfo != null) {
-                        timeInfo.setText(String.format("%02d:%02d", minutes, seconds));
-                    }
-                });
-                
-                // 更新子弹补充逻辑
-                updateBulletRefill(controller, gameScreen);
-                
-                // 更新最后更新时间
-                gameScreen.setLastUpdateTime(currentTime);
-                
-                // 如果有时间更新回调，则调用
-                if (timeUpdateCallback != null) {
-                    timeUpdateCallback.update(totalGameTime);
-                }
-                
+                // 使用固定时间步长更新逻辑，避免速度不一致
                 if (lastFrameTime == 0) {
                     lastFrameTime = now;
                     return;
@@ -113,22 +98,33 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
                 double frameDeltaTime = (now - lastFrameTime) / 1_000_000_000.0;
                 lastFrameTime = now;
                 
-                // 防止过大的时间步长
-                if (frameDeltaTime > 0.25)
-                    frameDeltaTime = 0.25;
+                // 防止过大的时间步长导致游戏速度异常
+                if (frameDeltaTime > 0.1) {
+                    frameDeltaTime = 0.1;
+                }
                 
                 // 积累时间用于固定时间步长
                 accumulator += frameDeltaTime;
                 
-                // 执行固定时间步长的逻辑更新
-                while (accumulator >= TIME_STEP) {
+                // 执行固定时间步长的逻辑更新，确保游戏速度一致
+                int stepCount = 0;
+                while (accumulator >= TIME_STEP && stepCount < 5) { // 限制最大步数避免死循环
                     updateGame(singleController, TIME_STEP);
                     accumulator -= TIME_STEP;
+                    stepCount++;
                 }
+                
+                // 更新最后更新时间
+                gameScreen.setLastUpdateTime(currentTime);
                 
                 // 渲染画面
                 if (renderCallback != null) {
                     renderCallback.run();
+                }
+                
+                // 如果有时间更新回调，则调用
+                if (timeUpdateCallback != null) {
+                    timeUpdateCallback.update(totalGameTime);
                 }
                 
                 // 定期检查焦点
@@ -145,10 +141,13 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
             }
         };
         
-        // 启动游戏循环
-        gameLoop.start();
+        // 保存游戏循环引用以便后续管理
+        gameLoop = newGameLoop;
         
-        return gameLoop;
+        // 启动游戏循环
+        newGameLoop.start();
+        
+        return newGameLoop;
     }
 
     /**
@@ -282,8 +281,6 @@ public class SingleGameLoopServiceImpl implements GameLoopService {
             // 更新补充时间
             gameScreen.setLastBulletRefillTime(currentTime);
             
-            // 调试输出
-            System.out.println("补充子弹! 新数量: " + newBulletCount);
             
             // 确保UI更新 - 使用安全类型转换
             Platform.runLater(() -> {

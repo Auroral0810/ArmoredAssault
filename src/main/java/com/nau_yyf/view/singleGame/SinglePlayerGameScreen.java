@@ -113,7 +113,6 @@ public class SinglePlayerGameScreen implements GameScreen {
             // 强制更新一次
             if (timeInfo != null) {
                 updateTimeDisplay(getTotalGameTime());
-                System.out.println("初始化时间显示: " + timeInfo.getText());
                 
                 // 同时也确保子弹显示更新
                 updateBulletDisplay(bulletCount);
@@ -458,7 +457,6 @@ public class SinglePlayerGameScreen implements GameScreen {
                     if (!enemiesValue.getText().equals(newValue)) {
                         String oldValue = enemiesValue.getText();
                         enemiesValue.setText(newValue);
-                        System.out.println("敌人目标显示更新: " + oldValue + " -> " + newValue);
 
                         // 强制敌人值颜色变化以引起注意
                         Color originalColor = gameView.getTextColor();
@@ -611,10 +609,8 @@ public class SinglePlayerGameScreen implements GameScreen {
      * 更新子弹显示
      */
     public void updateBulletDisplay(int bulletCount) {
-        System.out.println("更新子弹显示UI: " + bulletCount);
         
         if (gameDataPanel == null) {
-            System.err.println("错误: gameDataPanel为null，无法更新子弹显示");
             return;
         }
         
@@ -634,7 +630,6 @@ public class SinglePlayerGameScreen implements GameScreen {
                             Text value = (Text) box.getChildren().get(1);
                             String oldValue = value.getText();
                             value.setText(Integer.toString(bulletCount));
-                            System.out.println("子弹显示更新: " + oldValue + " -> " + bulletCount);
                             
                             // 强制子弹值颜色变化以引起注意
                             value.setFill(Color.YELLOW);
@@ -652,14 +647,12 @@ public class SinglePlayerGameScreen implements GameScreen {
             }
             
             if (!updated) {
-                System.err.println("警告: 未找到子弹显示组件，无法更新");
                 
                 // 尝试使用ID查询
                 VBox bulletInfo = (VBox) gameDataPanel.lookup("#bulletInfo");
                 if (bulletInfo != null && bulletInfo.getChildren().size() > 1) {
                     Text value = (Text) bulletInfo.getChildren().get(1);
                     value.setText(Integer.toString(bulletCount));
-                    System.out.println("通过ID更新子弹显示: " + bulletCount);
                 } else {
                     System.err.println("通过ID查找也失败，需要重建子弹显示组件");
                     // 这里可以添加重建组件的逻辑
@@ -681,12 +674,18 @@ public class SinglePlayerGameScreen implements GameScreen {
         // 获取PlayerService
         PlayerService playerService = gameView.getPlayerService();
 
+        // 先减少一条生命
+        this.playerLives = playerLives - 1;
+        
+        // 更新UI显示
+        gameView.setPlayerLives(this.playerLives);
+        
         // 使用PlayerService处理玩家坦克被摧毁
         boolean playerRespawned = playerService.handlePlayerDestroyed(
-                singleGameController, currentTankType, playerLives);
+                singleGameController, currentTankType, this.playerLives);
 
         // 如果玩家未重生，显示游戏结束
-        if (!playerRespawned && gameView.getPlayerLives() <= 0) {
+        if (!playerRespawned && this.playerLives <= 0) {
             showGameOverScreen(singleGameController);
         }
     }
@@ -720,7 +719,7 @@ public class SinglePlayerGameScreen implements GameScreen {
     /**
      * 显示关卡完成消息 - 单人游戏专用
      */
-    private void showLevelCompletedMessage(SingleGameController singleGameController) {
+    public void showLevelCompletedMessage(SingleGameController singleGameController) {
         if (gameView.getRoot().lookup("#levelCompletedMessage") != null)
             return;
 
@@ -760,7 +759,6 @@ public class SinglePlayerGameScreen implements GameScreen {
      */
     @Override
     public void setTotalGameTime(long time) {
-        System.out.println("设置游戏总时间: " + time + "毫秒");
         this.totalGameTime = time;
         
         // 使用Platform.runLater确保在JavaFX线程中更新UI
@@ -774,7 +772,6 @@ public class SinglePlayerGameScreen implements GameScreen {
                 
                 // 直接设置文本
                 timeInfo.setText(formattedTime);
-                System.out.println("时间显示更新为: " + formattedTime);
                 
                 // 强制时间值颜色变化以引起注意
                 timeInfo.setFill(Color.YELLOW);
@@ -898,7 +895,6 @@ public class SinglePlayerGameScreen implements GameScreen {
         // 如果子弹数量没有变化，不更新UI
         if (this.bulletCount == count) return;
         
-        System.out.println("设置子弹数量: " + count + "（之前: " + this.bulletCount + "）");
         this.bulletCount = count;
         
         // 使用Platform.runLater确保在JavaFX线程中更新UI
@@ -1010,7 +1006,6 @@ public class SinglePlayerGameScreen implements GameScreen {
         
         String formattedTime = String.format("%02d:%02d", minutes, seconds);
         timeInfo.setText(formattedTime);
-        System.out.println("直接更新时间显示: " + formattedTime);
     }
 
 }

@@ -135,10 +135,7 @@ public class SinglePlayerServiceImpl implements PlayerService {
             return false;
         }
         
-        // 减少玩家生命值
-        lives--;
-        
-        // 更新UI中的生命显示
+        // 确保UI显示正确
         gameView.setPlayerLives(lives);
         
         // 判断是否游戏结束

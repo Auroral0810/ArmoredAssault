@@ -134,7 +134,6 @@ public class MultiKeyboardTest extends Application {
         gameCanvas.setOnKeyPressed(event -> {
             String code = event.getCode().toString();
             if (code.equals("ESCAPE")) {
-                System.out.println("退出测试程序");
                 Platform.exit();
             } else {
                 keyboardService.handleKeyPressed(event, false, false);
