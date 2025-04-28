@@ -3,8 +3,6 @@ package com.nau_yyf;
 import com.nau_yyf.updater.UpdateManager;
 import com.nau_yyf.view.GameView;
 import javafx.application.Application;
-import javafx.scene.Scene;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 /**
@@ -28,19 +26,15 @@ public class ArmoredAssaultApplication extends Application {
     @Override
     public void start(Stage primaryStage) {
         try {
-            // 检查更新
-            UpdateManager.checkForUpdates();
+            // 检查更新（已设置离线模式，不会阻止游戏启动）
+            boolean updateInProgress = UpdateManager.checkForUpdates();
             
-            // 继续初始化游戏
-            StackPane root = new StackPane();
-            Scene scene = new Scene(root, 1280, 720);
-            primaryStage.setScene(scene);
-            primaryStage.setTitle("坦克大作战");
-            primaryStage.setResizable(false);
-            
-            // 显示游戏主界面
-            GameView gameView = new GameView(root, primaryStage);
-            gameView.showMainMenu();
+            // 如果不在更新过程中，则启动游戏
+            if (!updateInProgress) {
+                // 创建游戏视图并显示主菜单
+                GameView gameView = new GameView(primaryStage);
+                gameView.showMainMenu();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

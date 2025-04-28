@@ -22,7 +22,7 @@ javafx {
 }
 
 application {
-    mainClass = 'com.nau_yyf.Main'
+    mainClass = 'com.nau_yyf.ArmoredAssaultApplication'
 }
 
 jlink {
@@ -31,7 +31,7 @@ jlink {
         name = 'ArmoredAssault'
     }
     jpackage {
-        imageOptions = ['--icon', 'src/main/resources/images/logo/logo.ico']
+        imageOptions = []
         installerOptions = [
                 '--vendor', '坦克大作战',
                 '--app-version', project.version,
@@ -40,14 +40,15 @@ jlink {
         
         if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
             installerType = 'msi'
-            installerOptions += ['--win-shortcut', '--win-menu']
+            installerOptions += ['--win-shortcut', '--win-menu', '--icon', 'src/main/resources/images/logo/logo.ico']
         }
         if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
             installerType = 'dmg'
+            installerOptions += ['--icon', 'src/main/resources/images/logo/logo.icns']
         }
         if (org.gradle.internal.os.OperatingSystem.current().isLinux()) {
             installerType = 'deb'
-            installerOptions += ['--linux-shortcut']
+            installerOptions += ['--linux-shortcut', '--icon', 'src/main/resources/images/logo/logo.png']
         }
     }
 }
